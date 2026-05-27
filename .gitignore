@@ -135,6 +135,17 @@ dmypy.json
 !**/migrations
 !**/migrations/__init__.py
 
+# Think4U: 客製化 app + base 的 schema 變動需要進版控才能部署
+!think4u/migrations/*.py
+!base/migrations/0003_rolepagevisibility.py
+!base/migrations/0004_alter_rolepagevisibility_group.py
+!base/migrations/0005_groupactivestatus.py
+!base/migrations/0006_alter_rolepagevisibility_sidebar_key.py
+!base/migrations/0007_department_parent_department.py
+!base/migrations/0008_department_manager.py
+!base/migrations/0009_jobposition_default_role.py
+!attendance/migrations/0003_*.py
+
 # media file
 media/
 
