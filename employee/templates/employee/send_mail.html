@@ -1,5 +1,10 @@
 {% load i18n %}
+{% load static %}
 {% comment %} # 875 {% endcomment %}
+
+{# Think4U: summernote 只在這個頁面用到，移出 base index.html 後在這裡載入 #}
+<link rel="stylesheet" href="{% static 'build/css/summernote-lite.min.css' %}" />
+<script src="{% static 'build/js/summernote-lite.min.js' %}"></script>
 <button hidden id="previewHxButton"
         hx-post="{% url 'get-employee-mail-preview' %}?{% if employee %}emp_id={{ employee.id }}&{% endif %}"
         hx-target="#preview"

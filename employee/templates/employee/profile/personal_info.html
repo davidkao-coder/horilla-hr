@@ -14,16 +14,12 @@
                     </div>
                 </div>
                 {{form.employee_profile.errors}}
+                {% comment %}Think4U: 姓名合併為單一欄位{% endcomment %}
                 <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label" for="firstname">{% trans "First Name" %}</label>
+                    <div class="col-12">
+                        <label class="oh-label" for="firstname">{% trans "姓名" %}</label>
                         {{form.employee_first_name}}
                         {{form.employee_first_name.errors}}
-                    </div>
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label" for="lastname">{% trans "Last Name" %}</label>
-                        {{form.employee_last_name}}
-                        {{form.employee_last_name.errors}}
                     </div>
                 </div>
                 <div class="row">
@@ -46,52 +42,14 @@
                         {{form.gender}} {{form.gender.errors}}
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="{{form.qualification.id_for_label}}">
-                            {% trans "Qualification" %}
-                        </label>
-                        {{form.qualification}} {{form.qualification.errors}}
-                    </div>
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="{{form.experience.id_for_label}}">
-                            {% trans "Experience" %}
-                        </label>
-                        {{form.experience}} {{form.experience.errors}}
-                    </div>
-                </div>
+                {% comment %}Think4U: 移除 Qualification / Experience 欄位{% endcomment %}
                 <div class="row">
                     <div class="col-12 col-sm-12 col-md-12 col-lg-12">
                         <label class="oh-label" for="address">{% trans "Address" %}</label>
                         {{form.address}} {{form.address.errors}}
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label" for="{{ form.country.id_for_label }}">{% trans "Country" %}</label>
-                        <select class="oh-select-2 oh-select w-100" name="country" id="{{ form.country.id_for_label }}"
-                            data-selected="{{ form.country.value|default:'' }}">
-                        </select>
-                        {{ form.country.errors }}
-                    </div>
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="{{ form.state.id_for_label }}">{% trans "State" %}</label>
-                        <select name="state" class="oh-select oh-select-2" id="{{ form.state.id_for_label }}"
-                            data-selected="{{ form.state.value|default:'' }}">
-                        </select>
-                        {{ form.country.errors }}
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="state">{% trans "City" %}</label>
-                        {{form.city}} {{form.city.errors}}
-                    </div>
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="state">{% trans "Zip Code" %}</label>
-                        {{form.zip}} {{form.zip.errors}}
-                    </div>
-                </div>
+                {% comment %}Think4U: 移除 Country / State / City / Zip 欄位{% endcomment %}
                 <div class="row">
                     <div class="col-12 col-sm-12 col-md-12 col-lg-6">
                         <label class="oh-label d-block" for="state">{% trans "Emergency Contact" %}</label>
@@ -112,17 +70,9 @@
                         {{form.emergency_contact_relation}}
                         {{form.emergency_contact_relation.errors}}
                     </div>
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="marital_status">{% trans "Marital Status" %}</label>
-                        {{form.marital_status}} {{form.marital_status.errors}}
-                    </div>
+                    {% comment %}Think4U: 移除 Marital Status 欄位{% endcomment %}
                 </div>
-                <div class="row">
-                    <div class="col-12 col-sm-12 col-md-12 col-lg-6">
-                        <label class="oh-label d-block" for="children">{% trans "Children" %}</label>
-                        {{form.children}} {{form.children.errors}}
-                    </div>
-                </div>
+                {% comment %}Think4U: 移除 Children 欄位{% endcomment %}
                 <hr class="mt-5 mb-3" />
                 <div class="w-100 d-flex align-items-center justify-content-end">
                     <button type="submit" class="oh-btn oh-btn--secondary oh-btn--w-100-resp">

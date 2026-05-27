@@ -1,0 +1,92 @@
+{% extends 'index.html' %}
+{% load static i18n %}
+
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">
+                {% trans "Employee Leave Overview" %} — {{ year }}
+            </h1>
+        </div>
+    </section>
+
+    <section class="oh-card mb-3" style="padding:1rem;">
+        <form method="get" class="row gx-2 gy-2 align-items-end">
+            <div class="col-md-4">
+                <label class="oh-label">{% trans "Employee" %}</label>
+                <select name="employee" class="oh-select oh-select-2">
+                    <option value="">{% trans "All" %}</option>
+                    {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if selected_employee == emp.id|stringformat:"s" %}selected{% endif %}>
+                            {{ emp.get_full_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="oh-label">{% trans "Leave Type" %}</label>
+                <select name="leave_type" class="oh-select oh-select-2">
+                    <option value="">{% trans "All" %}</option>
+                    {% for lt in leave_types %}
+                        <option value="{{ lt.id }}" {% if selected_leave_type == lt.id|stringformat:"s" %}selected{% endif %}>
+                            {{ lt.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="oh-btn oh-btn--secondary w-100">{% trans "Filter" %}</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table class="oh-table" style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f5f5f5; border-bottom:2px solid #ddd;">
+                    <th style="padding:8px; text-align:left;">{% trans "Employee" %}</th>
+                    <th style="padding:8px; text-align:left;">{% trans "Department" %}</th>
+                    <th style="padding:8px; text-align:left;">{% trans "Leave Type" %}</th>
+                    <th style="padding:8px; text-align:right;">{% trans "Allocated" %}</th>
+                    <th style="padding:8px; text-align:right;">{% trans "Carried Forward" %}</th>
+                    <th style="padding:8px; text-align:right;">{% trans "Used (this year)" %}</th>
+                    <th style="padding:8px; text-align:right; background:#fff7e6;">{% trans "Remaining" %}</th>
+                    <th style="padding:8px; text-align:center;">{% trans "Valid Period" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ r.employee.get_full_name }}</td>
+                    <td style="padding:8px;">
+                        {% if r.employee.employee_work_info and r.employee.employee_work_info.department_id %}
+                            {{ r.employee.employee_work_info.department_id.department }}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td style="padding:8px;">
+                        <span style="display:inline-block; width:10px; height:10px; background:{{ r.leave_type.color|default:'#888' }}; border-radius:50%; margin-right:6px;"></span>
+                        {{ r.leave_type.name }}
+                    </td>
+                    <td style="padding:8px; text-align:right;">{{ r.total_days }}</td>
+                    <td style="padding:8px; text-align:right;">{{ r.carryforward }}</td>
+                    <td style="padding:8px; text-align:right;">{{ r.used_this_year }}</td>
+                    <td style="padding:8px; text-align:right; font-weight:bold; color:{% if r.available <= 0 %}#dc3545{% elif r.available < 3 %}#fd7e14{% else %}#28a745{% endif %};">
+                        {{ r.available }}
+                    </td>
+                    <td style="padding:8px; text-align:center; font-size:0.9em; color:#666;">
+                        {{ r.period_start|date:"Y-m-d" }} ~ {{ r.period_end|date:"Y-m-d" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" style="padding:24px; text-align:center; color:#999;">
+                        {% trans "No leave allocation records." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock content %}

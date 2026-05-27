@@ -5329,3 +5329,104 @@ def leave_allocation_approve(request):
             # "current_date":date.today(),
         },
     )
+
+
+# ==============================================================================
+# Think4U WP-X.7: 員工請假總覽
+# ==============================================================================
+from django.db.models import Sum
+
+from horilla.decorators import login_required
+
+
+@login_required
+def employee_leave_overview(request):
+    """
+    Think4U客製：列出全員工各假別的
+      - 總配給天數
+      - 今年已休天數
+      - 剩餘可休天數
+      - 可用區間（assigned_date ~ expired_date 或當年 12/31）
+    HR / 主管 / superuser 可看全公司；一般員工只看自己。
+    """
+    from base.templatetags.basefilters import is_reportingmanager
+    from employee.models import Employee
+    from leave.models import AvailableLeave, LeaveRequest, LeaveType
+
+    user = request.user
+    is_admin = user.is_superuser or user.has_perm("leave.view_availableleave")
+    is_manager = is_reportingmanager(user)
+
+    # 員工過濾
+    if is_admin:
+        employees_qs = Employee.objects.filter(is_active=True)
+    elif is_manager:
+        # 主管 → 自己 + 直屬下屬
+        employees_qs = Employee.objects.filter(
+            Q(employee_work_info__reporting_manager_id=user.employee_get)
+            | Q(employee_user_id=user)
+        ).distinct()
+    else:
+        # 一般員工 → 自己
+        employees_qs = Employee.objects.filter(employee_user_id=user)
+
+    # 篩選參數
+    emp_id = request.GET.get("employee")
+    lt_id = request.GET.get("leave_type")
+    if emp_id:
+        employees_qs = employees_qs.filter(id=emp_id)
+    leave_types = LeaveType.objects.all()
+    if lt_id:
+        leave_types = leave_types.filter(id=lt_id)
+
+    today = date.today()
+    year_start = date(today.year, 1, 1)
+    year_end = date(today.year, 12, 31)
+
+    # 預先聚合 LeaveRequest 已核准天數（依員工 + 假別 + 本年）
+    used_qs = (
+        LeaveRequest.objects.filter(
+            status="approved",
+            start_date__year=today.year,
+        )
+        .values("employee_id", "leave_type_id")
+        .annotate(used=Sum("requested_days"))
+    )
+    used_map = {(r["employee_id"], r["leave_type_id"]): (r["used"] or 0) for r in used_qs}
+
+    available_qs = AvailableLeave.objects.filter(
+        employee_id__in=employees_qs,
+        leave_type_id__in=leave_types,
+    ).select_related("employee_id", "leave_type_id")
+
+    rows = []
+    for av in available_qs:
+        used = used_map.get((av.employee_id_id, av.leave_type_id_id), 0)
+        start_period = av.assigned_date or year_start
+        end_period = av.expired_date or year_end
+        rows.append(
+            {
+                "employee": av.employee_id,
+                "leave_type": av.leave_type_id,
+                "total_days": av.total_leave_days,
+                "carryforward": av.carryforward_days,
+                "used_this_year": round(used, 1),
+                "available": av.available_days,
+                "period_start": start_period,
+                "period_end": end_period,
+            }
+        )
+    rows.sort(key=lambda r: (r["employee"].employee_first_name, r["leave_type"].name))
+
+    return render(
+        request,
+        "leave/employee_leave_overview.html",
+        {
+            "rows": rows,
+            "employees": Employee.objects.filter(is_active=True) if is_admin else employees_qs,
+            "leave_types": LeaveType.objects.all(),
+            "selected_employee": emp_id,
+            "selected_leave_type": lt_id,
+            "year": today.year,
+        },
+    )

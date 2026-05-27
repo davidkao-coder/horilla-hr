@@ -156,74 +156,66 @@
 </script>
 
 <script>
+  /*
+   * Think4U FIX: 原 Horilla 程式在 doc.ready 會 $('#id_job_position_id').empty()
+   * 再用 AJAX 重建 options，但沒有觸發 select2 refresh，造成 select2 顯示為空。
+   * 加上我們已移除 job_role_id 欄位，那段邏輯整批會出錯。
+   *
+   * 新邏輯：
+   *  - 利用 server 端已渲染好的所有職位（label 已含部門名）作為初始值
+   *  - 員工存檔時不再依賴 doc.ready cascade
+   *  - 但仍提供 onchange 過濾：使用者改部門 → 即時過濾職位 dropdown
+   *  - 任何重建後一律 trigger select2 refresh
+   */
   $(document).ready(function () {
-    // Get the selected department ID and the initial selected job position
-    var departmentId = $("#id_department_id").val();
-    var selectedJobPosition = $("#id_job_position_id").val();
-    var selectedJobRole = $("#id_job_role_id").val();
+    function refreshSelect2($el) {
+      if ($el.hasClass("oh-select-2") || $el.hasClass("select2-hidden-accessible")) {
+        try { $el.trigger("change.select2"); } catch (e) {}
+      }
+    }
 
-    // Make AJAX request to fetch available job positions for the selected department
-    $.ajax({
-      url: '{% url "get-job-positions" %}',
-      method: "GET",
-      data: {
-        department_id: departmentId,
-      },
-      success: function (data) {
-        // Clear existing options in the Job Position dropdown
-        $("#id_job_position_id").empty();
-        $("#id_job_position_id").append(
-          $("<option>", {
-            value: "",
-            text: "---Choose Job Position---",
-          })
-        );
-        // Append new options based on the response
-        $.each(data.job_positions, function (key, value) {
-          $("#id_job_position_id").append(
-            $("<option>", {
-              value: key,
-              text: value,
-            })
-          );
-        });
-        $("#id_job_position_id").append(
-          $("<option>", {
-            value: "create",
-            text: "Create New Job Position",
-          })
-        );
-        // Set the selected job position back to the dropdown
-        if (selectedJobPosition) {
-          $("#id_job_position_id").val(selectedJobPosition);
-        }
-      },
+    // Cache 一份「全部職位」（含部門 label）以便 reset
+    var $pos = $("#id_job_position_id");
+    var allPositionOptions = [];
+    $pos.find("option").each(function () {
+      var v = $(this).attr("value");
+      var t = $(this).text();
+      if (v === "" || v === "create") return;
+      allPositionOptions.push({
+        value: v,
+        text: t,
+        // 解析 "職位名 - (部門名)" 取得部門名
+        dept: (t.match(/\(([^)]+)\)\s*$/) || [])[1] || null,
+      });
     });
 
-    if (selectedJobPosition) {
-      $.ajax({
-        url: '{% url "get-job-roles" %}',
-        method: "GET",
-        data: {
-          job_id: selectedJobPosition,
-        },
-        success: function (data) {
-          $("#id_job_role_id").empty();
-
-          $.each(data.job_roles, function (key, value) {
-            $("#id_job_role_id").append(
-              $("<option>", {
-                value: key,
-                text: value,
-              })
-            );
-          });
-          // Set the selected job position back to the dropdown
-          if (selectedJobRole) {
-            $("#id_job_role_id").val(selectedJobRole);
-          }
-        },
+    // 監聽部門變更 → 過濾職位
+    $("#id_department_id").on("change.t4uDeptFilter", function () {
+      var deptText = $(this).find("option:selected").text().trim();
+      var currentVal = $pos.val();
+      $pos.find("option").each(function () {
+        var v = $(this).attr("value");
+        if (v === "" || v === "create") return;
+        $(this).remove();
       });
+      // 重新塞入「該部門」的職位（若 deptText 找得到的話）
+      var matched = allPositionOptions.filter(function (o) {
+        return !deptText || o.dept === deptText;
+      });
+      matched.forEach(function (o) {
+        $pos.append($("<option>", { value: o.value, text: o.text }));
+      });
+      // 若先前選擇仍在新清單裡就保留，否則清空
+      var stillValid = matched.some(function (o) {
+        return String(o.value) === String(currentVal);
+      });
+      $pos.val(stillValid ? currentVal : "");
+      refreshSelect2($pos);
+    });
+
+    // 初次載入：若已有部門，立即過濾一次
+    if ($("#id_department_id").val()) {
+      $("#id_department_id").trigger("change.t4uDeptFilter");
     }
   });
 </script>

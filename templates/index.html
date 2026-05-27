@@ -16,7 +16,6 @@
         var run = 0
     </script>
     <title class="time-runner stop-runner">{{white_label_company_name}}</title>
-    <link rel="stylesheet" href="{% static 'build/css/driver.min.css' %}" />
     <meta name="theme-color" content="orangered">
     <link rel="manifest" href="{% static 'build/manifest.json' %}">
     <link rel="apple-touch-icon" sizes="180x180"
@@ -31,16 +30,17 @@
     <link rel="stylesheet" href="{% static 'build/css/style.min.css' %}" />
     <link rel="stylesheet" href="{% static 'build/css/sweetalert2.min.css' %}" />
     <link rel="stylesheet" type="text/css" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'build/css/summernote-lite.min.css' %}" />
-    <link rel="stylesheet" href="{% static 'build/css/orgChart.css' %}" />
     <link rel="stylesheet" href="{% static '/jquery/jqueryui.css' %}">
-    <link rel="stylesheet" href="{% static 'build/css/pivottable.min.css' %}" />
+    {% comment %}
+    Think4U 效能：以下 CSS / JS 移到專屬頁面再載入
+      - summernote-lite.css/js → send_mail.html, mail/htmx/form.html
+      - orgChart.css/js        → organisation_chart/org_chart.html
+      - driver.css/js          → dashboard.html, settings.html
+    {% endcomment %}
     <script src="{% static '/jquery/ajax.js' %}"></script>
     <script src="{% static '/jquery/jquery.min.js' %}"></script>
     <script src="{% static '/jquery/jqueryui.js' %}"></script>
     <script src="{% static '/base/toggleColumn.js' %}"></script>
-    <script src="{% static '/build/js/orgChart.js' %}"></script>
-    <script src="{% static 'build/js/driver.js' %}"></script>
     <script src="{% static 'build/js/clearFilter.js' %}"></script>
 
 
@@ -148,29 +148,14 @@
                             <!-- End of check in/out button in nav bar -->
                         {% endif %}
 
-                        {% if request.user|any_permission:'base' or perms.attendance.view_attendancevalidationcondition %}
-                            <!-- Start of settings button in nav bar -->
-                            <div class="oh-navbar__action-icons" title="{% trans 'Settings' %}">
-                                <a href="{% url 'general-settings' %}" id="settingsMenu" class="oh-navbar__action-icons-link">
-                                    <ion-icon name="settings-outline" class="oh-navbar__icon"></ion-icon>
-                                </a>
-                            </div>
-                            <!-- End of settings button in nav bar -->
-                        {% endif %}
+                        {# Think4U: 拿掉 topbar 設定鈕 #}
 
                         <!-- Start of notifications button in nav bar -->
                         {% include 'notification/notification.html' %}
                         <!-- End of notifications button in nav bar -->
 
-                        <!-- Start of Languages dropdown in nav bar -->
-                        {% include "base/navbar_components/language_settings.html" %}
-                        <!-- End of Languages dropdown in nav bar -->
-
-                        {% if perms.base.change_company %}
-                            <!-- Start of Companies dropdown in nav bar -->
-                            {% include "base/navbar_components/company_selection.html" %}
-                            <!-- End of Companies dropdown in nav bar -->
-                        {% endif %}
+                        {# Think4U: 拿掉多語系切換（系統鎖定繁體中文）#}
+                        {# Think4U: 拿掉公司切換器（系統鎖定單一公司）#}
 
                         <!-- Start of profile dropdown in nav bar -->
                         {% include "navbar_component/profile_section.html" %}
@@ -232,29 +217,27 @@
     <script src="{% static '/index/index.js' %}"></script>
     <script src="{% static '/index/saveFilters.js' %}"></script>
     <script src="{% static 'build/js/htmxSelect2.js' %}"></script>
-    <script src="{% static 'build/js/summernote-lite.min.js' %}"></script>
     <script src="{% static '/index/country.js' %}"></script>
 
-    <!-- This CDN is for date format change -->
+    {# Think4U 效能：拿掉 CDN 的 moment-with-locales，本地 moment.js 已足夠 #}
     <script src="{% static 'build/js/moment.js' %}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment-with-locales.min.js"></script>
 
     <script src="{% static '/base/date_settings.js' %}"></script>
     <script src="{% static '/base/time_formatting.js' %}"></script>
     <script src="{% static '/base/time_settings.js' %}"></script>
     <script src="{% static '/base/date_formatting.js' %}"></script>
 
-    <script src="{% static 'build/js/pivottable.min.js' %}"></script>
-    <script src="{% static 'build/js/pivottable_plot.min.js' %}"></script>
-    <script src="{% static 'build/js/pivottable_ploty.min.js' %}"></script>
-    <script src="{% static 'build/js/pivottable_excel.min.js' %}"></script>
+    {% comment %}
+    Think4U 效能：拿掉以下 ~5MB JS（每頁載入但全站幾乎沒用到）
+      - pivottable.min.js + pivottable_plot/ploty/excel = 4.6MB（grep 全站 0 處 pivotUI/.pivot() 呼叫）
+      - chart.js CDN: dashboard 系列頁面已各自 include，base 不需要
+    {% endcomment %}
 
     {% if "attendance"|app_installed %}
         <script src="{% static 'attendance/actions.js' %}"></script>
     {% endif %}
     <script type="module" src="{% static 'images/ionicons/ui_icons/ionicons/ionicons.esm.js' %}"></script>
     <script src="{% static '/build/js/sweetAlert.js' %}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Clear all query parameters from the URL
         function clearQueryParameters() {

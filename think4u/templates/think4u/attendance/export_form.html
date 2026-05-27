@@ -1,0 +1,42 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "出勤 / 計薪時數匯出" %}</h1>
+    <p style="color:#666;">{% trans "選擇員工與月份，匯出 Excel 檔。" %}</p>
+
+    <form method="get" action="{% url 'think4u-attendance-export-excel' %}" class="oh-card" style="padding:1.5rem; margin-top:1rem;">
+        <div class="oh-input-group">
+            <label class="oh-label">{% trans "員工" %}</label>
+            <select name="employee" class="oh-select oh-select-2">
+                {% if is_hr %}<option value="all">{% trans "全部員工" %}</option>{% endif %}
+                {% for e in employees %}
+                    <option value="{{ e.id }}">{{ e.get_full_name }} ({{ e.employee_work_info.department_id.department|default:'—' }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="row" style="display:flex; gap:1rem;">
+            <div class="oh-input-group" style="flex:1;">
+                <label class="oh-label">{% trans "年" %}</label>
+                <input type="number" name="year" value="{{ default_year }}" min="2020" max="2050" class="oh-input">
+            </div>
+            <div class="oh-input-group" style="flex:1;">
+                <label class="oh-label">{% trans "月" %}</label>
+                <select name="month" class="oh-select">
+                    {% for m in "123456789012"|make_list|slice:":12" %}{% endfor %}
+                    {% for i in "123456789"|make_list %}<option value="{{ i }}" {% if i|add:0 == default_month %}selected{% endif %}>{{ i }} 月</option>{% endfor %}
+                    <option value="10" {% if default_month == 10 %}selected{% endif %}>10 月</option>
+                    <option value="11" {% if default_month == 11 %}selected{% endif %}>11 月</option>
+                    <option value="12" {% if default_month == 12 %}selected{% endif %}>12 月</option>
+                </select>
+            </div>
+        </div>
+        <div style="text-align:right; margin-top:1rem;">
+            <button type="submit" class="oh-btn oh-btn--secondary">
+                <ion-icon name="download-outline"></ion-icon>
+                {% trans "下載 Excel" %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

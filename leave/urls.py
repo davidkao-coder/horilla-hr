@@ -9,6 +9,12 @@ from leave.forms import RestrictLeaveForm
 from . import models, views
 
 urlpatterns = [
+    # Think4U WP-X.7: 員工請假總覽
+    path(
+        "employee-leave-overview/",
+        views.employee_leave_overview,
+        name="employee-leave-overview",
+    ),
     path("type-creation", views.leave_type_creation, name="type-creation"),
     path("type-view/", views.leave_type_view, name="type-view"),
     path(

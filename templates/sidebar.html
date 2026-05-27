@@ -174,12 +174,7 @@
                                     <a href="{% url 'multiple-approval-condition' %}" class="oh-sidebar__submenu-link">{% trans "Multiple Approvals" %}</a>
                                 </li>
                             {% endif %}
-                            {% if perms.base.view_horillamailtemplate %}
-                                <li class="oh-sidebar__submenu-item">
-                                    <a class="oh-sidebar__submenu-link" href="{% url 'view-mail-templates' %}"
-                                        class="oh-sidebar__submenu-link">{% trans "Mail Templates" %}</a>
-                                </li>
-                            {% endif %}
+                            {% comment %}Think4U: Mail Templates 隱藏（配置只留三項要求）{% endcomment %}
                             {% if "horilla_automations"|app_installed and perms.horilla_automations.view_mailautomation %}
                                 <li class="oh-sidebar__submenu-item">
                                     <a class="oh-sidebar__submenu-link" href="{% url 'mail-automations' %}"
@@ -196,9 +191,13 @@
                                     <a href="{% url 'company-leave-view' %}" class="oh-sidebar__submenu-link">{% trans "Company Leaves" %}</a>
                                 </li>
                             {% endif %}
-                            {% if "leave"|app_installed %}
+                            {% comment %}Think4U: Restrict Leaves 隱藏（配置只留三項要求）{% endcomment %}
+                            {% if request.user.is_superuser %}
                                 <li class="oh-sidebar__submenu-item">
-                                    <a href="{% url 'restrict-view' %}" class="oh-sidebar__submenu-link">{% trans "Restrict Leaves" %}</a>
+                                    <a href="{% url 'think4u-role-visibility' %}" class="oh-sidebar__submenu-link">角色維護</a>
+                                </li>
+                                <li class="oh-sidebar__submenu-item">
+                                    <a href="{% url 'think4u-approval-workflow' %}" class="oh-sidebar__submenu-link">審核關卡管理</a>
                                 </li>
                             {% endif %}
                         </ul>

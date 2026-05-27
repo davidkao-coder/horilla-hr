@@ -1,0 +1,234 @@
+{% extends 'index.html' %}
+{% load static i18n %}
+
+{% block content %}
+<script>
+function t4uConfirmSubmit(btn, msg) {
+    if (typeof Swal === 'undefined') {
+        if (window.confirm(msg)) btn.closest('form').submit();
+        return;
+    }
+    Swal.fire({
+        text: msg, icon: 'question', showCancelButton: true,
+        confirmButtonText: '確認', cancelButtonText: '取消',
+        confirmButtonColor: '#008000', cancelButtonColor: '#d33',
+    }).then(function (result) {
+        if (result.isConfirmed) btn.closest('form').submit();
+    });
+}
+</script>
+<style>
+    /* === popup modal === */
+    .t4u-modal-backdrop {
+        display: none;
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.4); z-index: 1000;
+        justify-content: center; align-items: center;
+    }
+    .t4u-modal-backdrop.show { display: flex; }
+    .t4u-modal {
+        background: white; border-radius: 12px;
+        width: 90%; max-width: 720px;
+        max-height: 85vh; display: flex; flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .t4u-modal-header {
+        padding: 16px 20px; border-bottom: 1px solid #eee;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .t4u-modal-header h2 { margin: 0; font-size: 20px; }
+    .t4u-modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+    .t4u-modal-footer {
+        padding: 12px 20px; border-top: 1px solid #eee;
+        display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .t4u-close {
+        background: none; border: none; font-size: 26px; cursor: pointer; color: #888;
+    }
+    .t4u-close:hover { color: #333; }
+
+    /* === tree === */
+    .tree-list { list-style: none; padding-left: 0; margin: 0; }
+    .tree-list li { padding: 4px 0; }
+    .tree-children { padding-left: 32px; border-left: 2px solid #eef; margin-left: 8px; }
+    .tree-children li::before { content: "└"; color: #aaa; margin-right: 6px; }
+    .tree-toggle { width: 18px; height: 18px; vertical-align: middle; cursor: pointer; }
+
+    .badge-active { background:#d4edda; color:#155724; padding:2px 10px; border-radius:12px; font-size:12px; }
+    .badge-inactive { background:#f8d7da; color:#721c24; padding:2px 10px; border-radius:12px; font-size:12px; }
+    .role-row { border-bottom: 1px solid #eee; }
+    .role-row.inactive { opacity: .55; }
+</style>
+
+<div class="oh-wrapper oh-wrapper--small">
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">{% trans "角色維護" %}</h1>
+        </div>
+    </section>
+
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    {# === 新增角色 === #}
+    <section class="oh-card mb-3" style="padding:1rem;">
+        <h3 style="margin-bottom:8px;">➕ {% trans "新增角色" %}</h3>
+        <form method="post" style="display:flex; gap:8px;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <input type="text" name="name" placeholder="{% trans '角色名稱' %}" required class="oh-input" style="flex:1;">
+            <button type="submit" class="oh-btn oh-btn--secondary">{% trans "新增" %}</button>
+        </form>
+    </section>
+
+    {# === 角色清單 === #}
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <h3 style="margin-bottom:12px;">📋 {% trans "角色清單" %}</h3>
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:10px; text-align:left;">{% trans "角色名稱" %}</th>
+                <th style="padding:10px; text-align:center;">{% trans "成員數" %}</th>
+                <th style="padding:10px; text-align:center;">{% trans "狀態" %}</th>
+                <th style="padding:10px; text-align:center; width:380px;">{% trans "操作" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for row in role_rows %}
+                <tr class="role-row {% if not row.is_active %}inactive{% endif %}">
+                    <td style="padding:10px;">
+                        <form method="post" style="display:flex; gap:4px; align-items:center;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="rename">
+                            <input type="hidden" name="pk" value="{{ row.group.pk }}">
+                            <input type="text" name="name" value="{{ row.group.name }}" class="oh-input" style="flex:1; min-width:200px;">
+                            <button type="submit" class="oh-btn oh-btn--small">{% trans "改名" %}</button>
+                        </form>
+                    </td>
+                    <td style="padding:10px; text-align:center;">{{ row.user_count }}</td>
+                    <td style="padding:10px; text-align:center;">
+                        {% if row.is_active %}
+                            <span class="badge-active">✓ 啟用</span>
+                        {% else %}
+                            <span class="badge-inactive">✗ 停用</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px;">
+                        <div style="display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
+                            <button type="button" class="oh-btn oh-btn--secondary oh-btn--small"
+                                    onclick="openVisModal('vis-modal-{{ row.group.pk }}')">
+                                ✏️ {% trans "編輯可見性" %}
+                            </button>
+                            <form method="post" style="display:inline; margin:0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="toggle">
+                                <input type="hidden" name="pk" value="{{ row.group.pk }}">
+                                {% if row.is_active %}
+                                    <button type="button" class="oh-btn oh-btn--danger oh-btn--small"
+                                        onclick="t4uConfirmSubmit(this, '確定停用「{{ row.group.name }}」？');"
+                                        {% if row.user_count > 0 %}disabled title="尚有成員"{% endif %}>
+                                        {% trans "停用" %}
+                                    </button>
+                                {% else %}
+                                    <button type="submit" class="oh-btn oh-btn--success oh-btn--small">{% trans "啟用" %}</button>
+                                {% endif %}
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+
+{# === 每個角色一個 popup modal === #}
+{% for row in role_rows %}
+<div class="t4u-modal-backdrop" id="vis-modal-{{ row.group.pk }}">
+    <div class="t4u-modal">
+        <div class="t4u-modal-header">
+            <h2>📑 {{ row.group.name }} — {% trans "頁面可見性" %}</h2>
+            <button type="button" class="t4u-close" onclick="closeVisModal('vis-modal-{{ row.group.pk }}')">×</button>
+        </div>
+        <form method="post" style="display:contents;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="visibility">
+            <input type="hidden" name="pk" value="{{ row.group.pk }}">
+            <div class="t4u-modal-body">
+                <p style="color:#888; font-size:13px; margin-bottom:14px;">
+                    勾選 = 該角色可看到該頁面。父勾選會同步勾子勾選。
+                </p>
+                <ul class="tree-list">
+                    {% for node in row.tree %}
+                    <li>
+                        <label>
+                            <input type="checkbox" class="tree-toggle parent-cb"
+                                   name="vis__{{ node.key }}"
+                                   data-modal="vis-modal-{{ row.group.pk }}"
+                                   data-parent-key="{{ node.key }}"
+                                   {% if node.visible %}checked{% endif %}>
+                            <strong>{{ node.label }}</strong>
+                        </label>
+                        {% if node.children %}
+                        <ul class="tree-list tree-children">
+                            {% for c in node.children %}
+                            <li>
+                                <label>
+                                    <input type="checkbox" class="tree-toggle child-cb"
+                                           name="vis__{{ c.key }}"
+                                           data-modal="vis-modal-{{ row.group.pk }}"
+                                           data-parent-key="{{ node.key }}"
+                                           {% if c.visible %}checked{% endif %}>
+                                    {{ c.label }}
+                                </label>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="t4u-modal-footer">
+                <button type="button" class="oh-btn" onclick="closeVisModal('vis-modal-{{ row.group.pk }}')">{% trans "取消" %}</button>
+                <button type="submit" class="oh-btn oh-btn--secondary">
+                    <ion-icon name="save-outline"></ion-icon> {% trans "儲存" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+function openVisModal(id) {
+    document.getElementById(id).classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+function closeVisModal(id) {
+    document.getElementById(id).classList.remove('show');
+    document.body.style.overflow = '';
+}
+// 點背景關閉
+document.querySelectorAll('.t4u-modal-backdrop').forEach(function (bd) {
+    bd.addEventListener('click', function (e) {
+        if (e.target === bd) closeVisModal(bd.id);
+    });
+});
+// 父勾選帶子勾選（在同一個 modal 內）
+document.querySelectorAll('.parent-cb').forEach(function (parent) {
+    parent.addEventListener('change', function () {
+        var modal = document.getElementById(parent.dataset.modal);
+        if (!modal) return;
+        modal.querySelectorAll('.child-cb[data-parent-key="' + parent.dataset.parentKey + '"]').forEach(function (c) {
+            c.checked = parent.checked;
+        });
+    });
+});
+// Esc 關閉
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.t4u-modal-backdrop.show').forEach(function (m) {
+            closeVisModal(m.id);
+        });
+    }
+});
+</script>
+{% endblock content %}

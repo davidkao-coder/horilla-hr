@@ -39,7 +39,7 @@
                     <div class="oh-input-group">
                         <label class="oh-label" for="username">{% trans "Username" %}</label>
                         <input type="text" id="username" name="username" class="oh-input w-100"
-                            placeholder="e.g. adam.luis@horilla.com" />
+                            placeholder="e.g. employee@think4u-tech.com" />
                     </div>
                     <div class="oh-input-group">
                         <label class="oh-label" for="password">{% trans "Password" %}</label>
@@ -97,14 +97,17 @@
                 {% endif %}
             </div>
             <div style="display: contents;">
-                <img src={% if white_label_company.icon %}
-                        "{{white_label_company.icon.url}}"
-                        alt="{{white_label_company_name}}"
-                        style=" opacity:.90; 200px; height: 140px;"
-                    {% else %}
-                        "{% static 'images/ui/auth-logo.png' %}" alt="Horilla"
-                    {% endif %}
-                />
+                {% if white_label_company.icon %}
+                    <img src="{{white_label_company.icon.url}}"
+                         alt="{{white_label_company_name}}"
+                         style="opacity:.90; max-width:200px; height:140px;" />
+                {% else %}
+                    {# Think4U-Tech 品牌：純文字 logo，避免使用 Horilla 原 png #}
+                    <div style="text-align:center; margin-top:24px;">
+                        <div style="font-size:42px; font-weight:bold; color:#667eea; letter-spacing:2px; font-family:Arial,sans-serif;">Think4U-Tech</div>
+                        <div style="font-size:13px; color:#999; margin-top:4px;">人事管理系統 · HRMS</div>
+                    </div>
+                {% endif %}
                 {% if white_label_company %}
                 <p style=" font-size: large; color: gray; text-align: center;" class="mt-2">{{white_label_company}}</p>
                 {% endif %}

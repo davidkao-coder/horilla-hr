@@ -70,6 +70,26 @@ class AttendanceActivity(HorillaModel):
     clock_out_date = models.DateField(null=True, verbose_name=_("Out Date"))
     out_datetime = models.DateTimeField(null=True)
     clock_out = models.TimeField(null=True, verbose_name=_("Check Out"))
+    # Think4U WP-02：打卡類型 / 外勤原因 / 客戶端 IP / 使用的驗證碼
+    THINK4U_ATTENDANCE_TYPES = (
+        ("office", _("公司打卡")),
+        ("field", _("外勤打卡")),
+    )
+    attendance_type = models.CharField(
+        max_length=20,
+        choices=THINK4U_ATTENDANCE_TYPES,
+        default="office",
+        verbose_name=_("Attendance Type"),
+    )
+    field_reason = models.TextField(
+        null=True, blank=True, verbose_name=_("Field Reason")
+    )
+    client_ip = models.GenericIPAddressField(
+        null=True, blank=True, verbose_name=_("Client IP")
+    )
+    verification_code_used = models.CharField(
+        max_length=6, null=True, blank=True, verbose_name=_("Verification Code Used")
+    )
     objects = HorillaCompanyManager(
         related_company_field="employee_id__employee_work_info__company_id"
     )

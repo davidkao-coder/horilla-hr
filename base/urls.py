@@ -1075,3 +1075,23 @@ urlpatterns = [
 urlpatterns.append(
     re_path(r"^media/(?P<path>.*)$", views.protected_media, name="protected_media"),
 )
+
+# Think4U WP-X.6: 角色頁面可見性設定
+from base import think4u_views as _think4u_views  # noqa: E402
+
+urlpatterns.append(
+    path(
+        "think4u/role-visibility/",
+        _think4u_views.role_visibility_view,
+        name="think4u-role-visibility",
+    )
+)
+
+# Think4U WP-X.2 + WP-02: Landing 雙入口 + 打卡頁
+from base import think4u_clock as _think4u_clock  # noqa: E402
+
+urlpatterns.extend([
+    path("landing/", _think4u_clock.landing_page, name="think4u-landing"),
+    path("clock/", _think4u_clock.clock_page, name="think4u-clock"),
+    path("clock/submit/", _think4u_clock.clock_submit, name="think4u-clock-submit"),
+])

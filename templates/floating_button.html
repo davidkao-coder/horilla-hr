@@ -1,5 +1,5 @@
 {% load static i18n %}
-{% load horillafilters %}
+{% load horillafilters basefilters %}
 <style>
     .round {
         border-radius: 50%;
@@ -110,7 +110,9 @@
 </style>
 
 <div class="inner-fabs">
-    <div id="fab9" class="fab round" data-tooltip="{% trans 'Dashboard Charts' %}">
+    {# Think4U FAB 清單：只留有意義的快速動作 #}
+    {% if request.user.is_superuser %}
+    <div class="fab round" data-tooltip="{% trans 'Dashboard Charts' %}">
         <a
             class="text-light"
             data-toggle="oh-modal-toggle"
@@ -121,69 +123,16 @@
             <i class="material-icons mt-2">leaderboard</i>
         </a>
     </div>
-    {% if "helpdesk"|app_installed %}
-        <div id="fab8" class="fab round" data-tooltip="{% trans 'Create Ticket' %}">
-            <a
-                class="text-light"
-                data-toggle="oh-modal-toggle"
-                data-target="#objectCreateModal"
-                hx-get="{% url 'ticket-create' %}"
-                hx-target="#objectCreateModalTarget"
-                >
-                <i class="material-icons mt-2">sell</i>
-            </a>
-        </div>
     {% endif %}
-    {% if "asset"|app_installed %}
-    <div id="fab7" class="fab round" data-tooltip="{% trans 'Create Asset Request' %}">
-        <a
-            class="text-light"
-            data-toggle="oh-modal-toggle"
-            data-target="#objectCreateModal"
-            hx-get="{% url 'asset-request-creation' %}"
-            hx-target="#objectCreateModalTarget"
-        >
-            <i class="material-icons mt-2">devices</i>
+    {% if request.user|is_reportingmanager or request.user.is_superuser %}
+    <div class="fab round" data-tooltip="{% trans '新增加班指派' %}">
+        <a class="text-light" href="{% url 'think4u-overtime-create' %}">
+            <i class="material-icons mt-2">hourglass_top</i>
         </a>
     </div>
     {% endif %}
-    {% if "payroll"|app_installed %}
-    <div id="fab6" class="fab round" data-tooltip="{% trans 'Create Reimbursement' %}">
-        <a
-            class="text-light"
-            data-toggle="oh-modal-toggle"
-            data-target="#objectCreateModal"
-            hx-get="{% url 'create-reimbursement' %}"
-            hx-target="#objectCreateModalTarget"
-        >
-            <i class="material-icons mt-2">paid</i>
-        </a>
-    </div>
-    {% endif %}
-    <div id="fab5" class="fab round" data-tooltip="{% trans 'Create Work Type Request' %}">
-        <a
-            class="text-light"
-            data-toggle="oh-modal-toggle"
-            data-target="#objectCreateModal"
-            hx-get="{% url 'work-type-request' %}"
-            hx-target="#objectCreateModalTarget"
-        >
-            <i class="material-icons mt-2">work</i>
-        </a>
-    </div>
-    <div id="fab4" class="fab round" data-tooltip="{% trans 'Create Shift Request' %}">
-        <a
-            class="text-light"
-            data-toggle="oh-modal-toggle"
-            data-target="#objectCreateModal"
-            hx-get="{% url 'shift-request' %}?emp_id={{request.user.employee_get.id}}"
-            hx-target="#objectCreateModalTarget"
-        >
-            <i class="material-icons mt-2">history</i>
-        </a>
-    </div>
     {% if "leave"|app_installed %}
-        <div id="fab3" class="fab round" data-tooltip="{% trans 'Create Leave Request' %}">
+        <div class="fab round" data-tooltip="{% trans 'Create Leave Request' %}">
             <a
                 class="text-light"
                 data-toggle="oh-modal-toggle"
@@ -201,21 +150,11 @@
             </a>
         </div>
     {% endif %}
-    {% if "attendance"|app_installed %}
-    <div id="fab2" class="fab round" data-tooltip= "{% trans 'Create Attendance Request' %}">
-        <a
-            class="text-light"
-            data-toggle="oh-modal-toggle"
-            data-target="#objectCreateModal"
-            hx-get="{% url 'request-new-attendance' %}"
-            hx-target="#objectCreateModalTarget"
-        >
-            <span class="material-symbols-outlined mt-2">
-                person_add
-            </span>
+    <div class="fab round" data-tooltip="{% trans '前往打卡頁' %}">
+        <a class="text-light" href="{% url 'think4u-clock' %}">
+            <i class="material-icons mt-2">schedule</i>
         </a>
     </div>
-    {% endif %}
 </div>
 <div id="fab1" class="fab round" data-tooltip= "{% trans 'Quick Action' %}">
     <i id="fabIcon" class="material-icons">{% trans "add" %}</i>

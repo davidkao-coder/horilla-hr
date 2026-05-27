@@ -1,0 +1,90 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+    <h1 class="fw-bold">{% trans "組織編輯（部門從屬 + 部門主管）" %}</h1>
+    <p style="color:#666;">
+        {% trans "為每個部門指定「上級部門」與「部門主管」。若某部門沒主管，員工的回報主管會自動往上層部門找。" %}
+    </p>
+
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse;">
+                <thead><tr style="background:#f5f5f5;">
+                    <th style="padding:10px; text-align:left;">{% trans "部門" %}</th>
+                    <th style="padding:10px;">{% trans "上級部門" %}</th>
+                    <th style="padding:10px;">{% trans "部門主管" %}</th>
+                    <th style="padding:10px;">{% trans "有效主管（含回溯）" %}</th>
+                </tr></thead>
+                <tbody>
+                    {% for row in tree %}
+                    {% with d=row.dept %}
+                    <tr style="border-bottom:1px solid #eee;">
+                        <td style="padding:8px;">
+                            <span style="margin-left:{{ row.depth }}em; color:#888;">{% if row.depth %}└─ {% endif %}</span>
+                            <strong>{{ d.department }}</strong>
+                        </td>
+                        <td style="padding:8px;">
+                            <select name="parent_{{ d.id }}" class="oh-select" style="min-width:200px;">
+                                <option value="">— {% trans "無（頂層部門）" %} —</option>
+                                {% for opt in all_departments %}
+                                    {% if opt.id != d.id %}
+                                        <option value="{{ opt.id }}" {% if d.parent_department_id == opt.id %}selected{% endif %}>{{ opt.department }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td style="padding:8px;">
+                            <select name="manager_{{ d.id }}" class="oh-select" style="min-width:200px;">
+                                <option value="">— {% trans "未指定（向上層回溯）" %} —</option>
+                                {% for emp in all_employees %}
+                                    <option value="{{ emp.id }}" {% if d.manager_id == emp.id %}selected{% endif %}>{{ emp.get_full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td style="padding:8px; color:#666; font-size:13px;">
+                            {% if row.effective_manager %}
+                                {{ row.effective_manager.get_full_name }}
+                                {% if not d.manager_id %}<span style="color:#888;">（繼承上層）</span>{% endif %}
+                            {% else %}
+                                <span style="color:#dc3545;">— 無 —</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="4" style="padding:30px; text-align:center; color:#999;">尚無部門資料</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+
+        <div style="text-align:right; margin-top:1rem;">
+            <a class="oh-btn" href="{% url 'organisation-chart' %}">{% trans "← 返回組織圖" %}</a>
+            <a class="oh-btn" href="{% url 'think4u-dept-manage' %}">{% trans "部門管理" %}</a>
+            <button type="submit" class="oh-btn oh-btn--secondary">
+                <ion-icon name="save-outline"></ion-icon> {% trans "儲存全部" %}
+            </button>
+        </div>
+    </form>
+
+    {# 預覽部門樹 + 主管 #}
+    <section class="oh-card mt-3" style="padding:1rem;">
+        <h3 style="margin-bottom:8px;">📊 {% trans "目前組織樹" %}</h3>
+        <ul style="list-style:none; padding-left:0; font-family:monospace; line-height:1.8;">
+            {% for row in tree %}
+                <li style="padding-left:{{ row.depth }}em;">
+                    {% if row.depth %}<span style="color:#aaa;">└─ </span>{% endif %}
+                    <strong>{{ row.dept.department }}</strong>
+                    {% if row.effective_manager %}
+                        <span style="color:#555;">— 主管：{{ row.effective_manager.get_full_name }}{% if not row.dept.manager_id %} <small style="color:#aaa;">(繼承)</small>{% endif %}</span>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+</div>
+{% endblock %}

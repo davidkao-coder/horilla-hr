@@ -27,7 +27,7 @@ from datetime import date, datetime
 from typing import Any
 
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.db.models import Q
 from django.forms import DateInput, TextInput
 from django.template.loader import render_to_string
@@ -218,6 +218,17 @@ class EmployeeForm(ModelForm):
             "is_from_onboarding",
             "is_directly_converted",
             "is_active",
+            # Think4U: 隱藏不需要的個人資料欄位
+            "employee_last_name",  # 姓名併入 first_name 單一欄位
+            "badge_id",  # 識別證號碼
+            "country",
+            "state",
+            "city",
+            "zip",
+            "qualification",
+            "experience",
+            "marital_status",
+            "children",
         )
 
     def __init__(self, *args, **kwargs):
@@ -225,6 +236,12 @@ class EmployeeForm(ModelForm):
         self.fields["email"].widget.attrs["autocomplete"] = "email"
         self.fields["phone"].widget.attrs["autocomplete"] = "phone"
         self.fields["address"].widget.attrs["autocomplete"] = "address"
+        # Think4U: 姓名欄位改 label
+        if "employee_first_name" in self.fields:
+            self.fields["employee_first_name"].label = _("姓名")
+        # Think4U: 電話改為非必填
+        if "phone" in self.fields:
+            self.fields["phone"].required = False
         if instance := kwargs.get("instance"):
             # ----
             # django forms not showing value inside the date, time html element.
@@ -235,7 +252,8 @@ class EmployeeForm(ModelForm):
                 initial["dob"] = instance.dob.strftime("%H:%M")
             kwargs["initial"] = initial
         else:
-            self.initial = {"badge_id": self.get_next_badge_id()}
+            # Think4U: badge_id 已被排除，但 model 必填 — 自動填入避免 NOT NULL 錯
+            pass
 
     def as_p(self, *args, **kwargs):
         context = {"form": self}
@@ -344,71 +362,76 @@ class EmployeeWorkInformationForm(ModelForm):
     Form for EmployeeWorkInformation model
     """
 
-    class Meta:
-        """
-        Meta class to add the additional info
-        """
+    # Think4U: 單選角色（取代多選 groups）
+    role = forms.ModelChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        label=_("角色"),
+        empty_label=_("— 請選擇 —"),
+        widget=forms.Select(attrs={"class": "oh-select oh-select-2"}),
+    )
 
+    class Meta:
         model = EmployeeWorkInformation
         fields = "__all__"
-        exclude = ("employee_id", "additional_info", "experience")
+        # Think4U: 拿掉不需要的欄位
+        exclude = (
+            "employee_id",
+            "additional_info",
+            "experience",
+            "shift_id",
+            "work_type_id",
+            "job_role_id",          # 職級
+            "reporting_manager_id", # 直屬主管（由部門推導）
+            "tags",                 # 員工標籤
+            "location",             # 工作地點
+            "company_id",           # 公司（鎖定一家）
+            "salary_hour",          # 時薪
+            "mobile",
+        )
 
     def __init__(self, *args, disable=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["email"].widget.attrs["autocomplete"] = "email"
+        # 帶入既有角色（只取第一個 group）
+        if self.instance and self.instance.pk:
+            emp = self.instance.employee_id
+            if emp and emp.employee_user_id_id:
+                first = emp.employee_user_id.groups.first()
+                if first:
+                    self.fields["role"].initial = first.pk
 
-        self.fields["job_position_id"].widget.attrs.update(
-            {
-                "onchange": "jobChange($(this))",
-            }
-        )
-
+        # 標準欄位 placeholder
         for field in self.fields:
-            self.fields[field].widget.attrs["placeholder"] = self.fields[field].label
+            try:
+                self.fields[field].widget.attrs["placeholder"] = self.fields[field].label
+            except Exception:
+                pass
             if disable:
                 self.fields[field].disabled = True
-        field_names = {
-            "Department": "department",
-            "Job Position": "job_position",
-            "Job Role": "job_role",
-            "Work Type": "work_type",
-            "Employee Type": "employee_type",
-            "Shift": "employee_shift",
-        }
-        urls = {
-            "Department": "#dynamicDept",
-            "Job Position": "#dynamicJobPosition",
-            "Job Role": "#dynamicJobRole",
-            "Work Type": "#dynamicWorkType",
-            "Employee Type": "#dynamicEmployeeType",
-            "Shift": "#dynamicShift",
-        }
 
-        for label, field in self.fields.items():
-            if isinstance(field, forms.ModelChoiceField) and field.label in field_names:
-                if field.label is not None:
-                    field_name = field_names.get(field.label)
-                    if field.queryset.model != Employee and field_name:
-                        translated_label = _(field.label)
-                        empty_label = _("---Choose {label}---").format(
-                            label=translated_label
-                        )
-                        self.fields[label] = forms.ChoiceField(
-                            choices=[("", empty_label)]
-                            + list(field.queryset.values_list("id", f"{field_name}")),
-                            required=field.required,
-                            label=translated_label,
-                            initial=field.initial,
-                            widget=forms.Select(
-                                attrs={
-                                    "class": "oh-select oh-select-2",
-                                    "onchange": f'onDynamicCreate(this.value,"{urls.get(field.label)}");',
-                                }
-                            ),
-                        )
-                        self.fields[label].choices += [
-                            ("create", _("Create New {} ").format(translated_label))
-                        ]
+        # Think4U: 動態 ChoiceField 改造（用 i18n label，原本 Horilla 用英文 label 對應）
+        # 不再做 ChoiceField 轉換，保留 ModelChoiceField 以確保 queryset 正確
+        for f in ("department_id", "job_position_id", "employee_type_id"):
+            if f in self.fields:
+                self.fields[f].widget.attrs["class"] = "oh-select oh-select-2"
+                self.fields[f].empty_label = _("— 請選擇 —")
+
+    def sync_groups(self, employee):
+        """Think4U: 把單選 role 寫回對應 User.groups（取代多選 sync）
+        若未指定 role 但職位有 default_role，自動帶入"""
+        if not employee or not employee.employee_user_id_id:
+            return
+        role = self.cleaned_data.get("role")
+        # fallback：未選 role 但職位有預設角色
+        if not role:
+            job_pos = self.cleaned_data.get("job_position_id")
+            if job_pos and getattr(job_pos, "default_role_id", None):
+                role = job_pos.default_role
+        user = employee.employee_user_id
+        if role:
+            user.groups.set([role])
+        else:
+            user.groups.clear()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -423,17 +446,56 @@ class EmployeeWorkInformationForm(ModelForm):
 
 class EmployeeWorkInformationUpdateForm(ModelForm):
     """
-    Form for EmployeeWorkInformation model
+    Form for EmployeeWorkInformation model — Think4U 簡化版
     """
 
-    class Meta:
-        """
-        Meta class to add the additional info
-        """
+    role = forms.ModelChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        label=_("角色"),
+        empty_label=_("— 請選擇 —"),
+        widget=forms.Select(attrs={"class": "oh-select oh-select-2"}),
+    )
 
+    class Meta:
         model = EmployeeWorkInformation
         fields = "__all__"
-        exclude = ("employee_id",)
+        exclude = (
+            "employee_id",
+            "shift_id",
+            "work_type_id",
+            "job_role_id",
+            "reporting_manager_id",
+            "tags",
+            "location",
+            "company_id",
+            "salary_hour",
+            "mobile",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            emp = self.instance.employee_id
+            if emp and emp.employee_user_id_id:
+                first = emp.employee_user_id.groups.first()
+                if first:
+                    self.fields["role"].initial = first.pk
+
+    def sync_groups(self, employee):
+        """Think4U: 同 EmployeeWorkInformationForm；未選 role 時 fallback 到職位的 default_role"""
+        if not employee or not employee.employee_user_id_id:
+            return
+        role = self.cleaned_data.get("role")
+        if not role:
+            job_pos = self.cleaned_data.get("job_position_id")
+            if job_pos and getattr(job_pos, "default_role_id", None):
+                role = job_pos.default_role
+        user = employee.employee_user_id
+        if role:
+            user.groups.set([role])
+        else:
+            user.groups.clear()
 
     def as_p(self, *args, **kwargs):
         context = {"form": self}
@@ -443,32 +505,15 @@ class EmployeeWorkInformationUpdateForm(ModelForm):
 class EmployeeBankDetailsForm(ModelForm):
     """
     Form for EmployeeBankDetails model
+    Think4U: 只留 銀行帳號 + 銀行名稱
     """
 
-    address = forms.CharField(widget=forms.Textarea(attrs={"rows": 2, "cols": 40}))
-
     class Meta:
-        """
-        Meta class to add the additional info
-        """
-
         model = EmployeeBankDetails
-        fields = (
-            "bank_name",
-            "account_number",
-            "branch",
-            "any_other_code1",
-            "address",
-            "country",
-            "state",
-            "city",
-            "any_other_code2",
-        )
-        exclude = ["employee_id", "is_active", "additional_info"]
+        fields = ("bank_name", "account_number")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["address"].widget.attrs["autocomplete"] = "address"
         for visible in self.visible_fields():
             visible.field.widget.attrs["class"] = "oh-input w-100"
 
@@ -488,8 +533,7 @@ class EmployeeBankDetailsUpdateForm(ModelForm):
         """
 
         model = EmployeeBankDetails
-        fields = "__all__"
-        exclude = ["employee_id", "is_active", "additional_info"]
+        fields = ("bank_name", "account_number")  # Think4U: 只留 銀行帳號 + 銀行名稱
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

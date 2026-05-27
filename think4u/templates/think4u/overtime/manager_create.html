@@ -1,0 +1,38 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "新增加班指派" %}</h1>
+    <form method="post" class="oh-card" style="padding:1.5rem; margin-top:1rem;">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="oh-input-group">
+            <label class="oh-label">{% trans "員工" %}</label>
+            {{ form.employee }}
+            {{ form.employee.errors }}
+        </div>
+        <div class="row" style="display:flex; gap:1rem;">
+            <div class="oh-input-group" style="flex:1;">
+                <label class="oh-label">{% trans "日期" %}</label>
+                {{ form.overtime_date }}
+            </div>
+            <div class="oh-input-group" style="flex:1;">
+                <label class="oh-label">{% trans "開始" %}</label>
+                {{ form.start_time }}
+            </div>
+            <div class="oh-input-group" style="flex:1;">
+                <label class="oh-label">{% trans "結束" %}</label>
+                {{ form.end_time }}
+            </div>
+        </div>
+        <div class="oh-input-group">
+            <label class="oh-label">{% trans "原因" %}</label>
+            {{ form.reason }}
+        </div>
+        <div style="text-align:right; margin-top:1rem;">
+            <a class="oh-btn" href="{% url 'think4u-overtime-manager' %}">{% trans "取消" %}</a>
+            <button type="submit" class="oh-btn oh-btn--secondary">{% trans "建立指派" %}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

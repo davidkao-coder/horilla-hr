@@ -293,12 +293,12 @@ python manage.py runserver
 ### **Accessing Horilla**
 
 If everything is configured correctly, you should be able to access your Horilla app at **http://localhost:8000**.
-![Initialize Database in Horilla HRMS](https://www.horilla.com/wp-content/uploads/2024/12/how-to-initialize-the-database-in-horilla-hrms-step-by-step-1-1024x576.png)
+![Initialize Database in Think4U-Tech HRMS](https://www.horilla.com/wp-content/uploads/2024/12/how-to-initialize-the-database-in-horilla-hrms-step-by-step-1-1024x576.png)
 
 
 #### **Initial Setup**
 From the login page, you will have two options:
-1. **Initialize Database**: Use this option to initialize the Horilla database by creating a super admin, headquarter company, department, and job position. Authenticate using the `DB_INIT_PASSWORD` specified in the `.env` file.
+1. **Initialize Database**: Use this option to initialize the Think4U-Tech database by creating a super admin, headquarter company, department, and job position. Authenticate using the `DB_INIT_PASSWORD` specified in the `.env` file.
 2. **Load Demo Data**: Use this option if you want to work with demo data. Authenticate using the `DB_INIT_PASSWORD` specified in the `.env` file.
 
 #### **Running on a Custom Port**

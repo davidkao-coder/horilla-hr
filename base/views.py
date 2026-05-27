@@ -564,6 +564,10 @@ def login_user(request):
     """
     Handles user login and authentication.
     """
+    # Think4U WP-X.2: 匿名訪客若無 ?next 參數，導向 landing 雙入口
+    if request.method == "GET" and not request.user.is_authenticated:
+        if "next" not in request.GET:
+            return redirect("think4u-landing")
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")

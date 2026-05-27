@@ -14,6 +14,11 @@ from horilla.signals import post_bulk_update, pre_bulk_update
 logger = logging.getLogger(__name__)
 django_filter_update = QuerySet.update
 
+# Think4U 效能：distinct 偵測結果跨 request 穩定（company_filter 是 class attribute，
+# 不會在 runtime 改），用 process-wide cache 大幅減少 SQL。
+# key = (model_label, selected_company), value = bool
+_T4U_DISTINCT_CACHE: dict = {}
+
 
 def update(self, *args, **kwargs):
     # pre_update signal
@@ -46,6 +51,15 @@ class HorillaCompanyManager(models.Manager):
     def get_queryset(self):
         """
         get_queryset method
+
+        Think4U 效能優化（2026-05-27）：
+        原本每次 get_queryset() 都跑 `count() != distinct().count()` 兩條 COUNT
+        來偵測是否有重複；對 HorillaCompanyManager 管的 model 來說，這在每個
+        request 內可能被呼叫 60+ 次，造成 100+ 條多餘 SQL。
+
+        修法：把「是否需要 distinct」的結果 cache 在 request 物件上（per-request、
+        per-model、per-selected_company），同一個 request 內同一個 model 只判斷
+        一次。沒有 request（例如 management command）就退回原本行為。
         """
 
         queryset = super().get_queryset()
@@ -61,11 +75,19 @@ class HorillaCompanyManager(models.Manager):
             )
         except Exception as e:
             logger.error(e)
+
+        # ----- distinct 判斷 + process-wide cache -----
         try:
-            has_duplicates = queryset.count() != queryset.distinct().count()
+            cache_key = (self.model._meta.label, selected_company)
+            if cache_key in _T4U_DISTINCT_CACHE:
+                has_duplicates = _T4U_DISTINCT_CACHE[cache_key]
+            else:
+                has_duplicates = queryset.count() != queryset.distinct().count()
+                _T4U_DISTINCT_CACHE[cache_key] = has_duplicates
+
             if has_duplicates:
                 queryset = queryset.distinct()
-        except:
+        except Exception:
             pass
         return queryset
 

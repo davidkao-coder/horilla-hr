@@ -123,17 +123,7 @@
 								>
 							</li>
 
-							<li data-cell-index="19" data-cell-title="{% trans 'Work type & Shift' %}" class="oh-general__tab">
-								<a
-								hx-get="{% url 'shift-tab' employee.id %}?profile=true"
-								hx-target="#shift_target"
-								data-action="general-tab"
-								data-target="#shift_target"
-								class="oh-general__tab-link pointer"
-								role="button"
-								>{% trans "Work Type & Shift" %}</a
-								>
-							</li>
+							{% comment %}Think4U: 移除工作類型 & 輪班 tab{% endcomment %}
 
 							{% if "attendance"|app_installed %}
 								<li data-cell-index="18" data-cell-title="{% trans 'Attendance' %}" class="oh-general__tab">
@@ -178,32 +168,7 @@
 								</li>
 							{% endif %}
 
-							{% if "payroll"|app_installed %}
-								<li data-cell-index="15" data-cell-title="{% trans 'Allowance & Deduction' %}" class="oh-general__tab">
-									<a
-									hx-get="{% url 'allowances-deductions-tab' employee.id %}"
-									hx-target="#allowance_deduction"
-									data-action="general-tab"
-									data-target="#allowance_deduction"
-									class="oh-general__tab-link"
-									role="button"
-									>{% trans "Allowance & Deduction" %}</a
-									>
-								</li>
-							{% endif %}
-
-							{% if "attendance"|app_installed %}
-							<li data-cell-index="14" data-cell-title="{% trans "Penalty Account" %}" class="oh-general__tab">
-								<a
-								data-action="general-tab"
-								data-target="#penaltyTarget"
-								id="penalty"
-								class="oh-general__tab-link"
-								role="button"
-								>{% trans "Penalty Account" %}</a
-								>
-							</li>
-							{% endif %}
+							{% comment %}Think4U: 移除 免稅及扣除 / 罰款帳戶 tab{% endcomment %}
 
 							{% if "asset"|app_installed %}
 								<li data-cell-index="13" data-cell-title="{% trans 'Assets' %}" class="oh-general__tab">

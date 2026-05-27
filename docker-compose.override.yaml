@@ -1,0 +1,18 @@
+services:
+  server:
+    environment:
+      TIME_ZONE: "Asia/Taipei"
+      LANGUAGE_CODE: "zh-hant"
+      DEBUG: "True"
+    ports: !override
+      - "8001:8000"
+    volumes:
+      - .:/app
+      - /app/staticfiles
+      - /app/node_modules
+
+  db:
+    environment:
+      TZ: "Asia/Taipei"
+    ports: !override
+      - "5433:5432"

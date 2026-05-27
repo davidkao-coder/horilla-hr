@@ -1,0 +1,76 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<script>
+function t4uConfirmSubmit(btn, msg) {
+    if (typeof Swal === 'undefined') {
+        if (window.confirm(msg)) btn.closest('form').submit();
+        return;
+    }
+    Swal.fire({
+        text: msg, icon: 'question', showCancelButton: true,
+        confirmButtonText: '確認', cancelButtonText: '取消',
+        confirmButtonColor: '#008000', cancelButtonColor: '#d33',
+    }).then(function (result) {
+        if (result.isConfirmed) btn.closest('form').submit();
+    });
+}
+</script>
+<div class="oh-wrapper oh-wrapper--small">
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">
+                {% trans "加班指派 — 主管" %}
+            </h1>
+        </div>
+        <div>
+            <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-overtime-create' %}">
+                <ion-icon name="add-outline"></ion-icon> {% trans "新建指派" %}
+            </a>
+        </div>
+    </section>
+
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:10px; text-align:left;">{% trans "員工" %}</th>
+                <th style="padding:10px;">{% trans "日期" %}</th>
+                <th style="padding:10px;">{% trans "時段" %}</th>
+                <th style="padding:10px;">{% trans "時數" %}</th>
+                <th style="padding:10px; text-align:left;">{% trans "原因" %}</th>
+                <th style="padding:10px;">{% trans "狀態" %}</th>
+                <th style="padding:10px;">{% trans "操作" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for ot in items %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">{{ ot.employee.get_full_name }}</td>
+                    <td style="padding:10px; text-align:center;">{{ ot.overtime_date|date:"Y-m-d" }}</td>
+                    <td style="padding:10px; text-align:center;">{{ ot.start_time|time:"H:i" }} - {{ ot.end_time|time:"H:i" }}</td>
+                    <td style="padding:10px; text-align:center;">{{ ot.duration_hours|floatformat:1 }}</td>
+                    <td style="padding:10px;">{{ ot.reason|truncatechars:40 }}</td>
+                    <td style="padding:10px; text-align:center;">
+                        <span class="badge" style="padding:4px 8px; border-radius:12px;
+                            background:{% if ot.status == 'pending_employee' %}#fff3cd{% elif ot.status == 'pending_hr' %}#cce5ff{% elif ot.status == 'hr_approved' %}#d4edda{% elif 'reject' in ot.status or ot.status == 'cancelled' %}#f8d7da{% endif %};">
+                            {{ ot.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="padding:10px; text-align:center;">
+                        {% if ot.status == 'pending_employee' %}
+                            <form method="post" action="{% url 'think4u-overtime-cancel' ot.pk %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="button" class="oh-btn oh-btn--danger-outline oh-btn--small" onclick="t4uConfirmSubmit(this, '確定取消這筆加班指派？')">{% trans "取消" %}</button>
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="padding:30px; text-align:center; color:#999;">尚無加班指派</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

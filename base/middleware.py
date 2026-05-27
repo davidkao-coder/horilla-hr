@@ -72,6 +72,18 @@ class CompanyMiddleware:
         user_company_id = getattr(
             getattr(user, "employee_work_info", None), "company_id", None
         )
+        # Think4U: 鎖定單一公司 — 若全系統只有 1 家 Company，強制選定該家
+        if Company.objects.count() == 1:
+            only = Company.objects.first()
+            request.session["selected_company"] = str(only.id)
+            request.session["selected_company_instance"] = {
+                "company": only.company,
+                "icon": only.icon.url if only.icon else "",
+                "text": only.company,
+                "id": only.id,
+            }
+            return
+
         if company_id and request.session.get("selected_company") != "all":
             if company_id == "all":
                 text = "All companies"

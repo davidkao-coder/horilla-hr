@@ -18,39 +18,52 @@ SUBMENUS = [
     {
         "menu": _("Dashboard"),
         "redirect": reverse("attendance-dashboard"),
+        "vis_key": "attendance.dashboard",
         "accessibility": "attendance.sidebar.dashboard_accessibility",
     },
     {
         "menu": _("Attendances"),
         "redirect": reverse("attendance-view"),
+        "vis_key": "attendance.list",
         "accessibility": "attendance.sidebar.attendances_accessibility",
     },
     {
         "menu": _("Attendance Requests"),
         "redirect": reverse("request-attendance-view"),
+        "vis_key": "attendance.requests",
     },
     {
         "menu": _("Hour Account"),
         "redirect": reverse("attendance-overtime-view"),
+        "vis_key": "attendance.hour_account",
         "accessibility": "attendance.sidebar.hour_account_accessibility",
     },
     {
         "menu": _("Work Records"),
         "redirect": reverse("work-records"),
+        "vis_key": "attendance.work_records",
         "accessibility": "attendance.sidebar.work_record_accessibility",
     },
     {
         "menu": _("Attendance Activities"),
         "redirect": reverse("attendance-activity-view"),
+        "vis_key": "attendance.activities",
     },
     {
         "menu": _("Late Come Early Out"),
         "redirect": reverse("late-come-early-out-view"),
+        "vis_key": "attendance.late_early",
         "accessibility": "attendance.sidebar.tracking_accessibility",
     },
     {
         "menu": _("My Attendances"),
         "redirect": reverse("view-my-attendance"),
+        "vis_key": "attendance.my",
+    },
+    {
+        "menu": _("Excel 匯出"),
+        "redirect": reverse("think4u-attendance-export"),
+        "vis_key": "attendance.export",
     },
 ]
 

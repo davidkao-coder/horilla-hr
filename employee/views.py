@@ -275,7 +275,8 @@ def self_info_update(request):
                     instance.badge_id = badge_id
                 instance.save()
                 messages.success(request, _("Profile updated."))
-        elif request.POST.get("any_other_code1") is not None:
+        elif request.POST.get("bank_name") is not None or request.POST.get("account_number") is not None:
+            # Think4U: bank 表單只剩 bank_name + account_number
             instance = EmployeeBankDetails.objects.filter(employee_id=employee).first()
             bank_form = EmployeeBankDetailsForm(request.POST, instance=instance)
             if bank_form.is_valid():
@@ -1466,15 +1467,14 @@ def employee_account_block_unblock(request, emp_id):
 def employee_view_new(request):
     """
     This method is used to render form to create a new employee.
+    Think4U 優化：create_form 模板只用到 `form`，舊版多建立的 work_form / bank_form /
+    EmployeeFilter 都用不到（共 ~32 條多餘 query），全部移除。
     """
     form = EmployeeForm()
-    work_form = EmployeeWorkInformationForm()
-    bank_form = EmployeeBankDetailsForm()
-    filter_obj = EmployeeFilter(queryset=Employee.objects.all())
     return render(
         request,
         "employee/create_form/form_view.html",
-        {"form": form, "work_form": work_form, "bank_form": bank_form, "f": filter_obj},
+        {"form": form},
     )
 
 
@@ -1554,6 +1554,8 @@ def employee_view_update(request, obj_id, **kwargs):
                     instance.employee_id = employee
                     instance.save()
                     instance.tags.set(request.POST.getlist("tags"))
+                    # Think4U WP-X.5: 同步 Auth Group
+                    work_form.sync_groups(employee)
                     notify.send(
                         request.user.employee_get,
                         recipient=instance.employee_id.employee_user_id,
@@ -1782,6 +1784,8 @@ def employee_update_work_info(request, obj_id=None):
         work_info = form.save(commit=False)
         work_info.employee_id = employee
         work_info.save()
+        # Think4U WP-X.5: 同步 Auth Group
+        form.sync_groups(employee)
         return HttpResponse(
             """
 
@@ -2859,9 +2863,14 @@ def get_employees_birthday(request):
             "profile": (
                 emp.get_avatar()
                 if hasattr(emp, "get_avatar")
-                else f"{default_avatar_url}{emp.employee_first_name}+{emp.employee_last_name}"
+                else f"{default_avatar_url}{emp.employee_first_name}"
             ),
-            "name": f"{emp.employee_first_name} {emp.employee_last_name}",
+            # Think4U: 姓名併入 first_name，last_name 已棄用
+            "name": (
+                f"{emp.employee_first_name} {emp.employee_last_name}"
+                if emp.employee_last_name
+                else emp.employee_first_name
+            ),
             "dob": emp.dob.strftime("%d %b"),
             "daysUntilBirthday": (
                 _("Today")
@@ -3417,119 +3426,103 @@ def redeem_points(request, emp_id):
 @login_required
 def organisation_chart(request):
     """
-    This method is used to view oganisation chart
+    Think4U 改版：以「部門」為主結構，從 Department.parent_department 形成樹，
+    每個部門節點顯示「主管 - 職位」，子節點包含該部門下的員工 + 子部門。
     """
-    selected_company = request.session.get("selected_company")
-    if (
-        request.GET.get("employee_work_info__company_id") == None
-        and selected_company != "all"
-    ):
-        reporting_managers = Employee.objects.filter(
-            is_active=True,
-            reporting_manager__isnull=False,
-            employee_work_info__company_id=selected_company,
-        ).distinct()
-    else:
-        reporting_managers = Employee.objects.filter(
-            is_active=True,
-            reporting_manager__isnull=False,
-        ).distinct()
-
-    # Iterate through the queryset and add reporting manager id and name to the dictionary
-    result_dict = {item.id: item.get_full_name() for item in reporting_managers}
-
-    entered_req_managers = []
-
-    # Helper function to recursively create the hierarchy structure
-    def create_hierarchy(manager):
-        """
-        Hierarchy generator method
-        """
-        nodes = []
-        # check the manager is a reporting manager if yes, store it into entered_req_managers
-        if manager.id in result_dict.keys():
-            entered_req_managers.append(manager)
-        # filter the subordinates
-        subordinates = Employee.objects.filter(
-            is_active=True, employee_work_info__reporting_manager_id=manager
-        ).exclude(id=manager.id)
-
-        # itrating through subordinates
-        for employee in subordinates:
-            if employee in entered_req_managers:
-                continue
-            # check the employee is a reporting manager if yes,remove className store
-            # it into entered_req_managers
-            if employee.id in result_dict.keys():
-                nodes.append(
-                    {
-                        "name": employee.get_full_name(),
-                        "title": getattr(
-                            employee.get_job_position(), "job_position", _("Not set")
-                        ),
-                        "children": create_hierarchy(employee),
-                    }
-                )
-                entered_req_managers.append(employee)
-
-            else:
-                nodes.append(
-                    {
-                        "name": employee.get_full_name(),
-                        "title": getattr(
-                            employee.get_job_position(), "job_position", _("Not set")
-                        ),
-                        "className": "middle-level",
-                        "children": create_hierarchy(employee),
-                    }
-                )
-        return nodes
+    from base.models import Company, Department
 
     selected_company = request.session.get("selected_company")
-    if (
-        request.GET.get("employee_work_info__company_id") == None
-        and selected_company != "all"
+    company_obj = None
+    if selected_company and selected_company != "all":
+        company_obj = Company.objects.filter(pk=selected_company).first()
+    if not company_obj:
+        company_obj = Company.objects.first()
+
+    # Fetch 所有部門 + 所有有效員工，避免 N+1
+    all_depts = list(Department.objects.all().order_by("department"))
+    by_parent = {}
+    for d in all_depts:
+        by_parent.setdefault(d.parent_department_id, []).append(d)
+
+    employees_by_dept = {}
+    for emp in (
+        Employee.objects.filter(is_active=True)
+        .select_related("employee_work_info__department_id", "employee_work_info__job_position_id")
     ):
-        reporting_managers = Employee.objects.filter(
-            is_active=True,
-            reporting_manager__isnull=False,
-            employee_work_info__company_id=selected_company,
-        ).distinct()
-    else:
-        reporting_managers = Employee.objects.filter(
-            is_active=True, reporting_manager__isnull=False
-        ).distinct()
+        info = getattr(emp, "employee_work_info", None)
+        if not info or not info.department_id_id:
+            continue
+        employees_by_dept.setdefault(info.department_id_id, []).append(emp)
 
-    manager = request.user.employee_get
-
-    if len(reporting_managers) == 0:
-        new_dict = {}
-    else:
-        new_dict = {reporting_managers[0].id: _("My view"), **result_dict}
-    # POST method is used to change the reporting manager
-    if request.method == "POST":
-        if request.POST.get("manager_id"):
-            manager_id = int(request.POST.get("manager_id"))
-            manager = Employee.objects.get(id=manager_id)
-        node = {
-            "name": manager.get_full_name(),
-            "title": getattr(manager.get_job_position(), "job_position", _("Not set")),
-            "children": create_hierarchy(manager),
+    def _emp_node(emp):
+        info = getattr(emp, "employee_work_info", None)
+        title = _("Not set")
+        if info and info.job_position_id:
+            title = info.job_position_id.job_position
+        return {
+            "name": emp.get_full_name(),
+            "title": title,
+            "className": "middle-level",
+            "is_department": False,
         }
-        context = {"act_datasource": node}
-        return render(request, "organisation_chart/chart.html", context=context)
+
+    def _dept_node(d):
+        # 部門節點 title：主管 + 職位（若無主管則用「未指派主管」）
+        mgr = d.manager
+        if not mgr and hasattr(d, "get_effective_manager"):
+            mgr = d.get_effective_manager()
+        if mgr:
+            info = getattr(mgr, "employee_work_info", None)
+            pos = (
+                info.job_position_id.job_position
+                if info and info.job_position_id
+                else _("Not set")
+            )
+            title = f"主管：{mgr.get_full_name()}（{pos}）"
+        else:
+            title = _("未指派主管")
+
+        children = []
+        # 先列員工
+        for emp in employees_by_dept.get(d.id, []):
+            children.append(_emp_node(emp))
+        # 再列子部門
+        for sub in by_parent.get(d.id, []):
+            children.append(_dept_node(sub))
+
+        return {
+            "name": d.department,
+            "title": title,
+            "children": children,
+            "is_department": True,
+        }
+
+    # root：公司 → 頂層部門
+    root_depts = by_parent.get(None, [])
+    root_children = [_dept_node(d) for d in root_depts]
+    # 順便把「未指派部門的員工」掛在 root 底下（例如 admin）
+    orphan_emps = [
+        emp
+        for emp in Employee.objects.filter(is_active=True)
+        if not getattr(getattr(emp, "employee_work_info", None), "department_id_id", None)
+    ]
+    for emp in orphan_emps:
+        root_children.append(_emp_node(emp))
 
     node = {
-        "name": manager.get_full_name(),
-        "title": getattr(manager.get_job_position(), "job_position", _("Not set")),
-        "children": create_hierarchy(manager),
+        "name": company_obj.company if company_obj else "Think4U",
+        "title": _("公司組織"),
+        "children": root_children,
+        "is_department": True,
     }
 
     context = {
         "act_datasource": node,
-        "reporting_manager_dict": new_dict,
-        "act_manager_id": manager.id,
+        "reporting_manager_dict": {},
+        "act_manager_id": None,
     }
+    if request.method == "POST":
+        return render(request, "organisation_chart/chart.html", context=context)
     return render(request, "organisation_chart/org_chart.html", context=context)
 
 

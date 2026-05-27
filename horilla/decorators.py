@@ -229,6 +229,9 @@ def login_required(view_func):
         ):
             if request.headers.get("HX-Request"):
                 return HttpResponse(status=204, headers={"HX-Refresh": "true"})
+            # Think4U WP-X.2: 訪問首頁時，先帶到 landing 雙入口頁
+            if path in ("", "/"):
+                return redirect("/landing/")
             return redirect(redirect_url)
         try:
             func = view_func(request, *args, **kwargs)

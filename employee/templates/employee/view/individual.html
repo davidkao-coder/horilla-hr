@@ -317,16 +317,7 @@
 									data-target="#personal_target">{% trans "About" %}</a>
 							</li>
 
-							{% if request.user == employee.employee_user_id or request.user|check_manager:employee or perms.attendance.view_worktyperequest or perms.attendance.view_shiftrequest %}
-								<li data-cell-index="10" data-cell-title="{% trans 'Work Type & Shift' %}"
-									class="oh-general__tab">
-									<a hx-get={% url 'shift-tab' employee.id %} hx-target="#shift_target"
-										data-action="general-tab" data-target="#shift_target"
-										class="oh-general__tab-link pointer" role="button">
-										{% trans "Work Type & Shift"%}
-									</a>
-								</li>
-							{% endif %}
+							{% comment %}Think4U: 移除 Work Type & Shift tab{% endcomment %}
 
 							{% if "attendance"|app_installed %}
 								{% if perms.attendance.view_attendance or request.user|check_manager:employee %}
@@ -356,25 +347,8 @@
 									</li>
 								{% endif %}
 
-								{% if perms.payroll.view_payslip or request.user == employee.employee_user_id %}
-									<li data-cell-index="14" data-cell-title="{% trans 'Allowance & Deduction' %}"
-										class="oh-general__tab">
-										<a hx-get="{% url 'allowances-deductions-tab' employee.id %}"
-											hx-target="#allowance_deduction" data-action="general-tab"
-											data-target="#allowance_deduction" class="oh-general__tab-link" role="button">
-											{% trans "Allowance & Deduction" %}
-										</a>
-									</li>
-								{% endif %}
 							{% endif %}
-
-							{% if "attendance"|app_installed or "leave"|app_installed %}
-								{% if perms.attendance.view_penaltyaccount or request.user == employee.employee_user_id %}
-									<li data-cell-index="23" data-cell-title="{% trans " Penalty Account" %}" class="oh-general__tab">
-										<a data-action="general-tab" data-target="#penaltyTarget" id="penalty" class="oh-general__tab-link" role="button">{% trans "Penalty Account" %}</a>
-									</li>
-								{% endif %}
-							{% endif %}
+							{% comment %}Think4U: 移除 Allowance & Deduction / Penalty Account tab{% endcomment %}
 
 							{% if perms.employee.view_historicalemployeeworkinformation or request.user|check_manager:employee %}
 								<li data-cell-index="15" data-cell-title="{% trans 'History' %}" class="oh-general__tab">

@@ -11,15 +11,16 @@ INSTALLED_APPS.append("accessibility")
 INSTALLED_APPS.append("horilla_audit")
 INSTALLED_APPS.append("horilla_widgets")
 INSTALLED_APPS.append("horilla_crumbs")
-INSTALLED_APPS.append("horilla_documents")
+INSTALLED_APPS.append("horilla_documents")  # employee/base/asset 強依賴，保留 model
 INSTALLED_APPS.append("horilla_views")
 INSTALLED_APPS.append("horilla_automations")
 INSTALLED_APPS.append("auditlog")
-INSTALLED_APPS.append("biometric")
-INSTALLED_APPS.append("helpdesk")
-INSTALLED_APPS.append("offboarding")
-INSTALLED_APPS.append("horilla_backup")
-INSTALLED_APPS.append("project")
+# Think4U disabled per requirement:
+# INSTALLED_APPS.append("biometric")
+# INSTALLED_APPS.append("helpdesk")
+# INSTALLED_APPS.append("offboarding")
+# INSTALLED_APPS.append("horilla_backup")
+# INSTALLED_APPS.append("project")
 if settings.env("AWS_ACCESS_KEY_ID", default=None) and "storages" not in INSTALLED_APPS:
     INSTALLED_APPS.append("storages")
 
@@ -45,17 +46,15 @@ if SETTINGS_EMAIL_BACKEND:
 
 
 SIDEBARS = [
-    "recruitment",
-    "onboarding",
     "employee",
     "attendance",
     "leave",
-    "payroll",
-    "pms",
-    "offboarding",
-    "asset",
-    "helpdesk",
-    "project",
+    "think4u",  # Think4U WP-04: 加班指派
+    # Think4U: 組織圖 sidebar 由 base/sidebar.py 提供（WP-X.4）
+    "base",
+    # Think4U disabled per requirement:
+    # "payroll" (model 保留供薪資匯出用)
+    # "recruitment", "onboarding", "offboarding", "asset", "pms", "helpdesk", "project"
 ]
 
 WHITE_LABELLING = False

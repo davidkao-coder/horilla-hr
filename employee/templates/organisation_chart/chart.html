@@ -1,62 +1,111 @@
-<div class="oh-main__org-chart-container" id="chart-container"></div>
-</div >
+{% load i18n %}
+{# Think4U: 樹狀組織結構圖 — 用 <details>/<summary> 原生展開折疊，零 JS 依賴 #}
+<style>
+    .t4u-tree-wrapper {
+        font-size: 14px;
+        line-height: 1.6;
+        padding: 1rem;
+    }
+    .t4u-tree, .t4u-tree__item {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    .t4u-tree {
+        padding-left: 1.5rem;
+        border-left: 1px dashed #ccc;
+        margin-left: 0.6rem;
+    }
+    .t4u-tree-wrapper > .t4u-tree {
+        padding-left: 0;
+        border-left: none;
+        margin-left: 0;
+    }
+    .t4u-tree__item {
+        margin: 4px 0;
+    }
+    .t4u-tree__details {
+        display: block;
+    }
+    .t4u-tree__summary {
+        cursor: pointer;
+        padding: 6px 10px;
+        border-radius: 4px;
+        background: #f5f5f5;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 0.15s;
+    }
+    .t4u-tree__summary:hover { background: #e8e8e8; }
+    .t4u-tree__summary::-webkit-details-marker { display: none; }
+    .t4u-tree__summary::marker { content: ""; }
+    .t4u-tree__summary::before {
+        content: "▼";
+        font-size: 9px;
+        color: #888;
+        margin-right: 4px;
+        transition: transform 0.15s;
+    }
+    .t4u-tree__details:not([open]) > .t4u-tree__summary::before {
+        transform: rotate(-90deg);
+    }
+    .t4u-tree__leaf {
+        padding: 6px 10px;
+        border-radius: 4px;
+        background: #fafafa;
+        border-left: 3px solid #6c8eef;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .t4u-tree__icon {
+        font-size: 14px;
+    }
+    .t4u-tree__name {
+        font-weight: 600;
+        color: #333;
+    }
+    .t4u-tree__title {
+        color: #888;
+        font-size: 13px;
+    }
+    .t4u-tree__count {
+        color: #aaa;
+        font-size: 12px;
+        margin-left: 4px;
+    }
+    .t4u-tree__toolbar {
+        margin-bottom: 0.5rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .t4u-tree__toolbar button {
+        padding: 4px 12px;
+        border: 1px solid #ccc;
+        background: white;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+    }
+    .t4u-tree__toolbar button:hover { background: #f0f0f0; }
+</style>
+
+<div class="t4u-tree-wrapper">
+    <div class="t4u-tree__toolbar">
+        <button type="button" onclick="t4uTreeToggleAll(true)">{% trans "全部展開" %}</button>
+        <button type="button" onclick="t4uTreeToggleAll(false)">{% trans "全部收合" %}</button>
+    </div>
+    <ul class="t4u-tree">
+        {% include 'organisation_chart/_tree_node.html' with node=act_datasource %}
+    </ul>
+</div>
 
 <script>
-    var datascource = {{ act_datasource| safe}}
-    function loopChart($hierarchy) {
-        var $siblings = $hierarchy.children('.nodes').children('.hierarchy');
-        if ($siblings.length) {
-            $siblings.filter(':not(.hidden)').first().addClass('first-shown')
-                .end().last().addClass('last-shown');
-        }
-        $siblings.each(function (index, sibling) {
-            loopChart($(sibling));
+    function t4uTreeToggleAll(open) {
+        document.querySelectorAll('.t4u-tree__details').forEach(function (d) {
+            d.open = open;
         });
     }
-    function filterNodes(keyWord) {
-        if (!keyWord.length) {
-            return;
-        } else {
-            var $chart = $('.orgchart');
-            // disalbe the expand/collapse feture
-            $chart.addClass('noncollapsable');
-            // distinguish the matched nodes and the unmatched nodes according to the given key word
-            $chart.find('.node').filter(function (index, node) {
-                return $(node).text().toLowerCase().indexOf(keyWord) > -1;
-            }).addClass('matched')
-                .closest('.hierarchy').parents('.hierarchy').children('.node').addClass('retained');
-            // hide the unmatched nodes
-            $chart.find('.matched,.retained').each(function (index, node) {
-                $(node).removeClass('slide-up')
-                    .closest('.nodes').removeClass('hidden')
-                    .siblings('.hierarchy').removeClass('isChildrenCollapsed');
-                var $unmatched = $(node).closest('.hierarchy').siblings().find('.node:first:not(.matched,.retained)')
-                    .closest('.hierarchy').addClass('hidden');
-            });
-            // hide the redundant descendant nodes of the matched nodes
-            $chart.find('.matched').each(function (index, node) {
-                if (!$(node).siblings('.nodes').find('.matched').length) {
-                    $(node).siblings('.nodes').addClass('hidden')
-                        .parent().addClass('isChildrenCollapsed');
-                }
-            });
-            // loop chart and adjust lines
-            loopChart($chart.find('.hierarchy:first'));
-        }
-    }
-    $('#chart-container').orgchart({
-        'data': datascource,
-        'visibleLevel': 2,
-        'nodeContent': 'title',
-        'direction': 'l2r'
-    });
-    $('#key-word').on('keyup', function (event) {
-        if (event.which === 13) {
-            filterNodes(this.value);
-        } else if (event.which === 8 && this.value.length === 0) {
-            if ($('#mangerSelect').length) {
-                htmx.trigger('#mangerSelect', 'change'); // Manually trigger HTMX event
-            }
-        }
-    });
 </script>

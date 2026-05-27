@@ -637,6 +637,9 @@
         }
     });
 </script>
+{# Think4U: driver.js + .css 從 base 移過來 #}
+<link rel="stylesheet" href="{% static 'build/css/driver.min.css' %}" />
+<script src="{% static 'build/js/driver.js' %}"></script>
 <script src="{% static 'build/js/settingsDriver.js' %}"></script>
 {% if not request.user.driverviewed_set.first or "settings" not in request.user.driverviewed_set.first.user_viewed %}
 <script>

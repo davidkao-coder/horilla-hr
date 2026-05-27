@@ -108,8 +108,37 @@ class Department(HorillaModel):
         max_length=50, blank=False, verbose_name=_("Department")
     )
     company_id = models.ManyToManyField(Company, blank=True, verbose_name=_("Company"))
+    # Think4U: 部門上下級從屬
+    parent_department = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="child_departments",
+        verbose_name=_("上級部門"),
+    )
+    # Think4U: 部門主管（員工沒設 reporting_manager 時用此回溯）
+    manager = models.ForeignKey(
+        "employee.Employee",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="led_departments",
+        verbose_name=_("部門主管"),
+    )
 
     objects = HorillaCompanyManager()
+
+    def get_effective_manager(self):
+        """部門主管自動回溯：本部門 → 上級部門 → ... → None"""
+        d = self
+        seen = set()
+        while d and d.id not in seen:
+            if d.manager_id:
+                return d.manager
+            seen.add(d.id)
+            d = d.parent_department
+        return None
 
     class Meta:
         verbose_name = _("Department")
@@ -155,6 +184,15 @@ class JobPosition(HorillaModel):
         verbose_name=_("Department"),
     )
     company_id = models.ManyToManyField(Company, blank=True, verbose_name=_("Company"))
+    # Think4U Plan B：職位預設角色（員工建立時自動帶入）
+    default_role = models.ForeignKey(
+        "auth.Group",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="default_for_positions",
+        verbose_name=_("預設角色"),
+    )
 
     objects = HorillaCompanyManager("department_id__company_id")
 
@@ -1863,3 +1901,122 @@ class NotificationSound(models.Model):
 
 
 User.add_to_class("is_new_employee", models.BooleanField(default=False))
+
+
+# ==============================================================================
+# Think4U WP-X.6: 角色 ↔ 頂層 sidebar 可見性
+# ==============================================================================
+"""
+Think4U 頁面樹狀結構 — 父 key 為頂層 sidebar，子 key 為 submenu。
+這份 SIDEBAR_TREE 也是「角色頁面可見性」表單的資料來源。
+"""
+THINK4U_SIDEBAR_TREE = [
+    ("employee", "員工", [
+        ("employee.profile", "我的個人資料"),
+        ("employee.list", "員工清單"),
+    ]),
+    ("attendance", "出缺勤", [
+        ("attendance.dashboard", "儀表板"),
+        ("attendance.list", "出勤總覽"),
+        ("attendance.requests", "補卡 / 出勤更正"),
+        ("attendance.hour_account", "工時帳戶"),
+        ("attendance.work_records", "上工紀錄"),
+        ("attendance.activities", "打卡明細"),
+        ("attendance.late_early", "出勤異常追蹤"),
+        ("attendance.my", "我的出勤"),
+        ("attendance.export", "Excel 匯出"),
+    ]),
+    ("leave", "休假", [
+        ("leave.dashboard", "儀表板"),
+        ("leave.my", "我的請假申請"),
+        ("leave.requests", "請假審核"),
+        ("leave.types", "假別管理"),
+        ("leave.assigned", "員工假別餘額"),
+        ("leave.holidays", "國定假日"),
+        ("leave.company_leaves", "公司假"),
+        ("leave.overview", "員工請假總覽"),
+    ]),
+    ("think4u", "加班 / 審核", [
+        ("think4u.my_status", "我的申請與狀態"),
+        ("think4u.my_overtime", "我的加班"),
+        ("think4u.overtime_manager", "主管 — 指派加班"),
+        ("think4u.approval_manager", "主管 — 審核專區"),
+        ("think4u.overtime_hr", "HR — 加班核准"),
+        ("think4u.approval_hr", "HR — 雙層審核專區"),
+    ]),
+    ("base", "組織結構圖", [
+        ("base.org_chart", "組織結構圖"),
+        ("base.org_edit", "組織編輯"),
+        ("base.dept_manage", "部門管理"),
+        ("base.position_manage", "職位管理"),
+    ]),
+]
+
+
+def think4u_all_keys():
+    """回傳所有 keys（頂層 + 子層）的扁平清單"""
+    out = []
+    for parent_key, parent_label, children in THINK4U_SIDEBAR_TREE:
+        out.append((parent_key, parent_label))
+        for ck, cl in children:
+            out.append((ck, f"{parent_label} / {cl}"))
+    return out
+
+
+class RolePageVisibility(HorillaModel):
+    """
+    Think4U客製：每個 Auth Group 對應頁面（含子選單）的可見性。
+    sidebar_key 可以是頂層（如 "employee"）或子層（如 "employee.profile"）。
+    若沒任何記錄 → 預設可見；若有 visible=False 則隱藏。
+    """
+
+    # 為了向後相容保留 THINK4U_SIDEBAR_CHOICES 屬性
+    THINK4U_SIDEBAR_CHOICES = [
+        ("employee", "員工"),
+        ("attendance", "出缺勤"),
+        ("leave", "休假"),
+        ("think4u", "加班 / 審核"),
+        ("base", "組織結構圖"),
+    ]
+
+    group = models.ForeignKey(
+        "auth.Group",
+        on_delete=models.CASCADE,
+        related_name="think4u_visibilities",
+        verbose_name=_("Role / Group"),
+    )
+    sidebar_key = models.CharField(
+        max_length=64,  # 加長以容納 dot-notation 子 key
+        verbose_name=_("Sidebar Module"),
+    )
+    visible = models.BooleanField(default=True, verbose_name=_("Visible"))
+
+    class Meta:
+        unique_together = ("group", "sidebar_key")
+        verbose_name = _("Role Page Visibility")
+        verbose_name_plural = _("Role Page Visibilities")
+
+    def __str__(self):
+        return f"{self.group.name} | {self.sidebar_key} = {self.visible}"
+
+
+class GroupActiveStatus(HorillaModel):
+    """
+    Think4U: Auth Group 啟用狀態
+    停用條件：group.user_set.count() == 0
+    停用後該 group 的權限/可見性不再影響使用者
+    """
+    group = models.OneToOneField(
+        "auth.Group",
+        on_delete=models.CASCADE,
+        related_name="think4u_status",
+        verbose_name=_("Group"),
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Active"))
+
+    class Meta:
+        verbose_name = _("Group Active Status")
+        verbose_name_plural = _("Group Active Statuses")
+
+    def __str__(self):
+        return f"{self.group.name} | {'啟用' if self.is_active else '停用'}"

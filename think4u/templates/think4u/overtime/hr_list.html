@@ -1,0 +1,70 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "加班核准 — HR" %}</h1>
+
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    <h3 style="margin-top:1rem;">{% trans "待核准" %} ({{ pending|length }})</h3>
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:8px;">{% trans "員工" %}</th>
+                <th style="padding:8px;">{% trans "日期" %}</th>
+                <th style="padding:8px;">{% trans "時段" %}</th>
+                <th style="padding:8px;">{% trans "時數" %}</th>
+                <th style="padding:8px;">{% trans "原因" %}</th>
+                <th style="padding:8px;">{% trans "員工備註" %}</th>
+                <th style="padding:8px;">{% trans "核准" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for ot in pending %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ ot.employee.get_full_name }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.overtime_date|date:"Y-m-d" }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.start_time|time:"H:i" }} - {{ ot.end_time|time:"H:i" }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.duration_hours|floatformat:1 }}</td>
+                    <td style="padding:8px;">{{ ot.reason|truncatechars:40 }}</td>
+                    <td style="padding:8px; font-size:12px; color:#666;">{{ ot.employee_note|default:'—' }}</td>
+                    <td style="padding:8px;">
+                        <form method="post" action="{% url 'think4u-overtime-hr-decision' ot.pk %}" style="margin:0;">
+                            {% csrf_token %}
+                            <input type="text" name="hr_note" placeholder="（駁回需填理由）" style="padding:4px; width:140px; font-size:12px;">
+                            <button type="submit" name="decision" value="approve" class="oh-btn oh-btn--success oh-btn--small">{% trans "核准" %}</button>
+                            <button type="submit" name="decision" value="reject" class="oh-btn oh-btn--danger oh-btn--small">{% trans "駁回" %}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="padding:20px; text-align:center; color:#999;">無待核准</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <h3 style="margin-top:1.5rem;">{% trans "所有歷史紀錄" %}</h3>
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:8px;">{% trans "員工" %}</th>
+                <th style="padding:8px;">{% trans "日期" %}</th>
+                <th style="padding:8px;">{% trans "時數" %}</th>
+                <th style="padding:8px;">{% trans "狀態" %}</th>
+                <th style="padding:8px;">{% trans "HR 備註" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for ot in all_items %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ ot.employee.get_full_name }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.overtime_date|date:"Y-m-d" }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.duration_hours|floatformat:1 }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.get_status_display }}</td>
+                    <td style="padding:8px; color:#666;">{{ ot.hr_note|default:'—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

@@ -18,6 +18,44 @@ from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 
 from base.forms import ModelForm as BaseModelForm
+
+
+# ============================================================================
+# Think4U WP-06: 病假附件條件式必填 mixin
+# ============================================================================
+class _SickLeaveAttachmentMixin:
+    """
+    若 leave_type_id 為「病假」(中/英)，attachment 必填且格式限制：
+    - 副檔名 PDF / JPG / PNG
+    - 單檔 ≤ 10 MB
+    其他假別 attachment 為選填。
+    """
+
+    THINK4U_SICK_LEAVE_NAMES = ("病假", "Sick Leave", "sick leave")
+    THINK4U_ALLOWED_EXT = (".pdf", ".jpg", ".jpeg", ".png")
+    THINK4U_MAX_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+
+    def clean(self):
+        cleaned = super().clean()
+        leave_type = cleaned.get("leave_type_id")
+        attachment = cleaned.get("attachment") or self.files.get("attachment")
+        # 病假必填
+        is_sick = leave_type and leave_type.name in self.THINK4U_SICK_LEAVE_NAMES
+        if is_sick and not attachment:
+            self.add_error(
+                "attachment", _("病假需上傳醫療證明（PDF / JPG / PNG，10 MB 內）")
+            )
+        # 若有上傳則檢查格式與大小（不論假別）
+        if attachment and hasattr(attachment, "name"):
+            name_lower = attachment.name.lower()
+            if not any(name_lower.endswith(ext) for ext in self.THINK4U_ALLOWED_EXT):
+                self.add_error(
+                    "attachment", _("僅接受 PDF / JPG / PNG 格式")
+                )
+            size = getattr(attachment, "size", 0)
+            if size > self.THINK4U_MAX_SIZE_BYTES:
+                self.add_error("attachment", _("附件不可超過 10 MB"))
+        return cleaned
 from base.methods import filtersubordinatesemployeemodel, reload_queryset
 from employee.filters import EmployeeFilter
 from employee.forms import MultipleFileField
@@ -216,7 +254,7 @@ class UpdateLeaveTypeForm(ConditionForm):
         leave_type = super().save(*args, **kwargs)
 
 
-class LeaveRequestCreationForm(BaseModelForm):
+class LeaveRequestCreationForm(_SickLeaveAttachmentMixin, BaseModelForm):
 
     def __init__(self, *args, **kwargs):
 
@@ -270,7 +308,7 @@ class LeaveRequestCreationForm(BaseModelForm):
         ]
 
 
-class LeaveRequestUpdationForm(BaseModelForm):
+class LeaveRequestUpdationForm(_SickLeaveAttachmentMixin, BaseModelForm):
 
     def __init__(self, *args, **kwargs):
 
@@ -428,7 +466,7 @@ class AvailableLeaveUpdateForm(BaseModelForm):
         fields = ["available_days", "carryforward_days", "is_active"]
 
 
-class UserLeaveRequestForm(BaseModelForm):
+class UserLeaveRequestForm(_SickLeaveAttachmentMixin, BaseModelForm):
     description = forms.CharField(label=_("Description"), widget=forms.Textarea)
 
     def __init__(self, *args, **kwargs):
@@ -547,7 +585,7 @@ class RejectForm(forms.Form):
         fields = ["reject_reason"]
 
 
-class UserLeaveRequestCreationForm(BaseModelForm):
+class UserLeaveRequestCreationForm(_SickLeaveAttachmentMixin, BaseModelForm):
 
     def as_p(self, *args, **kwargs):
         """

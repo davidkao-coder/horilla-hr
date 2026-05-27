@@ -124,6 +124,57 @@
 
 
         <div class="oh-dashboard__left col-12 col-sm-12 col-md-12 col-lg-9">
+            {# Think4U WP-X.3: 全角色看的快速卡（個人出缺勤 / 提醒 / 請假申請 / 加班申請） #}
+            <div class="row mb-3" id="think4uUserCards">
+                {% if "attendance"|app_installed %}
+                <div class="col-12 col-md-6 col-lg-3 mb-3">
+                    <a href="{% url 'view-my-attendance' %}" style="text-decoration:none;">
+                        <div class="oh-card-dashboard tile" style="background:#e8f4fd;">
+                            <div class="oh-card-dashboard__header"><span class="oh-card-dashboard__title">{% trans "My Attendance" %}</span></div>
+                            <div class="oh-card-dashboard__body" style="display:flex;align-items:center;justify-content:center;height:90px;">
+                                <ion-icon name="time-outline" style="font-size:48px;color:#1976d2;"></ion-icon>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+                <div class="col-12 col-md-6 col-lg-3 mb-3">
+                    <a href="{% url 'notifications:all' %}" style="text-decoration:none;">
+                        <div class="oh-card-dashboard tile" style="background:#fff3cd;">
+                            <div class="oh-card-dashboard__header"><span class="oh-card-dashboard__title">{% trans "Reminders" %}</span></div>
+                            <div class="oh-card-dashboard__body" style="display:flex;align-items:center;justify-content:center;height:90px;">
+                                <ion-icon name="notifications-outline" style="font-size:48px;color:#f57c00;"></ion-icon>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% if "leave"|app_installed %}
+                <div class="col-12 col-md-6 col-lg-3 mb-3">
+                    <a href="{% url 'user-request-view' %}" style="text-decoration:none;">
+                        <div class="oh-card-dashboard tile" style="background:#e8f5e9;">
+                            <div class="oh-card-dashboard__header"><span class="oh-card-dashboard__title">{% trans "Leave Request" %}</span></div>
+                            <div class="oh-card-dashboard__body" style="display:flex;align-items:center;justify-content:center;height:90px;">
+                                <ion-icon name="calendar-outline" style="font-size:48px;color:#2e7d32;"></ion-icon>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+                <div class="col-12 col-md-6 col-lg-3 mb-3">
+                    {# Think4U WP-04: 加班指派 widget #}
+                    <a href="{% url 'think4u-overtime-employee' %}" style="text-decoration:none;">
+                        <div class="oh-card-dashboard tile" style="background:#f3e5f5;">
+                            <div class="oh-card-dashboard__header"><span class="oh-card-dashboard__title">{% trans "Overtime Request" %}</span></div>
+                            <div class="oh-card-dashboard__body" style="display:flex;align-items:center;justify-content:center;height:90px;">
+                                <ion-icon name="hourglass-outline" style="font-size:48px;color:#7b1fa2;"></ion-icon>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            {# Think4U WP-X.3: 圖表 / 報表 — 僅系統管理員顯示 #}
+            {% if request.user.is_superuser %}
             <div class="oh-dashboard__cards row">
                 {% if perms.employee.view_employee %}
                     {% if "recruitment"|app_installed %}
@@ -184,6 +235,8 @@
                     {% include "dashboard_tile_container.html" %}
                 </div>
             </div>
+            {% endif %}
+            {# Think4U WP-X.3: 圖表區結束 #}
         </div>
         <div class="oh-dashboard__right col-12 col-sm-12 col-md-12 col-lg-3">
             {% if 'birthday_view'|feature_is_accessible:request or perms.employee.view_employee %}
@@ -276,20 +329,7 @@
 </div>
 
 
-<div class="oh-modal" id="editModal" role="dialog" aria-labelledby="editModal" aria-hidden="true">
-    <div class="oh-modal__dialog">
-        <div class="oh-modal__dialog-header">
-            <h2 class="oh-modal__dialog-title" id="editModalLabel">
-                {% trans "Add Asset Report" %}
-            </h2>
-            <button type="button" class="oh-modal_close--custom"
-                onclick="$('#editModal').removeClass('oh-modal--show');">
-                <ion-icon name="close-outline" role="img" aria-label="close outline"></ion-icon>
-            </button>
-        </div>
-        <div class="oh-modal__dialog-body" id="editModalForm"></div>
-    </div>
-</div>
+{% comment %}Think4U: Add Asset Report 隱藏對話框關閉{% endcomment %}
 
 {% include "announcement_single_view.html" %}
 
@@ -808,6 +848,9 @@
     })
 
 </script>
+{# Think4U: driver.js + .css 從 base 移過來，只在 dashboard 載入 #}
+<link rel="stylesheet" href="{% static 'build/css/driver.min.css' %}" />
+<script src="{% static 'build/js/driver.js' %}"></script>
 <script src="{% static 'build/js/dashboardDriver.js' %}"></script>
 
 {% if not request.user.driverviewed_set.first or "dashboard" not in request.user.driverviewed_set.first.user_viewed %}

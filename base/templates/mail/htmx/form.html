@@ -1,4 +1,10 @@
 {% load i18n %}
+{% load static %}
+
+{# Think4U: summernote 只在此 mail template 編輯器用 #}
+<link rel="stylesheet" href="{% static 'build/css/summernote-lite.min.css' %}" />
+<script src="{% static 'build/js/summernote-lite.min.js' %}"></script>
+
 <div class="oh-modal__dialog-header">
     <span class="oh-modal__dialog-title"
         >{{form.instance.title|default:_("Add Template")}}</span

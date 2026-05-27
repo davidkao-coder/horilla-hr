@@ -1,0 +1,38 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans "Think4U HRMS" %}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system,BlinkMacSystemFont,"Microsoft JhengHei",sans-serif; }
+        body { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; }
+        .container { background: white; border-radius: 20px; padding: 60px 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); text-align: center; max-width: 480px; width: 90%; }
+        h1 { color: #333; margin-bottom: 8px; font-size: 28px; }
+        .subtitle { color: #888; margin-bottom: 40px; font-size: 14px; }
+        .btn-group { display: flex; flex-direction: column; gap: 16px; }
+        .btn { display: block; padding: 20px; border-radius: 12px; text-decoration: none; font-size: 18px; font-weight: 500; transition: all 0.2s; border: 2px solid transparent; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6dd0; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(102,126,234,0.3); }
+        .btn-secondary { background: white; color: #667eea; border-color: #667eea; }
+        .btn-secondary:hover { background: #f0f3ff; transform: translateY(-2px); box-shadow: 0 8px 16px rgba(102,126,234,0.2); }
+        .icon { display: inline-block; font-size: 28px; margin-right: 8px; vertical-align: middle; }
+        .footer { margin-top: 30px; color: #aaa; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{% trans "Think4U Tech 人事管理系統" %}</h1>
+        <p class="subtitle">{% trans "請選擇要進入的入口" %}</p>
+        <div class="btn-group">
+            <a class="btn btn-primary" href="/login/?next=/">
+                <span class="icon">🖥️</span>{% trans "後台管理登入" %}
+            </a>
+            <a class="btn btn-secondary" href="/login/?next=/clock/">
+                <span class="icon">🕐</span>{% trans "打卡系統登入" %}
+            </a>
+        </div>
+        <div class="footer">© 2026 Think4U Technology</div>
+    </div>
+</body>
+</html>

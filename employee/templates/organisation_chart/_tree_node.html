@@ -1,0 +1,27 @@
+{% load i18n %}
+{# 遞迴渲染一個節點 — 接收 node = {name, title, children, is_department} #}
+<li class="t4u-tree__item">
+    {% if node.is_department %}
+        <details open class="t4u-tree__details">
+            <summary class="t4u-tree__summary">
+                <span class="t4u-tree__icon">🏢</span>
+                <span class="t4u-tree__name">{{ node.name }}</span>
+                {% if node.title %}<span class="t4u-tree__title">— {{ node.title }}</span>{% endif %}
+                {% if node.children %}<span class="t4u-tree__count">（{{ node.children|length }}）</span>{% endif %}
+            </summary>
+            {% if node.children %}
+                <ul class="t4u-tree">
+                    {% for child in node.children %}
+                        {% include 'organisation_chart/_tree_node.html' with node=child %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </details>
+    {% else %}
+        <div class="t4u-tree__leaf">
+            <span class="t4u-tree__icon">👤</span>
+            <span class="t4u-tree__name">{{ node.name }}</span>
+            {% if node.title %}<span class="t4u-tree__title">— {{ node.title }}</span>{% endif %}
+        </div>
+    {% endif %}
+</li>

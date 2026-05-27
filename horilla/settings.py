@@ -60,15 +60,17 @@ INSTALLED_APPS = [
     "django_filters",
     "base",
     "employee",
-    "recruitment",
+    # Think4U disabled per requirement (model 完全移除):
+    # "recruitment",
+    # "pms",
+    # "onboarding",
+    "asset",  # Think4U: payroll migration 強依賴此 app，保留 model，UI 已從 SIDEBARS 移除
     "leave",
-    "pms",
-    "onboarding",
-    "asset",
     "attendance",
     "payroll",
     "widget_tweaks",
     "django_apscheduler",
+    "think4u",  # Think4U 客製：歷年制特休、加班指派…
 ]
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 
@@ -76,6 +78,7 @@ APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
 
 
 MIDDLEWARE = [
+    "think4u.timing_middleware.ServerTimingMiddleware",  # Think4U: response 加 X-Server-Time
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -200,7 +203,13 @@ MESSAGE_TAGS = {
 
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
-LOGIN_URL = "/login"
+LOGIN_URL = "/landing/"  # Think4U WP-X.2: 雙入口 landing
+
+# Think4U WP-02: 每日打卡 TOTP secret（24h 週期；須為合法 Base32 字串）
+DAILY_VERIFICATION_CODE_SECRET = env(
+    "DAILY_VERIFICATION_CODE_SECRET",
+    default="THINKFOURHRMSCLOCKDAILYTOTPSECRE",
+)
 
 
 SIMPLE_HISTORY_REVERT_DISABLED = True
@@ -237,7 +246,7 @@ LOCALE_PATHS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = env("LANGUAGE_CODE", default="zh-hant")
 
 TIME_ZONE = env("TIME_ZONE", default="Asia/Kolkata")
 

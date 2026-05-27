@@ -1,0 +1,53 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "我的申請與狀態" %}</h1>
+
+    <h2 style="margin-top:1rem;">📅 {% trans "我的請假申請" %}</h2>
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:8px;">{% trans "假別" %}</th>
+                <th style="padding:8px;">{% trans "起訖" %}</th>
+                <th style="padding:8px;">{% trans "天數" %}</th>
+                <th style="padding:8px;">{% trans "狀態" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for lr in leaves %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ lr.leave_type_id.name }}</td>
+                    <td style="padding:8px;">{{ lr.start_date }} ~ {{ lr.end_date }}</td>
+                    <td style="padding:8px; text-align:center;">{{ lr.requested_days }}</td>
+                    <td style="padding:8px; text-align:center;">{{ lr.get_status_display }}</td>
+                </tr>
+                {% empty %}<tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">尚無請假申請</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <h2 style="margin-top:1.5rem;">⏰ {% trans "我的加班指派" %}</h2>
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:8px;">{% trans "日期" %}</th>
+                <th style="padding:8px;">{% trans "時段" %}</th>
+                <th style="padding:8px;">{% trans "時數" %}</th>
+                <th style="padding:8px;">{% trans "原因" %}</th>
+                <th style="padding:8px;">{% trans "狀態" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for ot in overtimes %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px; text-align:center;">{{ ot.overtime_date }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.start_time|time:"H:i" }} - {{ ot.end_time|time:"H:i" }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.duration_hours|floatformat:1 }}</td>
+                    <td style="padding:8px;">{{ ot.reason|truncatechars:30 }}</td>
+                    <td style="padding:8px; text-align:center;">{{ ot.get_status_display }}</td>
+                </tr>
+                {% empty %}<tr><td colspan="5" style="padding:20px; text-align:center; color:#999;">尚無加班指派</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

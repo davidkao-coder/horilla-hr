@@ -4,6 +4,8 @@ var confirmModal = {
     es: "Confirmar",
     en: "Confirm",
     fr: "Confirmer",
+    "zh-hant": "確認",
+    "zh-hans": "确认",
 };
 
 var cancelModal = {
@@ -12,6 +14,8 @@ var cancelModal = {
     es: "Cancelar",
     en: "Cancel",
     fr: "Annuler",
+    "zh-hant": "取消",
+    "zh-hans": "取消",
 };
 
 function getCookie(name) {

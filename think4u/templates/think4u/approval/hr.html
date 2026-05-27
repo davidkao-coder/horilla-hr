@@ -1,0 +1,38 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "HR 第二層審核專區" %}</h1>
+
+    <h2 style="margin-top:1rem;">📅 {% trans "待 HR 核准的請假" %} ({{ leave_pending|length }})</h2>
+    <section class="oh-card" style="padding:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:8px;">{% trans "員工" %}</th>
+                <th style="padding:8px;">{% trans "部門" %}</th>
+                <th style="padding:8px;">{% trans "假別" %}</th>
+                <th style="padding:8px;">{% trans "起訖" %}</th>
+                <th style="padding:8px;">{% trans "天數" %}</th>
+                <th style="padding:8px;">{% trans "操作" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for lr in leave_pending %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:8px;">{{ lr.employee_id.get_full_name }}</td>
+                    <td style="padding:8px;">{{ lr.employee_id.employee_work_info.department_id.department|default:'—' }}</td>
+                    <td style="padding:8px;">{{ lr.leave_type_id.name }}</td>
+                    <td style="padding:8px;">{{ lr.start_date }} ~ {{ lr.end_date }}</td>
+                    <td style="padding:8px; text-align:center;">{{ lr.requested_days }}</td>
+                    <td style="padding:8px;"><a class="oh-btn oh-btn--secondary oh-btn--small" href="{% url 'request-view' %}?employee_id={{ lr.employee_id.id }}">→ {% trans "前往審核" %}</a></td>
+                </tr>
+                {% empty %}<tr><td colspan="6" style="padding:20px; text-align:center; color:#999;">無待 HR 核准請假</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <h2 style="margin-top:1.5rem;">⏰ {% trans "待 HR 核准加班" %} ({{ overtime_pending|length }})</h2>
+    <section class="oh-card" style="padding:1rem;">
+        <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-overtime-hr' %}">→ {% trans "前往加班核准" %}</a>
+    </section>
+</div>
+{% endblock %}

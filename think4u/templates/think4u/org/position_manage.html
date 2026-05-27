@@ -1,0 +1,100 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<script>
+function t4uConfirmSubmit(btn, msg) {
+    if (typeof Swal === 'undefined') {
+        if (window.confirm.toString().includes('preventDefault')) {
+            // Horilla 攔截器版本 — 降級用 native confirm
+            if (window.confirm(msg)) btn.closest('form').submit();
+        } else if (window.confirm(msg)) {
+            btn.closest('form').submit();
+        }
+        return;
+    }
+    Swal.fire({
+        text: msg,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: '確認',
+        cancelButtonText: '取消',
+        confirmButtonColor: '#008000',
+        cancelButtonColor: '#d33',
+    }).then(function (result) {
+        if (result.isConfirmed) btn.closest('form').submit();
+    });
+}
+</script>
+<div class="oh-wrapper oh-wrapper--small">
+    <h1 class="fw-bold">{% trans "職位管理" %}</h1>
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
+        <form method="post" style="display:flex; gap:8px; flex-wrap:wrap;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create">
+            <input type="text" name="name" placeholder="{% trans '新職位名稱' %}" required class="oh-input" style="flex:2; min-width:160px;">
+            <select name="dept" required class="oh-select" style="flex:1; min-width:140px;">
+                <option value="">{% trans "所屬部門" %}</option>
+                {% for d in departments %}<option value="{{ d.id }}">{{ d.department }}</option>{% endfor %}
+            </select>
+            <select name="role" class="oh-select" style="flex:1; min-width:140px;" title="{% trans '預設角色（員工建立時自動帶入）' %}">
+                <option value="">{% trans "預設角色（可選）" %}</option>
+                {% for g in roles %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+            </select>
+            <button type="submit" class="oh-btn oh-btn--secondary">
+                <ion-icon name="add-outline"></ion-icon> {% trans "新增職位" %}
+            </button>
+        </form>
+        <small style="color:#888;">{% trans "「預設角色」決定該職位員工建立時自動帶入哪個角色（影響可看到的頁面）" %}</small>
+    </section>
+
+    <section class="oh-card" style="padding:1rem; margin-top:1rem; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+            <thead><tr style="background:#f5f5f5;">
+                <th style="padding:10px; text-align:left;">{% trans "職位名稱 / 預設角色" %}</th>
+                <th style="padding:10px;">{% trans "所屬部門" %}</th>
+                <th style="padding:10px; text-align:center;">{% trans "員工數" %}</th>
+                <th style="padding:10px; text-align:center; width:160px;">{% trans "操作" %}</th>
+            </tr></thead>
+            <tbody>
+                {% for r in rows %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">
+                        <form method="post" style="display:flex; gap:4px; flex-wrap:wrap;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="rename">
+                            <input type="hidden" name="pk" value="{{ r.obj.pk }}">
+                            <input type="text" name="name" value="{{ r.obj.job_position }}" class="oh-input" style="flex:2; min-width:140px;">
+                            <select name="role" class="oh-select" style="flex:1; min-width:140px;">
+                                <option value="">{% trans "— 無預設角色 —" %}</option>
+                                {% for g in roles %}
+                                  <option value="{{ g.id }}" {% if r.obj.default_role_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="oh-btn oh-btn--small">{% trans "更新" %}</button>
+                        </form>
+                    </td>
+                    <td style="padding:10px;">{{ r.obj.department_id.department }}</td>
+                    <td style="padding:10px; text-align:center;">{{ r.emp_count }}</td>
+                    <td style="padding:10px; text-align:center;">
+                        <form method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="pk" value="{{ r.obj.pk }}">
+                            <button type="button" class="oh-btn oh-btn--danger oh-btn--small"
+                                onclick="t4uConfirmSubmit(this, '確定刪除「{{ r.obj.job_position }}」？');"
+                                {% if r.emp_count %}disabled title="此職位仍有員工"{% endif %}>
+                                <ion-icon name="trash-outline"></ion-icon> {% trans "刪除" %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">尚無職位</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}
