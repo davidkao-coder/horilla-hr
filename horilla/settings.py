@@ -91,6 +91,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "think4u.admin_gate_middleware.AdminAccessGateMiddleware",  # Think4U: 後台路徑 -> 無權限導前台
 ]
 
 ROOT_URLCONF = "horilla.urls"
@@ -203,7 +204,8 @@ MESSAGE_TAGS = {
 
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
-LOGIN_URL = "/landing/"  # Think4U WP-X.2: 雙入口 landing
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/portal/"  # Think4U: 登入後預設到前台 portal
 
 # Think4U WP-02: 每日打卡 TOTP secret（24h 週期；須為合法 Base32 字串）
 DAILY_VERIFICATION_CODE_SECRET = env(

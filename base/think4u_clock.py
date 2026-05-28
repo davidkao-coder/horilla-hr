@@ -46,11 +46,25 @@ def get_client_ip(request) -> str:
     return request.META.get("REMOTE_ADDR", "")
 
 
+@login_required
 def landing_page(request):
-    """匿名雙入口；已登入則 redirect /"""
-    if request.user.is_authenticated:
-        return redirect("/")
-    return render(request, "base/think4u/landing.html")
+    """登入後的入口選擇頁。
+    有後台權限 → 顯示「後台管理 + 前台 portal」兩個入口
+    無後台權限 → 直接導向前台 portal
+    """
+    from think4u.models import user_can_access_admin
+
+    if not user_can_access_admin(request.user):
+        return redirect("/portal/")
+
+    return render(
+        request,
+        "base/think4u/landing.html",
+        {
+            "user": request.user,
+            "employee": getattr(request.user, "employee_get", None),
+        },
+    )
 
 
 @login_required

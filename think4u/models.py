@@ -317,3 +317,103 @@ class PunchCorrectionRequest(models.Model):
 
     def __str__(self):
         return f"{self.employee} | {self.target_date} | {self.get_status_display()}"
+
+
+# ============================================================================
+# 員工主動加班申請（OvertimeApplication）
+# ----------------------------------------------------------------------------
+# 與 OvertimeAssignment 並存：
+#   - OvertimeAssignment：主管由上而下指派加班（top-down）
+#   - OvertimeApplication：員工自己主動申請加班（bottom-up）走 ApprovalWorkflow
+# ============================================================================
+
+
+class OvertimeApplication(models.Model):
+    STATUS_CHOICES = [
+        ("pending", _("待審核")),
+        ("approved", _("已核准")),
+        ("rejected", _("已駁回")),
+        ("cancelled", _("已取消")),
+    ]
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="overtime_applications",
+        verbose_name=_("員工"),
+    )
+    overtime_date = models.DateField(verbose_name=_("加班日期"))
+    start_time = models.TimeField(verbose_name=_("開始時間"))
+    end_time = models.TimeField(verbose_name=_("結束時間"))
+    reason = models.TextField(verbose_name=_("加班事由"))
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", verbose_name=_("狀態")
+    )
+    workflow = models.ForeignKey(
+        ApprovalWorkflow,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="overtime_applications",
+        verbose_name=_("套用流程"),
+    )
+    current_step_order = models.PositiveSmallIntegerField(
+        default=1, verbose_name=_("目前審核關卡")
+    )
+    decisions = models.JSONField(
+        default=list, blank=True, verbose_name=_("審核記錄")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-overtime_date", "-created_at"]
+        verbose_name = _("加班申請")
+        verbose_name_plural = _("加班申請")
+
+    def __str__(self):
+        return f"{self.employee} | {self.overtime_date} | {self.get_status_display()}"
+
+    @property
+    def duration_hours(self) -> float:
+        from datetime import datetime, timedelta
+
+        d = datetime.combine(self.overtime_date, self.start_time)
+        e = datetime.combine(self.overtime_date, self.end_time)
+        if e < d:
+            e += timedelta(days=1)
+        return (e - d).total_seconds() / 3600.0
+
+
+# ============================================================================
+# 後台存取群組（AdminAccessGroup）
+# ----------------------------------------------------------------------------
+# 此表內的 Auth Group 成員，才能進入後台管理（/）。
+# 不在表內的人，登入後一律導到前台 portal（/portal/）。
+# superuser 永遠可進後台。
+# ============================================================================
+
+
+class AdminAccessGroup(models.Model):
+    group = models.OneToOneField(
+        "auth.Group",
+        on_delete=models.CASCADE,
+        related_name="admin_access",
+        verbose_name=_("角色"),
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("後台存取角色")
+        verbose_name_plural = _("後台存取角色")
+
+    def __str__(self):
+        return f"{self.group.name}（可進後台）"
+
+
+def user_can_access_admin(user) -> bool:
+    """判定使用者是否能進入後台管理"""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    return AdminAccessGroup.objects.filter(group__in=user.groups.all()).exists()

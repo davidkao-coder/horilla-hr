@@ -564,14 +564,16 @@ def login_user(request):
     """
     Handles user login and authentication.
     """
-    # Think4U WP-X.2: 匿名訪客若無 ?next 參數，導向 landing 雙入口
-    if request.method == "GET" and not request.user.is_authenticated:
-        if "next" not in request.GET:
-            return redirect("think4u-landing")
+    # Think4U: 已登入時依角色直接導向（有後台權限 → /，否則 → /portal/）
+    if request.method == "GET" and request.user.is_authenticated:
+        from think4u.models import user_can_access_admin
+
+        return redirect("/" if user_can_access_admin(request.user) else "/portal/")
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-        next_url = request.GET.get("next", "/")
+        # Think4U: 登入後預設導向前台 /portal/；指定 next 則維持
+        next_url = request.GET.get("next", "/portal/")
         query_params = request.GET.dict()
         query_params.pop("next", None)
         params = urlencode(query_params)
@@ -610,7 +612,13 @@ def login_user(request):
         if not url_has_allowed_host_and_scheme(
             next_url, allowed_hosts={request.get_host()}
         ):
-            next_url = "/"
+            next_url = "/portal/"
+
+        # Think4U: 若 next_url 指向後台但使用者無權限 → 改導前台
+        from think4u.models import user_can_access_admin
+
+        if next_url == "/" and not user_can_access_admin(user):
+            next_url = "/portal/"
 
         if params:
             next_url += f"?{params}"

@@ -1,0 +1,435 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% trans "Think4U 員工自助" %}</title>
+    <link rel="icon" href="{% static 'favicons/favicon-32x32.png' %}">
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang TC", sans-serif; }
+        body { background: #f5f6fa; min-height: 100vh; padding-bottom: 80px; color: #333; }
+
+        /* Top bar */
+        .topbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .topbar h1 { font-size: 16px; margin: 0; font-weight: 500; }
+        .topbar-actions { display: flex; gap: 12px; align-items: center; font-size: 13px; }
+        .topbar-actions a { color: rgba(255,255,255,0.9); text-decoration: none; }
+        .topbar-actions a:hover { color: white; }
+        .topbar-actions .admin-link { background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 16px; }
+
+        /* Tab panel container */
+        .panel { padding: 16px; max-width: 720px; margin: 0 auto; }
+        .panel.hidden { display: none; }
+
+        /* Card */
+        .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .card-title { font-size: 14px; font-weight: 600; color: #444; margin: 0 0 12px; display: flex; align-items: center; gap: 6px; }
+        .card-section { padding: 12px 0; border-top: 1px solid #f0f0f0; }
+        .card-section:first-of-type { border-top: none; padding-top: 0; }
+
+        /* Form */
+        label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
+        input, select, textarea, button { font-size: 15px; font-family: inherit; }
+        input[type=text], input[type=date], input[type=time], input[type=number], select, textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafbfc; -webkit-appearance: none;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; background: white; }
+        textarea { resize: vertical; min-height: 60px; }
+        .form-row { margin-bottom: 12px; }
+        .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .required { color: #c0392b; }
+
+        /* Button */
+        .btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 8px; border: none; font-weight: 500; cursor: pointer; transition: transform 0.1s, box-shadow 0.15s; gap: 6px; }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5a6dd0; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-outline { background: white; color: #667eea; border: 1px solid #667eea; }
+        .btn-outline:hover { background: #f0f3ff; }
+        .btn-large { padding: 18px 24px; font-size: 17px; width: 100%; }
+        .btn-block { width: 100%; }
+
+        /* Clock card */
+        .clock-display { text-align: center; padding: 8px 0 16px; }
+        .clock-time { font-size: 44px; font-weight: 200; color: #333; letter-spacing: 2px; }
+        .clock-date { font-size: 14px; color: #999; margin-top: 4px; }
+        .clock-status { background: #f0f3ff; padding: 12px; border-radius: 8px; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+        .clock-status strong { color: #667eea; }
+        .clock-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Status badge */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-approved { background: #d4edda; color: #155724; }
+        .badge-applied { background: #d4edda; color: #155724; }
+        .badge-rejected { background: #f8d7da; color: #721c24; }
+        .badge-cancelled { background: #e9ecef; color: #6c757d; }
+        .badge-requested { background: #fff3cd; color: #856404; }
+
+        /* My list item */
+        .item { padding: 12px 0; border-top: 1px solid #f0f0f0; font-size: 13px; }
+        .item:first-child { border-top: none; }
+        .item-head { display: flex; justify-content: space-between; align-items: center; }
+        .item-desc { color: #888; font-size: 12px; margin-top: 4px; }
+
+        /* Alert messages */
+        .alert-container { padding: 12px 16px; max-width: 720px; margin: 0 auto; }
+        .alert { padding: 10px 14px; border-radius: 8px; margin-bottom: 8px; font-size: 14px; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-error, .alert-danger { background: #f8d7da; color: #721c24; }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        .alert-info { background: #d1ecf1; color: #0c5460; }
+
+        /* Bottom navigation */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #eee; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); }
+        .bottom-nav a { display: flex; flex-direction: column; align-items: center; padding: 6px 4px; text-decoration: none; color: #999; font-size: 11px; gap: 2px; }
+        .bottom-nav a.active { color: #667eea; }
+        .bottom-nav a .icon { font-size: 22px; line-height: 1; }
+
+        /* Helper / leave balance pills */
+        .balance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+        .balance-pill { background: #f5f6fa; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+        .balance-pill .name { color: #666; }
+        .balance-pill .value { font-size: 18px; font-weight: 600; color: #667eea; }
+
+        details > summary { cursor: pointer; padding: 8px 0; user-select: none; font-size: 13px; color: #667eea; }
+        details > summary::marker { display: none; }
+        details > summary::-webkit-details-marker { display: none; }
+        details > summary::before { content: "▶ "; font-size: 9px; transition: transform 0.15s; display: inline-block; }
+        details[open] > summary::before { transform: rotate(90deg); }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <h1>👤 {{ employee.get_full_name }}</h1>
+        <div class="topbar-actions">
+            {% if can_access_admin %}
+                <a href="/" class="admin-link" title="進後台管理">{% trans "進後台" %} →</a>
+            {% endif %}
+            <a href="/logout/">{% trans "登出" %}</a>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="alert-container">
+        {% for m in messages %}
+            <div class="alert alert-{{ m.tags|default:'info' }}">{{ m }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ====================== Clock tab ====================== #}
+    <div class="panel {% if tab != 'clock' %}hidden{% endif %}" id="panel-clock">
+        <!-- 打卡卡片 -->
+        <div class="card">
+            <div class="clock-display">
+                <div class="clock-time" id="liveTime">--:--:--</div>
+                <div class="clock-date">{{ today|date:"Y 年 m 月 d 日（D）" }}</div>
+            </div>
+
+            <div class="clock-status">
+                {% if first_in %}
+                    ✅ 上班打卡：<strong>{{ first_in.clock_in|time:"H:i:s" }}</strong>
+                {% else %}
+                    ⏰ 尚未上班打卡
+                {% endif %}
+                <br>
+                {% if last_out %}
+                    ✅ 下班打卡：<strong>{{ last_out.clock_out|time:"H:i:s" }}</strong>
+                {% elif open_punch %}
+                    🔓 工作中（{{ open_punch.clock_in|time:"H:i" }} 起）
+                {% else %}
+                    ⏰ 尚未下班打卡
+                {% endif %}
+            </div>
+
+            <form method="post" action="{% url 'think4u-portal-clock-submit' %}">
+                {% csrf_token %}
+                <div class="form-grid-2" style="margin-bottom: 12px;">
+                    <label style="display:flex; align-items:center; gap:6px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fafbfc; cursor:pointer;">
+                        <input type="radio" name="attendance_type" value="office" checked onchange="toggleClockType()"> 公司打卡
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fafbfc; cursor:pointer;">
+                        <input type="radio" name="attendance_type" value="field" onchange="toggleClockType()"> 外勤打卡
+                    </label>
+                </div>
+
+                <div id="officeFields" class="form-row">
+                    <label>{% trans "今日驗證碼" %}<span class="required">*</span></label>
+                    <input type="text" name="verification_code" maxlength="6" placeholder="6 位數字" inputmode="numeric" pattern="[0-9]{6}">
+                    {% if show_code %}<small style="color:#888;">（HR 顯示：<code>{{ todays_code }}</code>）</small>{% endif %}
+                </div>
+                <div id="fieldFields" class="form-row" style="display:none;">
+                    <label>{% trans "外勤原因" %}<span class="required">*</span></label>
+                    <textarea name="field_reason" rows="2" placeholder="例：客戶拜訪、外出洽公"></textarea>
+                </div>
+
+                <div class="clock-actions">
+                    <button type="submit" name="action" value="in" class="btn btn-success btn-large">▶ 上班打卡</button>
+                    <button type="submit" name="action" value="out" class="btn btn-danger btn-large">■ 下班打卡</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 補打卡 -->
+        <div class="card">
+            <details>
+                <summary>{% trans "補打卡申請（漏打卡時用）" %}</summary>
+                <form method="post" action="{% url 'think4u-portal-correction-submit' %}" style="margin-top:10px;">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <label>{% trans "補哪一天" %}<span class="required">*</span></label>
+                        <input type="date" name="target_date" max="{{ today|date:'Y-m-d' }}" required>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-row">
+                            <label>{% trans "補的上班時間" %}</label>
+                            <input type="time" name="requested_check_in">
+                        </div>
+                        <div class="form-row">
+                            <label>{% trans "補的下班時間" %}</label>
+                            <input type="time" name="requested_check_out">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "事由" %}<span class="required">*</span></label>
+                        <textarea name="reason" rows="2" required placeholder="例：忘記打卡、系統故障"></textarea>
+                    </div>
+                    <button class="btn btn-outline btn-block">📝 送出補打卡申請</button>
+                </form>
+
+                {% if my_corrections %}
+                <div style="margin-top:12px;">
+                    <small style="color:#888;">最近 5 筆：</small>
+                    {% for c in my_corrections %}
+                    <div class="item">
+                        <div class="item-head">
+                            <span>{{ c.target_date }} · in {{ c.requested_check_in|default:"—" }} / out {{ c.requested_check_out|default:"—" }}</span>
+                            <span class="badge badge-{{ c.status }}">{{ c.get_status_display }}</span>
+                        </div>
+                        <div class="item-desc">{{ c.reason }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </details>
+        </div>
+    </div>
+
+    {# ====================== Leave tab ====================== #}
+    <div class="panel {% if tab != 'leave' %}hidden{% endif %}" id="panel-leave">
+        <div class="card">
+            <h3 class="card-title">📅 {% trans "新請假申請" %}</h3>
+            <form method="post" action="{% url 'think4u-portal-leave-submit' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-row">
+                    <label>{% trans "假別" %}<span class="required">*</span></label>
+                    <select name="leave_type_id" required>
+                        <option value="">— 請選擇 —</option>
+                        {% for lt in leave_types %}<option value="{{ lt.id }}">{{ lt.name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label>{% trans "開始日期" %}<span class="required">*</span></label>
+                        <input type="date" name="start_date" required>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "結束日期" %}</label>
+                        <input type="date" name="end_date">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "請假事由" %}<span class="required">*</span></label>
+                    <textarea name="description" rows="3" required placeholder="請說明請假事由（病假請附醫療證明）"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "附件（病假必須）" %}</label>
+                    <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+                <button class="btn btn-primary btn-block">📤 送出請假申請</button>
+            </form>
+        </div>
+
+        {% if leave_balances %}
+        <div class="card">
+            <h3 class="card-title">📊 {% trans "我的剩餘假" %}</h3>
+            <div class="balance-grid">
+                {% for b in leave_balances %}
+                <div class="balance-pill">
+                    <div class="name">{{ b.leave_type_id.name }}</div>
+                    <div class="value">{{ b.available_days }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if my_leaves %}
+        <div class="card">
+            <h3 class="card-title">📜 {% trans "最近申請" %}</h3>
+            {% for r in my_leaves %}
+            <div class="item">
+                <div class="item-head">
+                    <span><strong>{{ r.leave_type_id.name }}</strong> · {{ r.start_date }} ~ {{ r.end_date }} ({{ r.requested_days }} 天)</span>
+                    <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ r.description|truncatechars:60 }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {# ====================== Overtime tab ====================== #}
+    <div class="panel {% if tab != 'overtime' %}hidden{% endif %}" id="panel-overtime">
+        <div class="card">
+            <h3 class="card-title">⏱️ {% trans "新加班申請" %}</h3>
+            <form method="post" action="{% url 'think4u-portal-overtime-submit' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <label>{% trans "加班日期" %}<span class="required">*</span></label>
+                    <input type="date" name="overtime_date" required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label>{% trans "開始時間" %}<span class="required">*</span></label>
+                        <input type="time" name="start_time" required>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "結束時間" %}<span class="required">*</span></label>
+                        <input type="time" name="end_time" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "加班事由" %}<span class="required">*</span></label>
+                    <textarea name="reason" rows="3" required placeholder="例：趕專案進度、緊急 bug 修復"></textarea>
+                </div>
+                <button class="btn btn-primary btn-block">📤 送出加班申請</button>
+            </form>
+        </div>
+
+        {% if my_overtime_apps %}
+        <div class="card">
+            <h3 class="card-title">📜 {% trans "我送出的加班申請" %}</h3>
+            {% for a in my_overtime_apps %}
+            <div class="item">
+                <div class="item-head">
+                    <span><strong>{{ a.overtime_date }}</strong> {{ a.start_time }}~{{ a.end_time }} ({{ a.duration_hours|floatformat:1 }}h)</span>
+                    <span class="badge badge-{{ a.status }}">{{ a.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ a.reason|truncatechars:60 }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if my_overtime_assignments %}
+        <div class="card">
+            <h3 class="card-title">📋 {% trans "主管指派的加班" %}</h3>
+            {% for a in my_overtime_assignments %}
+            <div class="item">
+                <div class="item-head">
+                    <span><strong>{{ a.overtime_date }}</strong> {{ a.start_time }}~{{ a.end_time }}</span>
+                    <span class="badge badge-{{ a.status }}">{{ a.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ a.reason|truncatechars:60 }} — by {{ a.assigned_by }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {# ====================== My records tab ====================== #}
+    <div class="panel {% if tab != 'my' %}hidden{% endif %}" id="panel-my">
+        <div class="card">
+            <h3 class="card-title">📅 {% trans "我的請假" %}</h3>
+            {% for r in my_leaves %}
+            <div class="item">
+                <div class="item-head">
+                    <span>{{ r.leave_type_id.name }} · {{ r.start_date }}~{{ r.end_date }}</span>
+                    <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ r.description|truncatechars:80 }}</div>
+            </div>
+            {% empty %}
+            <p style="color:#999; text-align:center;">尚無請假申請</p>
+            {% endfor %}
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">⏱️ {% trans "我的加班" %}</h3>
+            {% for a in my_overtime_apps %}
+            <div class="item">
+                <div class="item-head">
+                    <span>{{ a.overtime_date }} {{ a.start_time }}~{{ a.end_time }}</span>
+                    <span class="badge badge-{{ a.status }}">{{ a.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ a.reason|truncatechars:80 }}</div>
+            </div>
+            {% empty %}
+            <p style="color:#999; text-align:center;">尚無加班申請</p>
+            {% endfor %}
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">📝 {% trans "我的補打卡" %}</h3>
+            {% for c in my_corrections %}
+            <div class="item">
+                <div class="item-head">
+                    <span>{{ c.target_date }} · in {{ c.requested_check_in|default:"—" }} / out {{ c.requested_check_out|default:"—" }}</span>
+                    <span class="badge badge-{{ c.status }}">{{ c.get_status_display }}</span>
+                </div>
+                <div class="item-desc">{{ c.reason|truncatechars:80 }}</div>
+            </div>
+            {% empty %}
+            <p style="color:#999; text-align:center;">尚無補打卡申請</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav">
+        <a href="?tab=clock" class="{% if tab == 'clock' %}active{% endif %}">
+            <span class="icon">🕐</span><span>打卡</span>
+        </a>
+        <a href="?tab=leave" class="{% if tab == 'leave' %}active{% endif %}">
+            <span class="icon">📅</span><span>請假</span>
+        </a>
+        <a href="?tab=overtime" class="{% if tab == 'overtime' %}active{% endif %}">
+            <span class="icon">⏱️</span><span>加班</span>
+        </a>
+        <a href="?tab=my" class="{% if tab == 'my' %}active{% endif %}">
+            <span class="icon">📋</span><span>我的</span>
+        </a>
+    </nav>
+
+    <script>
+        // 即時時鐘
+        (function () {
+            function tick() {
+                var now = new Date();
+                var h = String(now.getHours()).padStart(2, '0');
+                var m = String(now.getMinutes()).padStart(2, '0');
+                var s = String(now.getSeconds()).padStart(2, '0');
+                var el = document.getElementById('liveTime');
+                if (el) el.textContent = h + ':' + m + ':' + s;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+        // 切換打卡類型欄位
+        function toggleClockType() {
+            var type = document.querySelector('input[name="attendance_type"]:checked').value;
+            document.getElementById('officeFields').style.display = type === 'office' ? '' : 'none';
+            document.getElementById('fieldFields').style.display = type === 'field' ? '' : 'none';
+        }
+    </script>
+</body>
+</html>

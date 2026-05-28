@@ -72,6 +72,22 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 前台 / 後台分離：
+  - **新模型** `OvertimeApplication`（員工主動加班申請，走 ApprovalWorkflow，與主管指派的 OvertimeAssignment 並存）
+  - **新模型** `AdminAccessGroup(group)`：哪些角色能進後台；helper `user_can_access_admin(user)` superuser 永遠 True、其他角色看是否在 AdminAccessGroup
+  - **前台 portal** `/portal/`：App 風格 + 下方 nav bar（打卡 / 請假 / 加班 / 我的），全部功能整合在單頁：
+    - 打卡 tab：即時時鐘、上下班打卡、公司/外勤切換、驗證碼；底部摺疊式補打卡申請
+    - 請假 tab：假別下拉、起訖日、附件（沿用 Horilla LeaveRequest）；顯示剩餘假
+    - 加班 tab：日期/起訖時間/事由；分別顯示「我送出的」+「主管指派的」加班
+    - 我的 tab：所有申請彙整
+    - 右上：登出 + 「進後台」連結（僅 admin 角色顯示）
+  - **後台守門員 middleware** `think4u/admin_gate_middleware.py`：已登入但無 admin 權限訪問非 portal/clock/login/static 路徑 → 自動導 `/portal/`
+  - **登入流程改寫**：
+    - 預設 `LOGIN_REDIRECT_URL = /portal/`
+    - 已登入訪問 `/login/` → 依角色導 `/`（admin）或 `/portal/`（非 admin）
+    - landing page 只有 admin 才看得到「後台 / 前台」選擇；非 admin 直接導 portal
+  - **seed**：人資 HR + 系統管理員 預設加入 AdminAccessGroup（migration `think4u/0005`）
+  - URL 路徑：`/portal/` + `/portal/clock/submit/` + `/portal/correction/submit/` + `/portal/leave/submit/` + `/portal/overtime/submit/` + `/portal/cancel/<kind>/<pk>/`
 - 2026-05-28 出勤判定 + 月度統計 + 每日提醒 + 補打卡審核：
   - **規則**（`think4u/attendance_rules.py`）：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、午休 12:30~13:30、每日須 8h；> 10:00 遲到、< 18:30 早退；工時 = (out - in) - 午休重疊分鐘。
   - **月度統計頁** `/think4u/attendance/monthly/`：員工 × 日期矩陣，每格 ✓/↑/↓/✗ + hover 顯示遲到分數；總工時 / 正常 / 遲到 / 早退 / 缺勤 月度摘要；HR 看全公司、主管看部屬（含子部門）、員工看自己。
