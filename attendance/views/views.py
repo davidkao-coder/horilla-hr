@@ -2305,6 +2305,17 @@ def work_records_change_month(request):
         request, employee_filter_form.qs, "attendance.view_attendance"
     )
 
+    # Think4U: 排除「不顯示在報表」的角色成員（高管等），但允許自己看自己
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = set(
+        get_hidden_in_reports_employees().values_list("id", flat=True)
+    )
+    me = getattr(request.user, "employee_get", None)
+    if hidden_ids:
+        employees = employees.exclude(
+            id__in=hidden_ids - ({me.id} if me else set())
+        )
+
     month_str = request.GET.get("month", f"{date.today().year}-{date.today().month}")
     try:
         year, month = map(int, month_str.split("-"))

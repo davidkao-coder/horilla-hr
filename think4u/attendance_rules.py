@@ -58,15 +58,21 @@ def _minutes_between(t_start: time, t_end: time) -> int:
 
 
 def _lunch_deduction(check_in: time, check_out: time) -> int:
-    """若工作時段橫跨 12:30~13:30，扣 60 分鐘午休；不完整橫跨則按重疊扣"""
+    """
+    Think4U：午休不一定是 12:30~13:30，只要給 1 小時休息時間。
+    判定方式：若打卡橫跨「中午 13:00」（上班 < 13:00 且下班 > 13:00）
+    且總時長 > 5 小時，就扣 60 分鐘午休。
+    純上午 / 純下午班別 → 0 分鐘午休。
+    """
     if not check_in or not check_out:
         return 0
-    # 重疊：max(check_in, lunch_start) ~ min(check_out, lunch_end)
-    overlap_start = max(check_in, LUNCH_START)
-    overlap_end = min(check_out, LUNCH_END)
-    if overlap_end <= overlap_start:
+    span_min = _minutes_between(check_in, check_out)
+    if span_min <= 5 * 60:
         return 0
-    return _minutes_between(overlap_start, overlap_end)
+    noon = time(13, 0)
+    if check_in < noon and check_out > noon:
+        return 60
+    return 0
 
 
 # === 主判定 ==================================================
@@ -114,12 +120,18 @@ def evaluate(
 
     # 只打了一邊：incomplete
     if not (has_in and has_out):
+        # 有請假時不顯示遲到/早退（早上請假補遲到、下午請假補早退）
+        late_one_side = max(0, _minutes_between(CHECK_IN_FLEX_END, check_in)) if has_in else 0
+        early_one_side = max(0, _minutes_between(check_out, CHECK_OUT_FLEX_START)) if has_out else 0
+        if leave_minutes > 0:
+            late_one_side = 0
+            early_one_side = 0
         return AttendanceEvaluation(
             status="incomplete",
             status_label="未打卡完整",
             work_minutes=0,
-            late_minutes=max(0, _minutes_between(CHECK_IN_FLEX_END, check_in)) if has_in else 0,
-            early_minutes=max(0, _minutes_between(check_out, CHECK_OUT_FLEX_START)) if has_out else 0,
+            late_minutes=late_one_side,
+            early_minutes=early_one_side,
             short_minutes=REQUIRED_WORK_MINUTES,
             is_complete=False,
             has_check_in=has_in,
@@ -136,9 +148,19 @@ def evaluate(
     short = max(0, REQUIRED_WORK_MINUTES - effective_minutes)
     is_complete = effective_minutes >= REQUIRED_WORK_MINUTES
 
-    # Think4U 邏輯：工時+請假時數 >= 8h 視為達標，遲到/早退不顯示
+    # Think4U 邏輯：
+    #   (a) 工時 + 請假時數 >= 8h → 一律「正常」(on_time)；遲到/早退也歸 0
+    #   (b) 當日有任何請假 (leave_minutes > 0) → 不顯示遲到/早退
+    #       因早上請假補了遲到、下午請假補了早退，視為合理缺勤
+    #       若仍不足 8h → 顯示「工時不足」
+    #   (c) 無請假 → 正常遲到/早退/工時不足判定
     if is_complete:
         status, label = "on_time", "正常"
+        late_minutes = 0
+        early_minutes = 0
+    elif leave_minutes > 0:
+        # 有請假但 work+leave 仍 < 8h → 工時不足，但不算遲到/早退
+        status, label = "incomplete", "工時不足"
         late_minutes = 0
         early_minutes = 0
     elif late_minutes > 0 and early_minutes > 0:
