@@ -604,6 +604,47 @@ def portal_cancel(request, kind, pk):
 
 
 # ============================================================================
+# 補上請假附件（病假未審核可後補）
+# ============================================================================
+@login_required
+def portal_leave_attach(request, pk):
+    if request.method != "POST":
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+    emp = _emp_or_redirect(request)
+    if not emp:
+        return redirect("/")
+
+    lr = LeaveRequest.objects.filter(pk=pk, employee_id=emp).first()
+    if not lr:
+        messages.error(request, "找不到此申請")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+    # 只有「未審核」(requested) 才能補件
+    if lr.status != "requested":
+        messages.error(request, f"狀態為「{lr.get_status_display()}」，無法再補件")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    f = request.FILES.get("attachment")
+    if not f:
+        messages.error(request, "請選擇要上傳的檔案")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    # 副檔名 + 大小檢查
+    name_lower = f.name.lower()
+    if not any(name_lower.endswith(ext) for ext in (".pdf", ".jpg", ".jpeg", ".png")):
+        messages.error(request, "只接受 PDF / JPG / PNG")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+    if getattr(f, "size", 0) > 10 * 1024 * 1024:
+        messages.error(request, "附件不可超過 10 MB")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    LeaveRequest.save = dj_models.Model.save
+    lr.attachment = f
+    lr.save()
+    messages.success(request, f"已補件：{f.name}")
+    return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+
+# ============================================================================
 # 個人資料修改
 # ============================================================================
 @login_required

@@ -47,4 +47,10 @@ urlpatterns = [
         portal_views.portal_leave_grant_submit,
         name="think4u-portal-leave-grant-submit",
     ),
+    # 請假附件補件（病假未審核可後補）
+    path(
+        "leave/<int:pk>/attach/",
+        portal_views.portal_leave_attach,
+        name="think4u-portal-leave-attach",
+    ),
 ]

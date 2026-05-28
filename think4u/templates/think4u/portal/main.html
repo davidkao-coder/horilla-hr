@@ -424,6 +424,25 @@
                     <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
                 </div>
                 <div class="item-desc">{{ r.description|truncatechars:60 }}</div>
+
+                {# Think4U: 病假未審核 + 沒附件 → 顯示補件 form #}
+                {% if r.leave_type_id.name == "病假" and r.status == "requested" and not r.attachment %}
+                <div style="margin-top:8px; padding:8px; background:#fff3cd; border-radius:6px;">
+                    <small style="color:#856404; display:block; margin-bottom:6px;">
+                        ⚠ 病假需附醫療證明 — 您尚未上傳，請補件（PDF / JPG / PNG，10 MB 內）
+                    </small>
+                    <form method="post" action="{% url 'think4u-portal-leave-attach' r.id %}" enctype="multipart/form-data"
+                          style="display:flex; gap:6px; align-items:center;">
+                        {% csrf_token %}
+                        <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png" required style="flex:1; font-size:12px;">
+                        <button type="submit" class="btn btn-primary" style="padding:6px 12px; font-size:13px;">📤 上傳</button>
+                    </form>
+                </div>
+                {% elif r.attachment %}
+                <div style="margin-top:6px;">
+                    <small><a href="{{ r.attachment.url }}" target="_blank" style="color:#155724;">📎 已附 {{ r.attachment.name|cut:"leave/" }}</a></small>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
