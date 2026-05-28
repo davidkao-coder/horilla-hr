@@ -18,6 +18,7 @@ from base.models import Holidays
 from employee.models import Employee, EmployeeWorkInformation
 from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
+from think4u.models import get_hidden_in_reports_employees
 
 
 def _is_hr(user) -> bool:
@@ -93,7 +94,19 @@ def monthly_attendance(request):
         d for d in dates_in_month if is_workday(d) and d not in holiday_dates
     ]
 
-    employees = list(_scope_employees(request.user).order_by("employee_first_name"))
+    # Think4U: HR / 主管模式才排除「不顯示在報表」的角色（高管）
+    # 個人模式（員工只看自己）即使他自己被標記也仍應看到自己
+    scope_qs = _scope_employees(request.user)
+    me = getattr(request.user, "employee_get", None)
+    is_personal_scope = (
+        me and scope_qs.count() == 1 and scope_qs.filter(pk=me.pk).exists()
+    )
+    if not is_personal_scope:
+        hidden_ids = list(
+            get_hidden_in_reports_employees().values_list("id", flat=True)
+        )
+        scope_qs = scope_qs.exclude(id__in=hidden_ids)
+    employees = list(scope_qs.order_by("employee_first_name"))
     emp_ids = [e.id for e in employees]
 
     # 一次撈該月所有 AttendanceActivity

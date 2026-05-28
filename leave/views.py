@@ -545,6 +545,19 @@ def leave_request_view(request):
     GET : return leave request view template
     """
     queryset = LeaveRequestFilter(request.GET).qs.order_by("-id").distinct()
+    # Think4U: 排除「不顯示在報表」的角色成員（高管等），但允許自己看到自己
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    me = getattr(request.user, "employee_get", None)
+    if hidden_ids:
+        # 排除高管，但若高管登入看自己仍要顯示
+        from django.db.models import Q
+        if me and me.id in hidden_ids:
+            queryset = queryset.exclude(
+                Q(employee_id__in=hidden_ids) & ~Q(employee_id=me.id)
+            )
+        else:
+            queryset = queryset.exclude(employee_id__in=hidden_ids)
     multiple_approvals = filter_conditional_leave_request(request).distinct()
     normal_requests = filtersubordinates(request, queryset, "leave.view_leaverequest")
 

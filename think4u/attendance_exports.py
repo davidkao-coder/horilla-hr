@@ -38,18 +38,24 @@ def _is_hr(user):
 
 def _accessible_employees(user):
     """根據角色決定可匯出的員工 queryset"""
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+
     if _is_hr(user):
-        return Employee.objects.filter(is_active=True)
+        return Employee.objects.filter(is_active=True).exclude(id__in=hidden_ids)
     emp = getattr(user, "employee_get", None)
     if not emp:
         return Employee.objects.none()
     if is_reportingmanager(user):
-        # 主管：自己 + 直屬下屬
+        # 主管：自己 + 直屬下屬；自己不被過濾
         from django.db.models import Q
+        # 排除「不顯示在報表」的下屬，但允許自己（即使自己角色被標記）
         return Employee.objects.filter(
             Q(employee_work_info__reporting_manager_id=emp)
             | Q(employee_user_id=user),
             is_active=True,
+        ).exclude(
+            Q(id__in=hidden_ids) & ~Q(employee_user_id=user)
         ).distinct()
     return Employee.objects.filter(employee_user_id=user)
 

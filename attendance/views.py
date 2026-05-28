@@ -595,7 +595,12 @@ def attendance_activity_view(request):
     """
     This method will render a template to view all attendance activities
     """
-    attendance_activities = AttendanceActivity.objects.all()
+    # Think4U: 排除「不顯示在報表」的角色成員（高管等）
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    attendance_activities = AttendanceActivity.objects.all().exclude(
+        employee_id__in=hidden_ids
+    )
     previous_data = request.environ["QUERY_STRING"]
     filter_obj = AttendanceActivityFilter()
     return render(
@@ -891,6 +896,11 @@ def late_come_early_out_view(request):
     """
     reports = AttendanceLateComeEarlyOut.objects.all()
     # Think4U: 拿掉 filtersubordinates，所有可進此頁的角色都看全公司紀錄
+    # 排除「不顯示在報表」的角色成員（高管等）
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    if hidden_ids:
+        reports = reports.exclude(employee_id__in=hidden_ids)
     filter_obj = LateComeEarlyOutFilter()
     return render(
         request,

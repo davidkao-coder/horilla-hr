@@ -9,7 +9,7 @@ from django.shortcuts import render
 from base.templatetags.basefilters import is_reportingmanager
 from employee.models import Employee
 from leave.models import LeaveRequest
-from think4u.models import OvertimeAssignment
+from think4u.models import OvertimeAssignment, get_hidden_in_reports_employees
 
 
 def _is_hr(user):
@@ -25,15 +25,17 @@ def manager_dashboard(request):
     if not (is_reportingmanager(user) or _is_hr(user)):
         return HttpResponseForbidden("僅主管可查看")
     emp = getattr(user, "employee_get", None)
+    # Think4U: 排除「不顯示在報表」的角色成員
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
     # 取直屬下屬
     if _is_hr(user):
-        my_subs = Employee.objects.filter(is_active=True)
+        my_subs = Employee.objects.filter(is_active=True).exclude(id__in=hidden_ids)
         scope = "全公司"
     else:
         my_subs = Employee.objects.filter(
             employee_work_info__reporting_manager_id=emp,
             is_active=True,
-        )
+        ).exclude(id__in=hidden_ids)
         scope = "自部門"
 
     leave_pending = LeaveRequest.objects.filter(
@@ -61,15 +63,21 @@ def hr_dashboard(request):
     user = request.user
     if not _is_hr(user):
         return HttpResponseForbidden("僅 HR 可查看")
+    # Think4U: 排除「不顯示在報表」的角色成員
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
     # 請假狀態：Horilla 的 'approved_first_level' 或本系統使用之 status
     # Horilla 預設 status: requested / approved / cancelled / rejected — 二層審核需要由 multi-approval 條件決定
-    leave_pending = LeaveRequest.objects.filter(
-        status="approved"
-    ).select_related("employee_id", "leave_type_id")  # 第二層審核時的狀態
+    leave_pending = (
+        LeaveRequest.objects.filter(status="approved")
+        .exclude(employee_id__in=hidden_ids)
+        .select_related("employee_id", "leave_type_id")
+    )  # 第二層審核時的狀態
     # 加班待 HR 核准
-    overtime_pending = OvertimeAssignment.objects.filter(
-        status="pending_hr"
-    ).select_related("employee")
+    overtime_pending = (
+        OvertimeAssignment.objects.filter(status="pending_hr")
+        .exclude(employee__in=hidden_ids)
+        .select_related("employee")
+    )
 
     return render(
         request,

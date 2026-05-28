@@ -346,12 +346,15 @@ def attendance_view(request):
     minot = strtime_seconds("00:00")
     if condition is not None and condition.minimum_overtime_to_approve is not None:
         minot = strtime_seconds(condition.minimum_overtime_to_approve)
+    # Think4U: 排除「不顯示在報表」的角色成員（高管等）
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
     validate_attendances = Attendance.objects.filter(
         attendance_validated=False, employee_id__is_active=True
-    )
+    ).exclude(employee_id__in=hidden_ids)
     attendances = Attendance.objects.filter(
         attendance_validated=True, employee_id__is_active=True
-    )
+    ).exclude(employee_id__in=hidden_ids)
     # ot_attendances = Attendance.objects.filter(
     #     overtime_second__gte=minot,
     #     attendance_validated=True,
