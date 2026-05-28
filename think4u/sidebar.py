@@ -17,6 +17,16 @@ SUBMENUS = [
         "vis_key": "think4u.my_overtime",
     },
     {
+        "menu": trans("補打卡申請"),
+        "redirect": reverse("think4u-punch-correction-my"),
+        "vis_key": "think4u.punch_correction_my",
+    },
+    {
+        "menu": trans("補打卡審核"),
+        "redirect": reverse("think4u-punch-correction-pending"),
+        "vis_key": "think4u.punch_correction_pending",
+    },
+    {
         "menu": trans("主管 — 指派加班"),
         "redirect": reverse("think4u-overtime-manager"),
         "vis_key": "think4u.overtime_manager",

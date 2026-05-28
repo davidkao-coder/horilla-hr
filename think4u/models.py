@@ -166,6 +166,7 @@ class ApprovalWorkflow(models.Model):
     REQUEST_TYPE_CHOICES = [
         ("leave", _("請假")),
         ("overtime", _("加班")),
+        ("punch_correction", _("補打卡")),
     ]
 
     job_position = models.ForeignKey(
@@ -256,3 +257,63 @@ class ApprovalStep(models.Model):
         if self.approver_type == "employee" and self.approver_employee:
             return f"員工：{self.approver_employee}"
         return self.get_approver_type_display()
+
+
+# ============================================================================
+# 補打卡申請 (Punch Correction Request)
+# ----------------------------------------------------------------------------
+# 員工漏打卡時，可提出補打卡申請；走 ApprovalWorkflow 審核流程
+# (request_type = 'punch_correction')，核准後自動寫入 AttendanceActivity。
+# ============================================================================
+
+
+class PunchCorrectionRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", _("待審核")),
+        ("approved", _("已核准")),
+        ("rejected", _("已駁回")),
+        ("applied", _("已套用")),  # 核准且已寫回 AttendanceActivity
+        ("cancelled", _("已取消")),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="punch_corrections",
+        verbose_name=_("員工"),
+    )
+    target_date = models.DateField(verbose_name=_("補打卡日期"))
+    requested_check_in = models.TimeField(
+        null=True, blank=True, verbose_name=_("補的上班時間")
+    )
+    requested_check_out = models.TimeField(
+        null=True, blank=True, verbose_name=_("補的下班時間")
+    )
+    reason = models.TextField(verbose_name=_("申請事由"))
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", verbose_name=_("狀態")
+    )
+    workflow = models.ForeignKey(
+        ApprovalWorkflow,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="punch_correction_requests",
+        verbose_name=_("套用流程"),
+    )
+    current_step_order = models.PositiveSmallIntegerField(
+        default=1, verbose_name=_("目前審核關卡")
+    )
+    decisions = models.JSONField(
+        default=list, blank=True, verbose_name=_("審核記錄")
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-target_date", "-created_at"]
+        verbose_name = _("補打卡申請")
+        verbose_name_plural = _("補打卡申請")
+
+    def __str__(self):
+        return f"{self.employee} | {self.target_date} | {self.get_status_display()}"

@@ -1,0 +1,108 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<style>
+    .att-month-wrapper { padding: 1rem; }
+    .att-month-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .att-month-header h1 { margin: 0; }
+    .att-nav-btn { padding: 6px 14px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; text-decoration: none; color: #333; }
+    .att-nav-btn:hover { background: #f5f5f5; }
+    .att-matrix-wrapper { overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; }
+    .att-matrix { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+    .att-matrix th, .att-matrix td { border: 1px solid #eee; padding: 4px 6px; text-align: center; white-space: nowrap; }
+    .att-matrix thead { background: #f5f5f5; position: sticky; top: 0; }
+    .att-matrix .emp-name { text-align: left; min-width: 120px; position: sticky; left: 0; background: white; z-index: 2; }
+    .att-matrix thead .emp-name { background: #f5f5f5; z-index: 3; }
+    .att-matrix .weekend { background: #fafafa; color: #ccc; }
+    .att-matrix .day-cell { cursor: help; }
+    .att-cell-normal { background: #e8f5e9; }
+    .att-cell-late { background: #fff3e0; color: #e65100; }
+    .att-cell-early { background: #fff3e0; color: #e65100; }
+    .att-cell-late-and-early { background: #ffe0b2; color: #d84315; }
+    .att-cell-absent { background: #ffebee; color: #c62828; }
+    .att-cell-incomplete { background: #e3f2fd; color: #0d47a1; }
+    .att-summary-cell { font-weight: 600; background: #f5f5f5; }
+    .att-summary-pill { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; margin: 0 2px; }
+    .att-pill-normal { background: #e8f5e9; color: #2e7d32; }
+    .att-pill-late { background: #fff3e0; color: #e65100; }
+    .att-pill-absent { background: #ffebee; color: #c62828; }
+    .att-legend { display: flex; gap: 1rem; flex-wrap: wrap; font-size: 12px; margin: 0.5rem 0; }
+    .att-legend span { padding: 2px 8px; border-radius: 4px; }
+</style>
+
+<div class="att-month-wrapper">
+    <div class="att-month-header">
+        <a class="att-nav-btn" href="?year={{ prev_y }}&month={{ prev_m }}">&larr; {{ prev_y }}/{{ prev_m }}</a>
+        <h1>{{ year }} 年 {{ month }} 月 出勤統計</h1>
+        <a class="att-nav-btn" href="?year={{ next_y }}&month={{ next_m }}">{{ next_y }}/{{ next_m }} &rarr;</a>
+    </div>
+
+    <div class="att-legend">
+        <span class="att-cell-normal">正常</span>
+        <span class="att-cell-late">遲到</span>
+        <span class="att-cell-early">早退</span>
+        <span class="att-cell-late-and-early">遲到+早退</span>
+        <span class="att-cell-incomplete">未打卡完整</span>
+        <span class="att-cell-absent">缺勤</span>
+    </div>
+    <p style="color:#888; font-size:12px;">規則：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、中午 12:30~13:30 休息、每日工時須 ≥ 8h。週六/日不計考勤。</p>
+
+    <div class="att-matrix-wrapper">
+        <table class="att-matrix">
+            <thead>
+                <tr>
+                    <th class="emp-name">員工</th>
+                    {% for d in dates_in_month %}
+                        <th class="{% if d.weekday >= 5 %}weekend{% endif %}">
+                            {{ d.day }}<br><small style="color:#999;">{{ d|date:"D" }}</small>
+                        </th>
+                    {% endfor %}
+                    <th>總工時</th>
+                    <th>正常</th>
+                    <th>遲到</th>
+                    <th>早退</th>
+                    <th>缺勤</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td class="emp-name">
+                        <strong>{{ row.employee }}</strong>
+                        {% if row.department %}<br><small style="color:#888;">{{ row.department }}</small>{% endif %}
+                    </td>
+                    {% for c in row.cells %}
+                        {% if not c.is_workday %}
+                            <td class="weekend">—</td>
+                        {% else %}
+                            <td class="day-cell att-cell-{{ c.ev.status|cut:'_' }}"
+                                title="{{ c.ev.status_label }}
+in: {{ c.check_in|default:'—' }}
+out: {{ c.check_out|default:'—' }}
+工時: {{ c.work_label }}{% if c.ev.late_minutes %}
+遲到: {{ c.ev.late_minutes }}分{% endif %}{% if c.ev.early_minutes %}
+早退: {{ c.ev.early_minutes }}分{% endif %}">
+                                {% if c.ev.status == 'absent' %}✗
+                                {% elif c.ev.status == 'on_time' %}✓
+                                {% elif c.ev.status == 'late_and_early' %}↑↓
+                                {% elif c.ev.status == 'late' %}↑
+                                {% elif c.ev.status == 'early_leave' %}↓
+                                {% else %}!
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    {% endfor %}
+                    <td class="att-summary-cell">{{ row.summary.total_work }}</td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-normal">{{ row.summary.normal }}</span></td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.late }}</span></td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.early }}</span></td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-absent">{{ row.summary.absent }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="40" style="text-align:center; padding:2rem; color:#999;">無資料</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+    <h1 class="fw-bold">{% trans "補打卡申請" %}</h1>
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
+        <h3>{% trans "新申請" %}</h3>
+        <form method="post" style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            {% csrf_token %}
+            <div>
+                <label class="oh-label">{% trans "補打卡日期" %}<span style="color:red">*</span></label>
+                <input type="date" name="target_date" max="{{ today|date:'Y-m-d' }}" required class="oh-input">
+            </div>
+            <div style="grid-column: span 2; color:#888; font-size:13px;">
+                {% trans "上班 / 下班至少填一項。若兩個都漏打就兩個都填。" %}
+            </div>
+            <div>
+                <label class="oh-label">{% trans "補的上班時間" %}</label>
+                <input type="time" name="requested_check_in" class="oh-input" placeholder="09:30">
+            </div>
+            <div>
+                <label class="oh-label">{% trans "補的下班時間" %}</label>
+                <input type="time" name="requested_check_out" class="oh-input" placeholder="18:30">
+            </div>
+            <div style="grid-column: span 2;">
+                <label class="oh-label">{% trans "申請事由" %}<span style="color:red">*</span></label>
+                <textarea name="reason" rows="3" required class="oh-input" placeholder="例：忘記打卡 / 系統故障 / 在外開會"></textarea>
+            </div>
+            <div style="grid-column: span 2;">
+                <button type="submit" class="oh-btn oh-btn--secondary">
+                    <ion-icon name="send-outline"></ion-icon> {% trans "送出申請" %}
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
+        <h3>{% trans "我的申請紀錄" %}</h3>
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="background:#f5f5f5;">
+                    <th style="padding:10px;">#</th>
+                    <th style="padding:10px;">{% trans "日期" %}</th>
+                    <th style="padding:10px;">{% trans "上班" %}</th>
+                    <th style="padding:10px;">{% trans "下班" %}</th>
+                    <th style="padding:10px;">{% trans "事由" %}</th>
+                    <th style="padding:10px;">{% trans "狀態" %}</th>
+                    <th style="padding:10px;">{% trans "操作" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in requests %}
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:10px;">#{{ r.id }}</td>
+                    <td style="padding:10px;">{{ r.target_date }}</td>
+                    <td style="padding:10px;">{{ r.requested_check_in|default:"—" }}</td>
+                    <td style="padding:10px;">{{ r.requested_check_out|default:"—" }}</td>
+                    <td style="padding:10px; max-width:300px;">{{ r.reason }}</td>
+                    <td style="padding:10px;">
+                        <span class="oh-alert oh-alert--{% if r.status == 'applied' %}success{% elif r.status == 'rejected' %}danger{% elif r.status == 'cancelled' %}info{% else %}warning{% endif %}" style="padding:2px 8px; font-size:12px;">
+                            {{ r.get_status_display }}
+                        </span>
+                        {% if r.status == "pending" and r.workflow %}
+                            <small style="color:#888;">（第 {{ r.current_step_order }}/{{ r.workflow.steps.count }} 關）</small>
+                        {% endif %}
+                    </td>
+                    <td style="padding:10px;">
+                        {% if r.status == "pending" %}
+                        <form method="post" action="{% url 'think4u-punch-correction-cancel' r.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="oh-btn oh-btn--small oh-btn--danger" onclick="return confirm('確定取消這筆申請？');">取消</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" style="text-align:center; padding:2rem; color:#999;">尚無申請</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</div>
+{% endblock %}

@@ -65,6 +65,11 @@ SUBMENUS = [
         "redirect": reverse("think4u-attendance-export"),
         "vis_key": "attendance.export",
     },
+    {
+        "menu": _("月度出勤統計"),
+        "redirect": reverse("think4u-attendance-monthly"),
+        "vis_key": "attendance.monthly",
+    },
 ]
 
 

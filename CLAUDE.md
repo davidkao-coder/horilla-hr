@@ -72,6 +72,12 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 出勤判定 + 月度統計 + 每日提醒 + 補打卡審核：
+  - **規則**（`think4u/attendance_rules.py`）：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、午休 12:30~13:30、每日須 8h；> 10:00 遲到、< 18:30 早退；工時 = (out - in) - 午休重疊分鐘。
+  - **月度統計頁** `/think4u/attendance/monthly/`：員工 × 日期矩陣，每格 ✓/↑/↓/✗ + hover 顯示遲到分數；總工時 / 正常 / 遲到 / 早退 / 缺勤 月度摘要；HR 看全公司、主管看部屬（含子部門）、員工看自己。
+  - **每日 10:30 打卡提醒** `python manage.py notify_unpunched`：找出當日未打卡的 active employee，寄 Email + 站內通知；週末跳過；`--dry-run` 預覽；建議 cron：`30 10 * * 1-5 docker compose exec server python manage.py notify_unpunched`。
+  - **補打卡申請** `PunchCorrectionRequest`（migration `think4u/0004`）：員工提交 (target_date, check_in, check_out, reason)，套用該員工職位的 ApprovalWorkflow（新增 request_type='punch_correction'），多關卡審核；核准最後一關自動寫入 `AttendanceActivity`，狀態 → 'applied'；URLs `/think4u/punch-correction/my/`（員工）+ `/punch-correction/pending/`（待我審核）+ `/punch-correction/<id>/decide/`（送出決定）。
+  - sidebar：think4u 加「補打卡申請 / 補打卡審核」、attendance 加「月度出勤統計」。
 - 2026-05-27 全站「頁面切換」前端效能大改善（第二輪）：
   - **Root cause**: 即使 server 回應 < 100ms，每換一頁瀏覽器仍要重抓 / 重 parse ~29 個 external JS（包括幾個超大但全站幾乎沒用到的）：
     - `pivottable_plot.min.js` 3.6 MB / `pivottable_excel.min.js` 947 KB / `pivottable.min.js` 29 KB / `pivottable_ploty.min.js` 3 KB — grep 全站 0 處 `pivotUI` 或 `.pivot()` 呼叫，全部無用 → **整批刪除**

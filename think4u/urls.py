@@ -5,8 +5,10 @@ from think4u import (
     approval_views,
     approval_workflow_views,
     attendance_exports,
+    monthly_attendance_views,
     org_views,
     overtime_views,
+    punch_correction_views,
 )
 
 urlpatterns = [
@@ -56,6 +58,34 @@ urlpatterns = [
         "attendance/export/excel/",
         attendance_exports.export_excel,
         name="think4u-attendance-export-excel",
+    ),
+    # 月度出勤統計
+    path(
+        "attendance/monthly/",
+        monthly_attendance_views.monthly_attendance,
+        name="think4u-attendance-monthly",
+    ),
+    # 補打卡申請（員工端）
+    path(
+        "punch-correction/my/",
+        punch_correction_views.my_requests,
+        name="think4u-punch-correction-my",
+    ),
+    path(
+        "punch-correction/<int:pk>/cancel/",
+        punch_correction_views.cancel_request,
+        name="think4u-punch-correction-cancel",
+    ),
+    # 補打卡審核（審核人端）
+    path(
+        "punch-correction/pending/",
+        punch_correction_views.pending_for_me,
+        name="think4u-punch-correction-pending",
+    ),
+    path(
+        "punch-correction/<int:pk>/decide/",
+        punch_correction_views.decide,
+        name="think4u-punch-correction-decide",
     ),
     # 加班指派 WP-04
     path(

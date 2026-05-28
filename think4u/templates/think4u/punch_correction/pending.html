@@ -1,0 +1,65 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+    <h1 class="fw-bold">{% trans "待我審核 — 補打卡申請" %}</h1>
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    {% for item in items %}
+    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+            <div style="flex:1;">
+                <h3 style="margin-top:0;">
+                    #{{ item.req.id }} — {{ item.req.employee }}
+                    <small style="color:#888; font-weight:normal;">{{ item.req.target_date }}</small>
+                </h3>
+                <div style="margin:.5rem 0;">
+                    <strong>補的時間：</strong>
+                    上班 {{ item.req.requested_check_in|default:"—" }}
+                    下班 {{ item.req.requested_check_out|default:"—" }}
+                </div>
+                <div style="margin:.5rem 0;">
+                    <strong>事由：</strong>{{ item.req.reason }}
+                </div>
+                {% if item.step %}
+                    <div style="color:#666; font-size:13px;">
+                        目前在第 {{ item.req.current_step_order }}/{{ item.req.workflow.steps.count }} 關：{{ item.step.get_approver_type_display }}
+                    </div>
+                {% else %}
+                    <div style="color:#999; font-size:13px;">⚠ 此申請尚未設定審核流程，由 HR 代處理</div>
+                {% endif %}
+
+                {% if item.req.decisions %}
+                <details style="margin-top:.5rem;">
+                    <summary style="cursor:pointer; color:#666;">已通過 {{ item.req.decisions|length }} 關</summary>
+                    <ul style="margin:.5rem 0 0; font-size:12px; color:#666;">
+                        {% for d in item.req.decisions %}
+                        <li>第 {{ d.step_order }} 關 by {{ d.approver_name }}：{{ d.decision }}{% if d.note %} — {{ d.note }}{% endif %}</li>
+                        {% endfor %}
+                    </ul>
+                </details>
+                {% endif %}
+            </div>
+            <div style="min-width:280px;">
+                <form method="post" action="{% url 'think4u-punch-correction-decide' item.req.id %}">
+                    {% csrf_token %}
+                    <textarea name="note" rows="2" placeholder="批註（可選）" class="oh-input" style="width:100%; margin-bottom:.5rem;"></textarea>
+                    <div style="display:flex; gap:.5rem;">
+                        <button type="submit" name="decision" value="approve" class="oh-btn oh-btn--success" style="flex:1;"
+                                onclick="return confirm('確定核准？');">
+                            <ion-icon name="checkmark-outline"></ion-icon> {% trans "核准" %}
+                        </button>
+                        <button type="submit" name="decision" value="reject" class="oh-btn oh-btn--danger" style="flex:1;"
+                                onclick="return confirm('確定駁回？');">
+                            <ion-icon name="close-outline"></ion-icon> {% trans "駁回" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+    {% empty %}
+    <p style="text-align:center; color:#999; padding:2rem;">沒有待你審核的申請</p>
+    {% endfor %}
+</div>
+{% endblock %}
