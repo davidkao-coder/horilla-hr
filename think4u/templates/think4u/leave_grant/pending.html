@@ -20,7 +20,7 @@
                         {{ req.get_status_display }}
                     </span>
                 </h3>
-                <div style="margin:.4rem 0;"><strong>申請天數：</strong>{{ req.requested_days }} 天{% if req.granted_days %} → <strong>核發：</strong>{{ req.granted_days }} 天{% endif %}</div>
+                <div style="margin:.4rem 0;"><strong>申請時數：</strong>{{ req.requested_hours|floatformat:1 }} 小時{% if req.granted_days %} → <strong>核發：</strong>{{ req.granted_hours|floatformat:1 }} 小時{% endif %}</div>
                 <div style="margin:.4rem 0;"><strong>事由：</strong>{{ req.reason }}</div>
                 {% if req.proof_document %}
                 <div style="margin:.4rem 0;"><strong>證明：</strong> <a href="{{ req.proof_document.url }}" target="_blank">📎 {{ req.proof_document.name|cut:'leave_grants/' }}</a></div>
@@ -36,8 +36,8 @@
                 <form method="post" action="{% url 'think4u-leave-grant-decide' req.id %}">
                     {% csrf_token %}
                     <div style="margin-bottom:.5rem;">
-                        <label class="oh-label">核發天數（不填則 = 申請天數 {{ req.requested_days }}）</label>
-                        <input type="number" step="0.5" min="0" name="granted_days" class="oh-input" placeholder="{{ req.requested_days }}">
+                        <label class="oh-label">核發時數（不填則 = 申請時數 {{ req.requested_hours|floatformat:1 }} 小時）</label>
+                        <input type="number" step="0.5" min="0" name="granted_hours" class="oh-input" placeholder="{{ req.requested_hours|floatformat:1 }}">
                     </div>
                     <div style="margin-bottom:.5rem;">
                         <label class="oh-label">批註</label>

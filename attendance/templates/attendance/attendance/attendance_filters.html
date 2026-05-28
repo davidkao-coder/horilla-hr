@@ -1,7 +1,9 @@
 {% load static %} {% load i18n %}
   <div class="oh-dropdown__filter-body">
+    {# Think4U: 拿掉「Work Info」整個 accordion #}
+    {# 只保留員工選擇器（attendance 篩選常用） #}
     <div class="oh-accordion">
-      <div class="oh-accordion-header">{% trans "Work Info" %}</div>
+      <div class="oh-accordion-header">{% trans "員工" %}</div>
       <div class="oh-accordion-body">
         <div class="row">
           <div class="col-sm-12 col-md-12 col-lg-6">
@@ -9,35 +11,11 @@
               <label class="oh-label">{% trans "Employee" %}</label>
               {{f.form.employee_id}}
             </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Department" %}</label>
-              {{f.form.employee_id__employee_work_info__department_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Shift" %}</label>
-              {{f.form.shift_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Reporting Manager" %}</label>
-              {{f.form.employee_id__employee_work_info__reporting_manager_id}}
-            </div>
           </div>
           <div class="col-sm-12 col-md-12 col-lg-6">
             <div class="oh-input-group">
-              <label class="oh-label">{% trans "Company" %}</label>
-              {{f.form.employee_id__employee_work_info__company_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Job Position" %}</label>
-              {{f.form.employee_id__employee_work_info__job_position_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Work Type" %}</label>
-              {{f.form.work_type_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Work Location" %}</label>
-              {{f.form.employee_id__employee_work_info__location}}
+              <label class="oh-label">{% trans "Department" %}</label>
+              {{f.form.employee_id__employee_work_info__department_id}}
             </div>
           </div>
         </div>
@@ -88,10 +66,7 @@
       <div class="oh-accordion-body">
         <div class="row">
           <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Attendance From" %}</label>
-              {{f.form.attendance_date__gte}}
-            </div>
+            {# Think4U: 拿掉「Attendance From」(已有 Attendance Date 區間) #}
             <div class="oh-input-group">
               <label class="oh-label">{% trans "In From" %}</label>
               {{f.form.attendance_clock_in__gte}}
@@ -118,10 +93,7 @@
             </div>
           </div>
           <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Attendance Till" %}</label>
-              {{f.form.attendance_date__lte}}
-            </div>
+            {# Think4U: 拿掉「Attendance Till」(已有 Attendance Date 區間) #}
             <div class="oh-input-group">
               <label class="oh-label">{% trans "In Till" %}</label>
               {{f.form.attendance_clock_in__lte}}

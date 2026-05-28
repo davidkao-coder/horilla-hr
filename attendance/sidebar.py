@@ -27,11 +27,7 @@ SUBMENUS = [
         "vis_key": "attendance.list",
         "accessibility": "attendance.sidebar.attendances_accessibility",
     },
-    {
-        "menu": _("Attendance Requests"),
-        "redirect": reverse("request-attendance-view"),
-        "vis_key": "attendance.requests",
-    },
+    # Think4U: 補打卡申請已在 /portal/?tab=clock，後台拿掉
     {
         "menu": _("Hour Account"),
         "redirect": reverse("attendance-overtime-view"),
@@ -55,11 +51,7 @@ SUBMENUS = [
         "vis_key": "attendance.late_early",
         "accessibility": "attendance.sidebar.tracking_accessibility",
     },
-    {
-        "menu": _("My Attendances"),
-        "redirect": reverse("view-my-attendance"),
-        "vis_key": "attendance.my",
-    },
+    # Think4U: 我的出勤已在 /portal/?tab=attendance，後台拿掉
     {
         "menu": _("Excel 匯出"),
         "redirect": reverse("think4u-attendance-export"),

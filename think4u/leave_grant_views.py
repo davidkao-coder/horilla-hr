@@ -52,18 +52,24 @@ def leave_grant_decide(request, pk):
         return redirect("think4u-leave-grant-pending")
 
     decision = request.POST.get("decision")
-    granted_days = request.POST.get("granted_days")
+    granted_hours = request.POST.get("granted_hours") or request.POST.get("granted_days")
     note = (request.POST.get("hr_note") or "").strip()
 
     with transaction.atomic():
         AvailableLeave.save = dj_models.Model.save
         if decision == "approve":
             try:
-                days = float(granted_days) if granted_days else float(req.requested_days)
+                # 接收小時數，內部換算成天數
+                if granted_hours:
+                    hours = float(granted_hours)
+                    days = hours / 8.0
+                else:
+                    days = float(req.requested_days)
+                    hours = days * 8
                 if days <= 0:
                     raise ValueError
             except ValueError:
-                messages.error(request, "核發天數不合法")
+                messages.error(request, "核發時數不合法")
                 return redirect("think4u-leave-grant-pending")
 
             # 建立 / 增加 AvailableLeave
@@ -84,7 +90,7 @@ def leave_grant_decide(request, pk):
             req.save()
             messages.success(
                 request,
-                f"已核發 {req.employee} 「{req.leave_type.name}」{days} 天",
+                f"已核發 {req.employee} 「{req.leave_type.name}」{hours} 小時",
             )
         elif decision == "reject":
             req.status = "rejected"

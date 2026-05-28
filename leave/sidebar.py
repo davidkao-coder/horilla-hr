@@ -19,11 +19,7 @@ SUBMENUS = [
         "vis_key": "leave.dashboard",
         "accessibility": "leave.sidebar.dashboard_accessibility",
     },
-    {
-        "menu": trans("My Leave Requests"),
-        "redirect": reverse("user-request-view"),
-        "vis_key": "leave.my",
-    },
+    # Think4U: 員工自己看自己請假已在 /portal/?tab=leave，後台拿掉避免重複
     {
         "menu": trans("Leave Requests"),
         "redirect": reverse("request-view"),

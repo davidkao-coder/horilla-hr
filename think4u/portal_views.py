@@ -604,12 +604,13 @@ def portal_leave_grant_submit(request):
         return redirect("/")
 
     leave_type_id = request.POST.get("leave_type_id")
-    requested_days = request.POST.get("requested_days")
+    # Think4U: 接收小時數，內部換算成天數儲存
+    requested_hours = request.POST.get("requested_hours") or request.POST.get("requested_days")
     reason = (request.POST.get("reason") or "").strip()
     proof = request.FILES.get("proof_document")
 
-    if not (leave_type_id and requested_days and reason):
-        messages.error(request, "假別、天數、事由皆為必填")
+    if not (leave_type_id and requested_hours and reason):
+        messages.error(request, "假別、時數、事由皆為必填")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
     lt = LeaveType.objects.filter(pk=leave_type_id).first()
@@ -617,7 +618,6 @@ def portal_leave_grant_submit(request):
         messages.error(request, "無效的假別")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
-    # 預設假別不能透過此申請（避免繞過固定額度）
     from think4u.models import DEFAULT_LEAVE_TYPE_NAMES
 
     if lt.name in DEFAULT_LEAVE_TYPE_NAMES:
@@ -625,12 +625,13 @@ def portal_leave_grant_submit(request):
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
     try:
-        days = float(requested_days)
-        if days <= 0:
+        hours = float(requested_hours)
+        if hours <= 0:
             raise ValueError
     except ValueError:
-        messages.error(request, "天數需大於 0")
+        messages.error(request, "時數需大於 0")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
+    days = hours / 8.0
 
     LeaveGrantRequest.objects.create(
         employee=emp,
@@ -639,5 +640,5 @@ def portal_leave_grant_submit(request):
         reason=reason,
         proof_document=proof,
     )
-    messages.success(request, f"已送出給假申請（{lt.name}，{days} 天），等待 HR 審核")
+    messages.success(request, f"已送出給假申請（{lt.name}，{hours} 小時），等待 HR 審核")
     return redirect(f"{reverse('think4u-portal')}?tab=leave")

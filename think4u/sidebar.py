@@ -1,31 +1,12 @@
-"""think4u/sidebar.py — 加班指派 + 雙層審核入口"""
+"""think4u/sidebar.py — 後台「審核」入口（員工自助操作頁全部移到 /portal/）"""
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as trans
 
-MENU = trans("加班 / 審核")
+MENU = trans("審核專區")
 IMG_SRC = "images/ui/leave.svg"
 
 SUBMENUS = [
-    {
-        "menu": trans("我的申請與狀態"),
-        "redirect": reverse("think4u-approval-employee"),
-        "vis_key": "think4u.my_status",
-    },
-    {
-        "menu": trans("我的加班"),
-        "redirect": reverse("think4u-overtime-employee"),
-        "vis_key": "think4u.my_overtime",
-    },
-    {
-        "menu": trans("補打卡申請"),
-        "redirect": reverse("think4u-punch-correction-my"),
-        "vis_key": "think4u.punch_correction_my",
-    },
-    {
-        "menu": trans("補打卡審核"),
-        "redirect": reverse("think4u-punch-correction-pending"),
-        "vis_key": "think4u.punch_correction_pending",
-    },
+    # 主管端
     {
         "menu": trans("主管 — 指派加班"),
         "redirect": reverse("think4u-overtime-manager"),
@@ -38,6 +19,13 @@ SUBMENUS = [
         "vis_key": "think4u.approval_manager",
         "accessibility": "think4u.sidebar.manager_accessibility",
     },
+    {
+        "menu": trans("主管 — 補打卡審核"),
+        "redirect": reverse("think4u-punch-correction-pending"),
+        "vis_key": "think4u.punch_correction_pending",
+        "accessibility": "think4u.sidebar.manager_accessibility",
+    },
+    # HR 端
     {
         "menu": trans("HR — 加班核准"),
         "redirect": reverse("think4u-overtime-hr"),

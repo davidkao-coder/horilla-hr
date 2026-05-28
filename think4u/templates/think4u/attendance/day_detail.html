@@ -89,12 +89,12 @@
     <section class="card">
         <h3>📅 請假紀錄</h3>
         <table>
-            <thead><tr><th>假別</th><th>天數</th><th>狀態</th><th>說明</th></tr></thead>
+            <thead><tr><th>假別</th><th>時數</th><th>狀態</th><th>說明</th></tr></thead>
             <tbody>
                 {% for r in leaves %}
                 <tr>
                     <td><strong>{{ r.leave_type_id.name }}</strong></td>
-                    <td>{{ r.requested_days }} 天</td>
+                    <td>{% widthratio r.requested_days 1 8 %} 小時</td>
                     <td><span class="badge badge-{% if r.status == 'approved' %}success{% else %}warning{% endif %}">{{ r.get_status_display }}</span></td>
                     <td>{{ r.description|truncatechars:120 }}</td>
                 </tr>

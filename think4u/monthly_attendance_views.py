@@ -14,6 +14,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from attendance.models import AttendanceActivity
+from base.models import Holidays
 from employee.models import Employee, EmployeeWorkInformation
 from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
@@ -68,7 +69,29 @@ def monthly_attendance(request):
 
     _, last_day = calendar.monthrange(year, month)
     dates_in_month = [date(year, month, d) for d in range(1, last_day + 1)]
-    workdays_in_month = [d for d in dates_in_month if is_workday(d)]
+
+    # 國定假日（該月內）
+    holidays_qs = Holidays.objects.entire().filter(
+        start_date__lte=date(year, month, last_day),
+    )
+    holiday_dates = {}  # date -> name
+    for h in holidays_qs:
+        e = h.end_date or h.start_date
+        s = h.start_date
+        if h.recurring:
+            try:
+                s = s.replace(year=year)
+                e = e.replace(year=year)
+            except ValueError:
+                pass
+        cur = s
+        while cur <= e:
+            if cur.year == year and cur.month == month:
+                holiday_dates[cur] = h.name
+            cur = cur.fromordinal(cur.toordinal() + 1)
+    workdays_in_month = [
+        d for d in dates_in_month if is_workday(d) and d not in holiday_dates
+    ]
 
     employees = list(_scope_employees(request.user).order_by("employee_first_name"))
     emp_ids = [e.id for e in employees]
@@ -112,7 +135,14 @@ def monthly_attendance(request):
         cnt_late = cnt_early = cnt_absent = cnt_normal = cnt_incomplete = 0
         for d in dates_in_month:
             if not is_workday(d):
-                cells.append({"date": d, "is_workday": False})
+                cells.append({"date": d, "is_workday": False, "cell_class": "weekend"})
+                continue
+            if d in holiday_dates:
+                cells.append({
+                    "date": d, "is_workday": False,
+                    "cell_class": "holiday",
+                    "holiday_name": holiday_dates[d],
+                })
                 continue
             data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
             ev = evaluate(data["in"], data["out"])
@@ -210,5 +240,6 @@ def monthly_attendance(request):
             "is_hr": _is_hr(request.user),
             "payroll_base_days": payroll_base_days,
             "payroll_base_hours": payroll_base_hours,
+            "holiday_dates": holiday_dates,
         },
     )

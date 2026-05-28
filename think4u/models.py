@@ -480,7 +480,17 @@ class LeaveGrantRequest(models.Model):
         verbose_name_plural = _("給假申請")
 
     def __str__(self):
-        return f"{self.employee} | {self.leave_type.name} | {self.requested_days}天 | {self.get_status_display()}"
+        return f"{self.employee} | {self.leave_type.name} | {self.requested_hours}h | {self.get_status_display()}"
+
+    @property
+    def requested_hours(self) -> float:
+        return float(self.requested_days or 0) * 8.0
+
+    @property
+    def granted_hours(self):
+        if self.granted_days is None:
+            return None
+        return float(self.granted_days) * 8.0
 
 
 # 預設 4 種假別名稱（精確 match LeaveType.name）

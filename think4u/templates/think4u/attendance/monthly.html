@@ -14,6 +14,8 @@
     .att-matrix .emp-name { text-align: left; min-width: 120px; position: sticky; left: 0; background: white; z-index: 2; }
     .att-matrix thead .emp-name { background: #f5f5f5; z-index: 3; }
     .att-matrix .weekend { background: #fafafa; color: #ccc; }
+    .att-matrix th.holiday-th, .att-matrix td.holiday-td { background: #fde7e9; color: #c62828; }
+    .att-matrix td.holiday-td { text-align: center; font-size: 10px; }
     .att-matrix .day-cell { cursor: help; }
     /* 與「工作記錄」頁同步配色 */
     .wr-present { background: #38c338; color: white; }       /* 綠：出勤 */
@@ -45,6 +47,7 @@
         <span class="wr-partial">請假 + 有打卡</span>
         <span class="wr-leave">請假</span>
         <span class="wr-empty">無打卡紀錄</span>
+        <span class="holiday-td">國定假日</span>
     </div>
     <p style="color:#888; font-size:12px;">
         規則：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、中午 12:30~13:30 休息、每日工時須 ≥ 8h。週六/日不計考勤。
@@ -57,7 +60,7 @@
                 <tr>
                     <th class="emp-name">員工</th>
                     {% for d in dates_in_month %}
-                        <th class="{% if d.weekday >= 5 %}weekend{% endif %}">
+                        <th class="{% if d in holiday_dates %}holiday-th{% elif d.weekday >= 5 %}weekend{% endif %}">
                             {{ d.day }}<br><small style="color:#999;">{{ d|date:"D" }}</small>
                         </th>
                     {% endfor %}
@@ -75,7 +78,9 @@
                         {% if row.department %}<br><small style="color:#888;">{{ row.department }}</small>{% endif %}
                     </td>
                     {% for c in row.cells %}
-                        {% if not c.is_workday %}
+                        {% if c.cell_class == 'holiday' %}
+                            <td class="holiday-td" title="{{ c.holiday_name }}">假</td>
+                        {% elif not c.is_workday %}
                             <td class="weekend">—</td>
                         {% else %}
                             <td class="day-cell {{ c.cell_class }}"
