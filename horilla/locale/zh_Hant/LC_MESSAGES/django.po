@@ -818,7 +818,7 @@ msgid "Invalid format,  excepted MM:SS"
 msgstr "格式無效，MM:SS 除外"
 
 msgid "Attendance Date"
-msgstr "出席日期"
+msgstr "出勤日期"
 
 msgid "Shift Day"
 msgstr "輪班日"
@@ -830,7 +830,7 @@ msgid "Check In"
 msgstr "簽到"
 
 msgid "Out Date"
-msgstr "過期日期"
+msgstr "下班日期"
 
 msgid "Check Out"
 msgstr "簽退"
@@ -845,7 +845,7 @@ msgid "Re-validate Request"
 msgstr "重新驗證請求"
 
 msgid "Attendance date"
-msgstr "出席日期"
+msgstr "出勤日期"
 
 msgid "Attendance day"
 msgstr "出勤日"
@@ -882,7 +882,7 @@ msgstr "加班待批准"
 #, fuzzy
 #| msgid "Attendance To Validate"
 msgid "Attendance Validate"
-msgstr "出席驗證"
+msgstr "出勤驗證"
 
 msgid "Overtime In Second"
 msgstr "加班秒數"
@@ -897,7 +897,7 @@ msgid "Attendance"
 msgstr "出缺勤"
 
 msgid "Attendances"
-msgstr "出席人數"
+msgstr "出勤人數"
 
 msgid "Comment"
 msgstr "備註"
@@ -970,10 +970,10 @@ msgid ""
 msgstr "啟用此功能可讓員工使用簽到/簽退按鈕記錄他們的出勤情況。"
 
 msgid "Present"
-msgstr "出席"
+msgstr "出勤"
 
 msgid "Half Day Present"
-msgstr "出席半天"
+msgstr "出勤半天"
 
 msgid "Absent"
 msgstr "缺席的"
@@ -1193,7 +1193,7 @@ msgid "Validate"
 msgstr "驗證"
 
 msgid "Attendance To Validate "
-msgstr "出席驗證 "
+msgstr "出勤驗證 "
 
 msgid "OT Attendances"
 msgstr "加班出勤"
@@ -1208,7 +1208,7 @@ msgid "Attendance Batches"
 msgstr "出勤批次"
 
 msgid "No of Attendances"
-msgstr "出席人數"
+msgstr "出勤人數"
 
 msgid "Action"
 msgstr "行動"
@@ -1244,7 +1244,7 @@ msgid "At work"
 msgstr "在上班"
 
 msgid "No validated attendance to show."
-msgstr "沒有證實出席情況可顯示。"
+msgstr "沒有證實出勤情況可顯示。"
 
 #, python-format
 msgid ""
@@ -1273,7 +1273,7 @@ msgid "OT Account Less Than or Equal"
 msgstr "加班工時帳戶小於或等於"
 
 msgid "Selected Attendance"
-msgstr "部分出席"
+msgstr "部分出勤"
 
 msgid "Select All Records"
 msgstr "選擇所有記錄"
@@ -1312,7 +1312,7 @@ msgid "Export Attendance Activities"
 msgstr "匯出考勤活動"
 
 msgid "Attendnace Date"
-msgstr "出席日期"
+msgstr "出勤日期"
 
 #, fuzzy
 #| msgid "No group result found!"
@@ -1361,7 +1361,7 @@ msgid "Create Attendance condition "
 msgstr "建立考勤條件 "
 
 msgid "Today's Attendances"
-msgstr "今日出席人數"
+msgstr "今日出勤人數"
 
 msgid "On Time"
 msgstr "準時"
@@ -1391,7 +1391,7 @@ msgid "Overtime To Approve"
 msgstr "加班待批准"
 
 msgid "Attendance To Validate"
-msgstr "出席驗證"
+msgstr "出勤驗證"
 
 msgid "Department Overtime Chart"
 msgstr "部門加班表"
@@ -1594,7 +1594,7 @@ msgid "by"
 msgstr "經過"
 
 msgid "'s attendance request"
-msgstr "的出席請求"
+msgstr "的出勤請求"
 
 msgid "There are no comments to show."
 msgstr "沒有可顯示的評論。"
@@ -1663,7 +1663,7 @@ msgid " Are you sure want to cancel the request?"
 msgstr " 您確定要取消該請求嗎？"
 
 msgid "New Attendances Request"
-msgstr "新出席請求"
+msgstr "新出勤請求"
 
 msgid "Request"
 msgstr "要求"
@@ -1683,10 +1683,10 @@ msgid "Not-Validated"
 msgstr "未經驗證"
 
 msgid "Requested Attendances"
-msgstr "要求出席"
+msgstr "要求出勤"
 
 msgid "Attendance added."
-msgstr "出席人數已增加。"
+msgstr "出勤人數已增加。"
 
 msgid "Attendance Updated."
 msgstr "出勤情況已更新。"
@@ -1735,7 +1735,7 @@ msgid "You cannot delete this validation condition."
 msgstr "您無法刪除此驗證條件。"
 
 msgid "Attendance validated."
-msgstr "出席已確認。"
+msgstr "出勤已確認。"
 
 msgid "Overtime approved"
 msgstr "已批准加班"
@@ -1785,19 +1785,19 @@ msgid "Attendance update request created."
 msgstr "出勤更新請求已建立。"
 
 msgid "Attendance request has been approved"
-msgstr "出席請求已獲批准"
+msgstr "出勤請求已獲批准"
 
 msgid "The requested attendance is removed."
-msgstr "所請求的出席已被取消。"
+msgstr "所請求的出勤已被取消。"
 
 msgid "Attendance request has been rejected"
-msgstr "出席請求已被拒絕"
+msgstr "出勤請求已被拒絕"
 
 msgid "Attendance request not found"
 msgstr "未找到出勤請求"
 
 msgid "The requested attendance is rejected."
-msgstr "出席請求被拒絕。"
+msgstr "出勤請求被拒絕。"
 
 msgid "Attendance Does not exists.."
 msgstr "沒有出勤記錄"
@@ -1864,7 +1864,7 @@ msgid "validation condition Does not exists.."
 msgstr "驗證條件不存在.."
 
 msgid "Pending attendance update request for {}'s attendance on {}!"
-msgstr "正在等待 {} 出席 {} 的出勤更新請求！"
+msgstr "正在等待 {} 出勤 {} 的出勤更新請求！"
 
 msgid "Attendance not found"
 msgstr "未找到出勤記錄"
@@ -3563,7 +3563,7 @@ msgid "PAYROLL"
 msgstr "薪資單"
 
 msgid "ATTENDANCE"
-msgstr "出席"
+msgstr "出勤"
 
 msgid "LEAVE"
 msgstr "休假"
@@ -3641,7 +3641,7 @@ msgid "You are chosen as one of recruitment manager"
 msgstr "您被選為招聘經理之一"
 
 msgid "Your attendance for the date "
-msgstr "您出席日期 "
+msgstr "您出勤日期 "
 
 msgid " is validated"
 msgstr " 已驗證"
@@ -3884,7 +3884,7 @@ msgid "Shift day"
 msgstr "輪班日"
 
 msgid "Attendance date from"
-msgstr "出席日期自"
+msgstr "出勤日期自"
 
 msgid "In from"
 msgstr "從"
@@ -3893,7 +3893,7 @@ msgid "Out from"
 msgstr "從"
 
 msgid "Attendance date till"
-msgstr "出席日期至"
+msgstr "出勤日期至"
 
 msgid "Out till"
 msgstr "出到"
@@ -4061,10 +4061,10 @@ msgid "filing-status-view"
 msgstr "歸檔狀態視圖"
 
 msgid "attendance-view"
-msgstr "出席者視圖"
+msgstr "出勤者視圖"
 
 msgid "request-attendance-view"
-msgstr "請求出席視圖"
+msgstr "請求出勤視圖"
 
 msgid "attendance-overtime-view"
 msgstr "出勤加班視圖"
@@ -4160,7 +4160,7 @@ msgid "leave"
 msgstr "休假"
 
 msgid "attendance"
-msgstr "出席"
+msgstr "出勤"
 
 msgid "payroll"
 msgstr "薪資單"
@@ -4501,7 +4501,7 @@ msgstr "員工視角"
 #, fuzzy
 #| msgid "attendance-view"
 msgid "attendance-report"
-msgstr "出席者視圖"
+msgstr "出勤者視圖"
 
 msgid "leave-report"
 msgstr "請假報表"
@@ -4916,7 +4916,7 @@ msgid "Overtime to Approve"
 msgstr "加班待批准"
 
 msgid "Attendance to Validate"
-msgstr "出席驗證"
+msgstr "出勤驗證"
 
 msgid "Leave Request to Approve"
 msgstr "休假申請審批"
@@ -7517,7 +7517,7 @@ msgid "Compensatory Leave Requests"
 msgstr "補假申請"
 
 msgid "Attendance Dates"
-msgstr "出席日期"
+msgstr "出勤日期"
 
 msgid "You have No leave requests for this filter."
 msgstr "您沒有針對此篩選器的休假請求。"
@@ -9131,7 +9131,7 @@ msgid "The percentage of based on"
 msgstr "基於"
 
 msgid "The attendance fixed amount for one validated attendance"
-msgstr "一次驗證出席的固定金額"
+msgstr "一次驗證出勤的固定金額"
 
 msgid "The fixed amount per children"
 msgstr "每個孩子的固定金額"
@@ -9187,7 +9187,7 @@ msgstr "如果基於條件，則必須填寫所有欄位（欄位、值、條件
 msgid ""
 "If based on is attendance,                         then per attendance fixed "
 "amount must be filled."
-msgstr "如果基於出席率，則每次出勤必須填寫固定金額。"
+msgstr "如果基於出勤率，則每次出勤必須填寫固定金額。"
 
 msgid "If based on is shift, then shift must be filled."
 msgstr "如果基於是輪班，那麼輪班必須填補。"

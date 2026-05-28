@@ -169,10 +169,13 @@
                     </a>
                     <div class="oh-sidebar__submenu" id="configNav" x-show="isOpen" x-transition style="display: none">
                         <ul class="oh-sidebar__submenu-items">
+                            {% comment %}Think4U: 多重核准已由 ApprovalWorkflow 取代，sidebar 入口隱藏{% endcomment %}
+                            {% if False %}
                             {% if "leave"|app_installed and perms.base.view_multipleapprovalcondition %}
                                 <li class="oh-sidebar__submenu-item">
                                     <a href="{% url 'multiple-approval-condition' %}" class="oh-sidebar__submenu-link">{% trans "Multiple Approvals" %}</a>
                                 </li>
+                            {% endif %}
                             {% endif %}
                             {% comment %}Think4U: Mail Templates 隱藏（配置只留三項要求）{% endcomment %}
                             {% if "horilla_automations"|app_installed and perms.horilla_automations.view_mailautomation %}
