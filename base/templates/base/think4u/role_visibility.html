@@ -190,6 +190,16 @@ function t4uConfirmSubmit(btn, msg) {
                         </div>
                     </label>
                 </div>
+
+                <div style="margin-bottom:18px; padding:12px; background:#fff0f3; border-radius:8px; border:1px solid #ffd5dd;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="acts_as_superuser" {% if row.acts_as_superuser %}checked{% endif %}>
+                        <div>
+                            <strong>{% trans "視同 superuser ⚠️" %}</strong>
+                            <div style="font-size:12px; color:#888;">{% trans "勾選後，此角色成員自動取得最高權限（is_superuser/is_staff），看得到所有頁面與資料。請謹慎使用，建議只給「系統管理員」角色。" %}</div>
+                        </div>
+                    </label>
+                </div>
             </div>
             <div class="t4u-modal-footer">
                 <button type="button" class="oh-btn" onclick="closeVisModal('settings-modal-{{ row.group.pk }}')">{% trans "取消" %}</button>

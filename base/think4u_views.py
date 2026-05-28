@@ -117,7 +117,8 @@ def role_visibility_view(request):
             obj.can_access_admin = "can_access_admin" in request.POST
             obj.force_admin_only = "force_admin_only" in request.POST
             obj.show_in_personal_reports = "show_in_personal_reports" in request.POST
-            obj.save()
+            obj.acts_as_superuser = "acts_as_superuser" in request.POST
+            obj.save()  # AdminAccessGroup post_save signal 會自動 sync 該 group 成員的 is_superuser
             messages.success(request, f"已儲存「{g.name}」的角色設定")
             return redirect(request.path)
 
@@ -176,6 +177,7 @@ def role_visibility_view(request):
                 "can_access_admin": rs.can_access_admin if rs else False,
                 "force_admin_only": rs.force_admin_only if rs else False,
                 "show_in_personal_reports": rs.show_in_personal_reports if rs else True,
+                "acts_as_superuser": rs.acts_as_superuser if rs else False,
             }
         )
 

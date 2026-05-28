@@ -410,6 +410,11 @@ class AdminAccessGroup(models.Model):
     show_in_personal_reports = models.BooleanField(
         default=True, verbose_name=_("顯示在個人加班/請假報表")
     )
+    acts_as_superuser = models.BooleanField(
+        default=False,
+        verbose_name=_("視同 superuser"),
+        help_text=_("勾選後，此角色成員自動取得 is_superuser/is_staff 權限"),
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
