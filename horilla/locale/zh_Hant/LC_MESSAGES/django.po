@@ -1294,7 +1294,7 @@ msgid "Not Approved OT Hours"
 msgstr "未批准的加班時間"
 
 msgid "Attendance Activity"
-msgstr "出勤活動"
+msgstr "打卡明細"
 
 msgid "There are no attendance activity records to display."
 msgstr "沒有可顯示的出勤活動記錄。"
@@ -5872,10 +5872,10 @@ msgid "Bank Info"
 msgstr "銀行資訊"
 
 msgid "Online"
-msgstr "在線的"
+msgstr "出勤"
 
 msgid "Offline"
-msgstr "離線"
+msgstr "缺勤"
 
 msgid "About"
 msgstr "關於"

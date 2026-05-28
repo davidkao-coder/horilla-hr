@@ -49,7 +49,6 @@
                     <th style="padding:8px; text-align:left;">{% trans "Department" %}</th>
                     <th style="padding:8px; text-align:left;">{% trans "Leave Type" %}</th>
                     <th style="padding:8px; text-align:right;">{% trans "Allocated" %}</th>
-                    <th style="padding:8px; text-align:right;">{% trans "Carried Forward" %}</th>
                     <th style="padding:8px; text-align:right;">{% trans "Used (this year)" %}</th>
                     <th style="padding:8px; text-align:right; background:#fff7e6;">{% trans "Remaining" %}</th>
                     <th style="padding:8px; text-align:center;">{% trans "Valid Period" %}</th>
@@ -69,7 +68,6 @@
                         {{ r.leave_type.name }}
                     </td>
                     <td style="padding:8px; text-align:right;">{{ r.total_days }}</td>
-                    <td style="padding:8px; text-align:right;">{{ r.carryforward }}</td>
                     <td style="padding:8px; text-align:right;">{{ r.used_this_year }}</td>
                     <td style="padding:8px; text-align:right; font-weight:bold; color:{% if r.available <= 0 %}#dc3545{% elif r.available < 3 %}#fd7e14{% else %}#28a745{% endif %};">
                         {{ r.available }}
@@ -80,7 +78,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="8" style="padding:24px; text-align:center; color:#999;">
+                    <td colspan="7" style="padding:24px; text-align:center; color:#999;">
                         {% trans "No leave allocation records." %}
                     </td>
                 </tr>

@@ -438,7 +438,10 @@ class Employee(models.Model):
 
     def check_online(self):
         """
-        This method is used to check if the user is in the list of online users.
+        Think4U: 重新定義為「今日是否有打卡」(=出勤)。
+        原 Horilla 邏輯：clock_in 後尚未 clock_out → 線上；現在改成只要今日任一筆 Attendance
+        即視為出勤 (適合台灣打卡制 — 上下班都打卡)。
+        UI 標籤 "Online" → 出勤 / "Offline" → 缺勤。
         """
         if apps.is_installed("attendance"):
             Attendance = get_horilla_model_class("attendance", "attendance")
@@ -450,11 +453,8 @@ class Employee(models.Model):
                     or request.working_employees is None
                 ):
                     today = datetime.now().date()
-                    yesterday = today - timedelta(days=1)
                     working_employees = Attendance.objects.filter(
-                        attendance_date__gte=yesterday,
-                        attendance_date__lte=today,
-                        attendance_clock_out_date__isnull=True,
+                        attendance_date=today,
                     ).values_list("employee_id", flat=True)
                     setattr(request, "working_employees", working_employees)
                 working_employees = request.working_employees

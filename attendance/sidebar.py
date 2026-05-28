@@ -28,12 +28,13 @@ SUBMENUS = [
         "accessibility": "attendance.sidebar.attendances_accessibility",
     },
     # Think4U: 補打卡申請已在 /portal/?tab=clock，後台拿掉
-    {
-        "menu": _("Hour Account"),
-        "redirect": reverse("attendance-overtime-view"),
-        "vis_key": "attendance.hour_account",
-        "accessibility": "attendance.sidebar.hour_account_accessibility",
-    },
+    # Think4U: 工時帳戶 (Hour Account) 未使用，從 sidebar 移除
+    # {
+    #     "menu": _("Hour Account"),
+    #     "redirect": reverse("attendance-overtime-view"),
+    #     "vis_key": "attendance.hour_account",
+    #     "accessibility": "attendance.sidebar.hour_account_accessibility",
+    # },
     {
         "menu": _("Work Records"),
         "redirect": reverse("work-records"),

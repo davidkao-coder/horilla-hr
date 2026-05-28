@@ -518,10 +518,8 @@ def optimize_reporting_manager_lookup():
     """
     employees = Employee.objects.entire()
 
-    employee_dict = {
-        f"{employee.employee_first_name} {employee.employee_last_name}": employee
-        for employee in employees
-    }
+    # Think4U: 用 get_full_name 處理 last_name = None
+    employee_dict = {employee.get_full_name(): employee for employee in employees}
     return employee_dict
 
 

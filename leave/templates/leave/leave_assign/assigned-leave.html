@@ -8,7 +8,7 @@
                 <div class="oh-sticky-table__th">{% trans "Employee" %}</div>
                 <div class="oh-sticky-table__th">{% trans "Leave Type" %}</div>
                 <div class="oh-sticky-table__th">{% trans "Available Days" %}</div>
-                <div class="oh-sticky-table__th">{% trans "Carryforward Days" %}</div>
+                {% comment %}Think4U: 結轉天數隱藏{% endcomment %}
                 <div class="oh-sticky-table__th">{% trans "Total Leave Days" %}</div>
                 <div class="oh-sticky-table__th">{% trans "Assigned Date" %}</div>
                 <div class="oh-sticky-table__th">{% trans "Actions" %}</div>
@@ -30,7 +30,7 @@
                 </div>
                 <div class="oh-sticky-table__td">{{available_leave.leave_type_id}}</div>
                 <div class="oh-sticky-table__td">{{available_leave.available_days}}</div>
-                <div class="oh-sticky-table__td">{{available_leave.carryforward_days}}</div>
+                {% comment %}Think4U: 結轉天數隱藏{% endcomment %}
                 <div class="oh-sticky-table__td">{{available_leave.total_leave_days}}</div>
                 <div class="oh-sticky-table__td">{{available_leave.assigned_date}}</div>
                 <div class="oh-sticky-table__td">

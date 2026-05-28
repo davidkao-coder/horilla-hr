@@ -2952,9 +2952,8 @@ def employee_leave_chart(request):
 
     employee_label = []
     for employee in list(set(labels)):
-        employee_label.append(
-            f"{employee.employee_first_name} {employee.employee_last_name}"
-        )
+        # Think4U: 用 get_full_name 處理 last_name = None 的情況（姓名已合併到 first_name）
+        employee_label.append(employee.get_full_name())
     response = {
         "labels": employee_label,
         "dataset": dataset,
