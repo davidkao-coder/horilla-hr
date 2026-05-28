@@ -139,6 +139,10 @@ dmypy.json
 import_data/
 *.xlsx
 
+# Think4U: 備份檔（DB dump + media tar）
+backups/
+*.sql.gz
+
 # Think4U: 客製化 app + base 的 schema 變動需要進版控才能部署
 !think4u/migrations/*.py
 !base/migrations/0003_rolepagevisibility.py
