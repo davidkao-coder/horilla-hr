@@ -72,6 +72,19 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 前台「出勤」tab + 異常日快捷申請：
+  - 取代原本的「我的紀錄」tab（紀錄移到出勤頁底部摺疊區）
+  - 5 個 nav：打卡 / 請假 / 加班 / **出勤** / 設定
+  - 出勤頁：本年度 1-12 月可切換（pill 形式），每月份顯示
+    - 摘要：正常 / 遲到 / 早退 / 缺勤 / 總工時
+    - 每日明細表：日期 / 上班 / 下班 / 工時 / 狀態（含遲早分鐘）/ 動作
+    - 規則 banner：09:30~10:00 / 18:30~19:00 彈性、每日 ≥ 8h
+  - **異常日快捷申請**：缺勤/未打卡完整/遲到/早退/工時不足 列出現 3 顆按鈕：
+    - 📝 補打卡（only 缺勤/未打卡完整顯示）→ 跳 `?tab=clock&prefill_date=…`
+    - 📅 請假 → 跳 `?tab=leave&prefill_date=…`
+    - ⏱️ 加班 → 跳 `?tab=overtime&prefill_date=…`
+    - 三個 tab 的對應日期欄位都會自動帶入點選的那天
+  - 底部「最近申請彙整」摺疊區：請假 / 加班 / 補打卡 三類
 - 2026-05-28 假別重構：4 種預設 + 申請給假流程：
   - **預設給假**（每位員工自動有）：特休 7 / 事假 14 / 病假 30 / 生理假 12（僅 gender=female）
   - 其他 9 種假別（婚假、產假、喪假 3 類、公傷病假、公假、產檢假、陪產假）→ 必須走「申請給假」流程

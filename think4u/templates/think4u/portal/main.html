@@ -90,7 +90,34 @@
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #eee; display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); }
         .bottom-nav a { display: flex; flex-direction: column; align-items: center; padding: 6px 4px; text-decoration: none; color: #999; font-size: 11px; gap: 2px; }
         .bottom-nav a.active { color: #667eea; }
-        .bottom-nav a .icon { font-size: 22px; line-height: 1; }
+        .bottom-nav a .icon { font-size: 20px; line-height: 1; }
+        .bottom-nav a span:not(.icon) { font-size: 10px; }
+
+        /* Attendance table */
+        .att-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .att-table th, .att-table td { padding: 8px 6px; border-bottom: 1px solid #f0f0f0; }
+        .att-table th { text-align: center; background: #f5f6fa; font-weight: 600; color: #666; font-size: 11px; }
+        .att-table tr.weekend { background: #fafafa; color: #999; }
+        .att-table tr.abnormal { background: #fff8e1; }
+        .att-table .att-status { font-size: 11px; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
+        .att-status-on_time { background: #d4edda; color: #155724; }
+        .att-status-late, .att-status-early_leave, .att-status-late_and_early { background: #fff3e0; color: #e65100; }
+        .att-status-incomplete { background: #cfe2ff; color: #084298; }
+        .att-status-absent { background: #f8d7da; color: #721c24; }
+        .att-status-weekend, .att-status-future { background: #e9ecef; color: #6c757d; }
+        .att-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+        .att-action-btn { display: inline-block; padding: 3px 8px; font-size: 11px; border-radius: 10px; border: 1px solid #ddd; background: white; color: #333; text-decoration: none; cursor: pointer; white-space: nowrap; }
+        .att-action-btn:hover { background: #f5f5f5; }
+        .att-action-btn.primary { background: #667eea; color: white; border-color: #667eea; }
+        .att-action-btn.primary:hover { background: #5a6dd0; }
+        .att-month-pills { display: flex; gap: 4px; overflow-x: auto; padding: 4px 0; margin-bottom: 10px; }
+        .att-month-pills a { flex-shrink: 0; padding: 4px 10px; border-radius: 14px; background: #f0f3ff; color: #667eea; text-decoration: none; font-size: 12px; border: 1px solid transparent; }
+        .att-month-pills a.active { background: #667eea; color: white; }
+        .att-month-pills a:hover { border-color: #667eea; }
+        .att-summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 6px; margin: 10px 0; }
+        .att-summary-pill { background: #f5f6fa; padding: 8px; border-radius: 6px; text-align: center; }
+        .att-summary-pill .label { font-size: 11px; color: #888; }
+        .att-summary-pill .value { font-size: 16px; font-weight: 600; color: #333; margin-top: 2px; }
 
         /* Helper / leave balance pills */
         .balance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
@@ -185,7 +212,7 @@
                     {% csrf_token %}
                     <div class="form-row">
                         <label>{% trans "補哪一天" %}<span class="required">*</span></label>
-                        <input type="date" name="target_date" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" required>
+                        <input type="date" name="target_date" value="{% if prefill_date %}{{ prefill_date }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}" max="{{ today|date:'Y-m-d' }}" required>
                     </div>
                     <div class="form-grid-2">
                         <div class="form-row">
@@ -246,11 +273,11 @@
                 <div class="form-grid-2">
                     <div class="form-row">
                         <label>{% trans "開始日期" %}<span class="required">*</span></label>
-                        <input type="date" name="start_date" required>
+                        <input type="date" name="start_date" value="{{ prefill_date }}" required>
                     </div>
                     <div class="form-row">
                         <label>{% trans "結束日期" %}</label>
-                        <input type="date" name="end_date">
+                        <input type="date" name="end_date" value="{{ prefill_date }}">
                     </div>
                 </div>
                 <div class="form-row">
@@ -350,7 +377,7 @@
                 {% csrf_token %}
                 <div class="form-row">
                     <label>{% trans "加班日期" %}<span class="required">*</span></label>
-                    <input type="date" name="overtime_date" value="{{ today|date:'Y-m-d' }}" required>
+                    <input type="date" name="overtime_date" value="{% if prefill_date %}{{ prefill_date }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}" required>
                 </div>
                 <div class="form-grid-2">
                     <div class="form-row">
@@ -484,51 +511,118 @@
         </div>
     </div>
 
-    {# ====================== My records tab ====================== #}
-    <div class="panel {% if tab != 'my' %}hidden{% endif %}" id="panel-my">
+    {# ====================== 出勤 tab ====================== #}
+    <div class="panel {% if tab != 'attendance' %}hidden{% endif %}" id="panel-attendance">
         <div class="card">
-            <h3 class="card-title">📅 {% trans "我的請假" %}</h3>
-            {% for r in my_leaves %}
-            <div class="item">
-                <div class="item-head">
-                    <span>{{ r.leave_type_id.name }} · {{ r.start_date }}~{{ r.end_date }}</span>
-                    <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
-                </div>
-                <div class="item-desc">{{ r.description|truncatechars:80 }}</div>
+            <h3 class="card-title">📊 {{ att_year }} 年 出勤統計</h3>
+            <div class="att-month-pills">
+                {% for m in att_months %}
+                <a href="?tab=attendance&att_year={{ att_year }}&att_month={{ m }}"
+                   class="{% if m == att_month %}active{% endif %}">{{ m }}月</a>
+                {% endfor %}
             </div>
-            {% empty %}
-            <p style="color:#999; text-align:center;">尚無請假申請</p>
-            {% endfor %}
+
+            <div class="att-summary">
+                <div class="att-summary-pill"><div class="label">正常</div><div class="value">{{ att_summary.normal }}</div></div>
+                <div class="att-summary-pill"><div class="label">遲到</div><div class="value">{{ att_summary.late }}</div></div>
+                <div class="att-summary-pill"><div class="label">早退</div><div class="value">{{ att_summary.early }}</div></div>
+                <div class="att-summary-pill"><div class="label">缺勤</div><div class="value">{{ att_summary.absent }}</div></div>
+                <div class="att-summary-pill"><div class="label">總工時</div><div class="value">{{ att_summary.total_work }}</div></div>
+            </div>
+
+            <p style="color:#999; font-size:11px; margin:8px 0;">
+                規則：上班 09:30~10:00 / 下班 18:30~19:00 為彈性時段；每日工時須 ≥ 8h；異常列會出現快捷申請按鈕。
+            </p>
+
+            <div style="overflow-x:auto;">
+                <table class="att-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>上班</th>
+                            <th>下班</th>
+                            <th>工時</th>
+                            <th>狀態</th>
+                            <th>動作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in attendance_rows %}
+                        <tr class="{% if not r.is_workday %}weekend{% elif r.is_abnormal %}abnormal{% endif %}">
+                            <td>{{ r.date|date:"m/d" }}<br><small style="color:#999;">{{ r.date|date:"D" }}</small></td>
+                            {% if r.is_workday and r.status != 'future' %}
+                                <td>{{ r.check_in|time:"H:i"|default:"—" }}</td>
+                                <td>{{ r.check_out|time:"H:i"|default:"—" }}</td>
+                                <td>{{ r.work_label }}</td>
+                                <td><span class="att-status att-status-{{ r.status }}">{{ r.status_label }}{% if r.late_minutes %} {{ r.late_minutes }}m{% endif %}{% if r.early_minutes %} -{{ r.early_minutes }}m{% endif %}</span></td>
+                                <td>
+                                    {% if r.is_abnormal %}
+                                    <div class="att-actions">
+                                        {% if r.status == 'absent' or r.status == 'incomplete' %}
+                                            <a class="att-action-btn primary" href="?tab=clock&prefill_date={{ r.date|date:'Y-m-d' }}" title="補打卡">📝 補打卡</a>
+                                        {% endif %}
+                                        <a class="att-action-btn" href="?tab=leave&prefill_date={{ r.date|date:'Y-m-d' }}" title="請假">📅 請假</a>
+                                        <a class="att-action-btn" href="?tab=overtime&prefill_date={{ r.date|date:'Y-m-d' }}" title="加班">⏱️ 加班</a>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            {% else %}
+                                <td colspan="5" style="text-align:center; color:#999;">{% if r.status == 'weekend' %}週末{% else %}—{% endif %}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div class="card">
-            <h3 class="card-title">⏱️ {% trans "我的加班" %}</h3>
-            {% for a in my_overtime_apps %}
-            <div class="item">
-                <div class="item-head">
-                    <span>{{ a.overtime_date }} {{ a.start_time }}~{{ a.end_time }}</span>
-                    <span class="badge badge-{{ a.status }}">{{ a.get_status_display }}</span>
+            <h3 class="card-title">📜 {% trans "最近申請彙整" %}</h3>
+            {% if my_leaves %}
+            <details open>
+                <summary>請假（{{ my_leaves|length }} 筆）</summary>
+                {% for r in my_leaves %}
+                <div class="item">
+                    <div class="item-head">
+                        <span>{{ r.leave_type_id.name }} · {{ r.start_date }}~{{ r.end_date }}</span>
+                        <span class="badge badge-{{ r.status }}">{{ r.get_status_display }}</span>
+                    </div>
+                    <div class="item-desc">{{ r.description|truncatechars:80 }}</div>
                 </div>
-                <div class="item-desc">{{ a.reason|truncatechars:80 }}</div>
-            </div>
-            {% empty %}
-            <p style="color:#999; text-align:center;">尚無加班申請</p>
-            {% endfor %}
-        </div>
-
-        <div class="card">
-            <h3 class="card-title">📝 {% trans "我的補打卡" %}</h3>
-            {% for c in my_corrections %}
-            <div class="item">
-                <div class="item-head">
-                    <span>{{ c.target_date }} · in {{ c.requested_check_in|default:"—" }} / out {{ c.requested_check_out|default:"—" }}</span>
-                    <span class="badge badge-{{ c.status }}">{{ c.get_status_display }}</span>
+                {% endfor %}
+            </details>
+            {% endif %}
+            {% if my_overtime_apps %}
+            <details>
+                <summary>加班（{{ my_overtime_apps|length }} 筆）</summary>
+                {% for a in my_overtime_apps %}
+                <div class="item">
+                    <div class="item-head">
+                        <span>{{ a.overtime_date }} {{ a.start_time }}~{{ a.end_time }}</span>
+                        <span class="badge badge-{{ a.status }}">{{ a.get_status_display }}</span>
+                    </div>
+                    <div class="item-desc">{{ a.reason|truncatechars:80 }}</div>
                 </div>
-                <div class="item-desc">{{ c.reason|truncatechars:80 }}</div>
-            </div>
-            {% empty %}
-            <p style="color:#999; text-align:center;">尚無補打卡申請</p>
-            {% endfor %}
+                {% endfor %}
+            </details>
+            {% endif %}
+            {% if my_corrections %}
+            <details>
+                <summary>補打卡（{{ my_corrections|length }} 筆）</summary>
+                {% for c in my_corrections %}
+                <div class="item">
+                    <div class="item-head">
+                        <span>{{ c.target_date }} · in {{ c.requested_check_in|default:"—" }} / out {{ c.requested_check_out|default:"—" }}</span>
+                        <span class="badge badge-{{ c.status }}">{{ c.get_status_display }}</span>
+                    </div>
+                    <div class="item-desc">{{ c.reason|truncatechars:80 }}</div>
+                </div>
+                {% endfor %}
+            </details>
+            {% endif %}
+            {% if not my_leaves and not my_overtime_apps and not my_corrections %}
+                <p style="color:#999; text-align:center;">尚無申請紀錄</p>
+            {% endif %}
         </div>
     </div>
 
@@ -543,8 +637,8 @@
         <a href="?tab=overtime" class="{% if tab == 'overtime' %}active{% endif %}">
             <span class="icon">⏱️</span><span>加班</span>
         </a>
-        <a href="?tab=my" class="{% if tab == 'my' %}active{% endif %}">
-            <span class="icon">📋</span><span>我的</span>
+        <a href="?tab=attendance" class="{% if tab == 'attendance' %}active{% endif %}">
+            <span class="icon">📊</span><span>出勤</span>
         </a>
         <a href="?tab=settings" class="{% if tab == 'settings' %}active{% endif %}">
             <span class="icon">⚙️</span><span>設定</span>

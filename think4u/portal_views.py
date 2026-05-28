@@ -53,12 +53,104 @@ def _resolve_workflow(employee, request_type: str):
 @login_required
 def portal_home(request):
     """前台主頁 — 預設顯示打卡 tab"""
+    import calendar
+    from collections import defaultdict
+    from datetime import date as _date
+
+    from think4u.attendance_rules import evaluate, format_minutes, is_workday
+
     tab = request.GET.get("tab", "clock")
     emp = _emp_or_redirect(request)
     if not emp:
         return redirect("/")
 
     today = timezone.localdate()
+
+    # 預填日期：請假 / 加班 / 補打卡 從出勤頁跳過來時用
+    prefill_date = request.GET.get("prefill_date") or ""
+
+    # 出勤 tab 的月份切換（預設為今天當月）
+    try:
+        att_year = int(request.GET.get("att_year", today.year))
+        att_month = int(request.GET.get("att_month", today.month))
+    except (TypeError, ValueError):
+        att_year, att_month = today.year, today.month
+
+    _, last_day = calendar.monthrange(att_year, att_month)
+    month_first = _date(att_year, att_month, 1)
+    month_last = _date(att_year, att_month, last_day)
+
+    # 該員工該月的 AttendanceActivity，整合成 (date -> {in, out})
+    month_acts = AttendanceActivity.objects.filter(
+        employee_id=emp,
+        attendance_date__gte=month_first,
+        attendance_date__lte=month_last,
+    )
+    by_date = defaultdict(lambda: {"in": None, "out": None})
+    for a in month_acts:
+        d = a.attendance_date
+        if a.clock_in and (by_date[d]["in"] is None or a.clock_in < by_date[d]["in"]):
+            by_date[d]["in"] = a.clock_in
+        if a.clock_out and (by_date[d]["out"] is None or a.clock_out > by_date[d]["out"]):
+            by_date[d]["out"] = a.clock_out
+
+    attendance_rows = []
+    s_normal = s_late = s_early = s_absent = s_incomplete = 0
+    sum_work = sum_late = sum_early = 0
+    for day in range(1, last_day + 1):
+        d = _date(att_year, att_month, day)
+        if not is_workday(d):
+            attendance_rows.append({
+                "date": d, "is_workday": False, "status": "weekend",
+                "status_label": "週末", "work_label": "—",
+            })
+            continue
+        data = by_date.get(d, {"in": None, "out": None})
+        # 未來的日期不評估
+        if d > today:
+            attendance_rows.append({
+                "date": d, "is_workday": True, "status": "future",
+                "status_label": "—", "check_in": None, "check_out": None,
+                "work_label": "—",
+            })
+            continue
+        ev = evaluate(data["in"], data["out"])
+        attendance_rows.append({
+            "date": d, "is_workday": True,
+            "status": ev.status, "status_label": ev.status_label,
+            "check_in": data["in"], "check_out": data["out"],
+            "work_label": format_minutes(ev.work_minutes),
+            "late_minutes": ev.late_minutes,
+            "early_minutes": ev.early_minutes,
+            "is_abnormal": ev.status not in ("on_time",),
+        })
+        sum_work += ev.work_minutes
+        sum_late += ev.late_minutes
+        sum_early += ev.early_minutes
+        if ev.status == "absent":
+            s_absent += 1
+        elif ev.status == "incomplete":
+            s_incomplete += 1
+        elif ev.status == "on_time":
+            s_normal += 1
+        else:
+            if ev.late_minutes > 0:
+                s_late += 1
+            if ev.early_minutes > 0:
+                s_early += 1
+
+    att_summary = {
+        "normal": s_normal,
+        "late": s_late,
+        "early": s_early,
+        "absent": s_absent,
+        "incomplete": s_incomplete,
+        "total_work": format_minutes(sum_work),
+        "total_late": format_minutes(sum_late),
+        "total_early": format_minutes(sum_early),
+    }
+    # 12 個月導航
+    att_months = list(range(1, 13))
     today_punches = list(
         AttendanceActivity.objects.filter(
             employee_id=emp, attendance_date=today
@@ -144,6 +236,14 @@ def portal_home(request):
             "show_code": show_code,
             "client_ip": get_client_ip(request),
             "can_access_admin": user_can_access_admin(request.user),
+            # 出勤表
+            "att_year": att_year,
+            "att_month": att_month,
+            "att_months": att_months,
+            "attendance_rows": attendance_rows,
+            "att_summary": att_summary,
+            # 預填日期
+            "prefill_date": prefill_date,
         },
     )
 
