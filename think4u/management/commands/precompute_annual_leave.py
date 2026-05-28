@@ -89,12 +89,11 @@ def project_grants(hire_date: date, num_years: int = 20):
             "big_start": date(anniv_year + 1, 1, 1),
             "big_end": date(anniv_year + 1, 12, 31),
         })
-    # 也要回填過去 anniversaries（為了「目前可用」能涵蓋）
-    # 從 hire_date 起算到 today 的 anniversaries 都加上
+    # 回填過去所有 anniversaries（用於多年遞延計算）
     for sy in range(1, today.year - hire_date.year + 1):
         anniv_year = hire_date.year + sy
         if anniv_year >= today.year:
-            continue  # 上面 future loop 已涵蓋 anniv_year >= today.year
+            continue  # 上面 future loop 已涵蓋
         try:
             anniv = date(anniv_year, hm, hd)
         except ValueError:
@@ -105,20 +104,17 @@ def project_grants(hire_date: date, num_years: int = 20):
         year_total = 366 if isleap(anniv_year) else 365
         small = floor_half(tier * remaining_days / year_total)
         big = tier - small
-        # 只保留 big_end >= today - 1 年（即可能還在遞延期）的
-        big_end = date(anniv_year + 1, 12, 31)
-        if big_end >= today.replace(year=today.year - 1):
-            grants.append({
-                "service_years": sy,
-                "anniv": anniv,
-                "tier_days": tier,
-                "small_days": small,
-                "small_start": anniv,
-                "small_end": ye,
-                "big_days": big,
-                "big_start": date(anniv_year + 1, 1, 1),
-                "big_end": big_end,
-            })
+        grants.append({
+            "service_years": sy,
+            "anniv": anniv,
+            "tier_days": tier,
+            "small_days": small,
+            "small_start": anniv,
+            "small_end": ye,
+            "big_days": big,
+            "big_start": date(anniv_year + 1, 1, 1),
+            "big_end": date(anniv_year + 1, 12, 31),
+        })
     # 按 anniv 排序
     grants.sort(key=lambda g: g["anniv"])
     return grants
