@@ -445,11 +445,15 @@ def user_can_access_admin(user) -> bool:
 
 
 def user_is_admin_only(user) -> bool:
-    """判定使用者是否被強制只能用後台（不顯示前台 portal）"""
+    """判定使用者是否被強制只能用後台（不顯示前台 portal）
+    admin 帳號永遠不受限（避免自己 lock 自己）；其他 user（含 superuser）
+    都尊重 force_admin_only flag — 因為 force_admin_only 通常設給高管/系統管理員，
+    他們即使是 superuser 也不該被導去前台 portal。
+    """
     if not user or not user.is_authenticated:
         return False
-    if user.is_superuser:
-        return False  # superuser 不受限
+    if user.username == "admin":
+        return False
     return AdminAccessGroup.objects.filter(
         group__in=user.groups.all(), force_admin_only=True
     ).exists()

@@ -564,15 +564,20 @@ def login_user(request):
     """
     Handles user login and authentication.
     """
-    # Think4U: 已登入時依角色直接導向（有後台權限 → /，否則 → /portal/）
+    # Think4U: 已登入時依角色直接導向
+    #   - force_admin_only=True 角色 → 一律 /（後台）
+    #   - 有後台權限       → /（後台）
+    #   - 其他              → /portal/
     if request.method == "GET" and request.user.is_authenticated:
-        from think4u.models import user_can_access_admin
+        from think4u.models import user_can_access_admin, user_is_admin_only
 
-        return redirect("/" if user_can_access_admin(request.user) else "/portal/")
+        if user_is_admin_only(request.user) or user_can_access_admin(request.user):
+            return redirect("/")
+        return redirect("/portal/")
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
-        # Think4U: 登入後預設導向前台 /portal/；指定 next 則維持
+        # Think4U: 登入後預設導向 /portal/，但 force_admin_only 角色直接導 /
         next_url = request.GET.get("next", "/portal/")
         query_params = request.GET.dict()
         query_params.pop("next", None)
@@ -614,11 +619,18 @@ def login_user(request):
         ):
             next_url = "/portal/"
 
-        # Think4U: 若 next_url 指向後台但使用者無權限 → 改導前台
-        from think4u.models import user_can_access_admin
+        # Think4U: 依角色決定最終導向
+        from think4u.models import user_can_access_admin, user_is_admin_only
 
-        if next_url == "/" and not user_can_access_admin(user):
+        if user_is_admin_only(user):
+            # force_admin_only 角色：一律導後台
+            next_url = "/"
+        elif next_url == "/" and not user_can_access_admin(user):
+            # next 指向後台但無權限 → 導前台
             next_url = "/portal/"
+        elif next_url == "/portal/" and user_can_access_admin(user):
+            # 預設 /portal/ 但有後台權限 → 導後台
+            next_url = "/"
 
         if params:
             next_url += f"?{params}"

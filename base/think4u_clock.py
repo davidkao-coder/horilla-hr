@@ -49,11 +49,14 @@ def get_client_ip(request) -> str:
 @login_required
 def landing_page(request):
     """登入後的入口選擇頁。
-    有後台權限 → 顯示「後台管理 + 前台 portal」兩個入口
-    無後台權限 → 直接導向前台 portal
+    強制只能用後台 → 直接導向後台 /
+    有後台權限     → 顯示「後台管理 + 前台 portal」兩個入口
+    無後台權限     → 直接導向前台 portal
     """
-    from think4u.models import user_can_access_admin
+    from think4u.models import user_can_access_admin, user_is_admin_only
 
+    if user_is_admin_only(request.user):
+        return redirect("/")
     if not user_can_access_admin(request.user):
         return redirect("/portal/")
 
