@@ -5,6 +5,7 @@ from think4u import (
     approval_views,
     approval_workflow_views,
     attendance_exports,
+    leave_grant_views,
     monthly_attendance_views,
     org_views,
     overtime_views,
@@ -65,6 +66,18 @@ urlpatterns = [
         monthly_attendance_views.monthly_attendance,
         name="think4u-attendance-monthly",
     ),
+    # 給假申請審核（HR）
+    path(
+        "leave-grant/pending/",
+        leave_grant_views.leave_grant_pending,
+        name="think4u-leave-grant-pending",
+    ),
+    path(
+        "leave-grant/<int:pk>/decide/",
+        leave_grant_views.leave_grant_decide,
+        name="think4u-leave-grant-decide",
+    ),
+
     # 補打卡申請（員工端）
     path(
         "punch-correction/my/",

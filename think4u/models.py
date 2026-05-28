@@ -417,3 +417,82 @@ def user_can_access_admin(user) -> bool:
     if user.is_superuser:
         return True
     return AdminAccessGroup.objects.filter(group__in=user.groups.all()).exists()
+
+
+# ============================================================================
+# 申請給假（員工請求 HR 開啟非預設假別）
+# ----------------------------------------------------------------------------
+# 預設只給 4 種假：特休、事假、病假、生理假（女性）
+# 其他假別（婚假、喪假、產假、公假等）員工要：
+#   1. 在前台填「申請給假」表單 + 上傳證明
+#   2. HR 在後台審核 + 核發天數
+#   3. 核准後系統自動建 AvailableLeave 給該員工
+# ============================================================================
+
+
+class LeaveGrantRequest(models.Model):
+    STATUS_CHOICES = [
+        ("pending", _("待審核")),
+        ("approved", _("已核發")),
+        ("rejected", _("已駁回")),
+        ("cancelled", _("已取消")),
+    ]
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="leave_grant_requests",
+        verbose_name=_("員工"),
+    )
+    leave_type = models.ForeignKey(
+        "leave.LeaveType",
+        on_delete=models.PROTECT,
+        related_name="grant_requests",
+        verbose_name=_("假別"),
+    )
+    requested_days = models.DecimalField(
+        max_digits=5, decimal_places=1, verbose_name=_("申請天數")
+    )
+    reason = models.TextField(verbose_name=_("事由"))
+    proof_document = models.FileField(
+        upload_to="leave_grants/", null=True, blank=True, verbose_name=_("證明文件")
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", verbose_name=_("狀態")
+    )
+    granted_days = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True, verbose_name=_("核發天數")
+    )
+    hr_note = models.TextField(blank=True, default="", verbose_name=_("HR 批註"))
+    decided_by = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="leave_grants_decided",
+        verbose_name=_("審核人"),
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("給假申請")
+        verbose_name_plural = _("給假申請")
+
+    def __str__(self):
+        return f"{self.employee} | {self.leave_type.name} | {self.requested_days}天 | {self.get_status_display()}"
+
+
+# 預設 4 種假別名稱（精確 match LeaveType.name）
+DEFAULT_LEAVE_TYPE_NAMES = ("特休假", "事假", "病假", "生理假")
+FEMALE_ONLY_LEAVE_TYPES = ("生理假",)
+
+
+def get_default_leave_types_for(employee):
+    """回傳該員工應有的預設假別 queryset"""
+    from leave.models import LeaveType
+
+    names = list(DEFAULT_LEAVE_TYPE_NAMES)
+    if getattr(employee, "gender", None) != "female":
+        names = [n for n in names if n not in FEMALE_ONLY_LEAVE_TYPES]
+    return LeaveType.objects.filter(name__in=names, is_active=True)

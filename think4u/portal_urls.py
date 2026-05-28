@@ -41,4 +41,10 @@ urlpatterns = [
         portal_views.portal_bank_submit,
         name="think4u-portal-bank-submit",
     ),
+    # 申請給假
+    path(
+        "leave-grant/submit/",
+        portal_views.portal_leave_grant_submit,
+        name="think4u-portal-leave-grant-submit",
+    ),
 ]

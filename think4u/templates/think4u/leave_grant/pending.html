@@ -1,0 +1,63 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<div class="oh-wrapper">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1 class="fw-bold">{% trans "給假申請審核" %}</h1>
+        <a class="oh-btn oh-btn--secondary oh-btn--small" href="?{% if not show_all %}all=1{% endif %}">
+            {% if show_all %}{% trans "只看待審" %}{% else %}{% trans "看全部歷史" %}{% endif %}
+        </a>
+    </div>
+    {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
+
+    {% for req in requests %}
+    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+            <div style="flex:1; min-width:280px;">
+                <h3 style="margin:0 0 .5rem;">
+                    #{{ req.id }} {{ req.employee }} — {{ req.leave_type.name }}
+                    <span class="oh-alert oh-alert--{% if req.status == 'approved' %}success{% elif req.status == 'rejected' %}danger{% elif req.status == 'cancelled' %}info{% else %}warning{% endif %}" style="padding:2px 8px; font-size:12px; margin-left:8px;">
+                        {{ req.get_status_display }}
+                    </span>
+                </h3>
+                <div style="margin:.4rem 0;"><strong>申請天數：</strong>{{ req.requested_days }} 天{% if req.granted_days %} → <strong>核發：</strong>{{ req.granted_days }} 天{% endif %}</div>
+                <div style="margin:.4rem 0;"><strong>事由：</strong>{{ req.reason }}</div>
+                {% if req.proof_document %}
+                <div style="margin:.4rem 0;"><strong>證明：</strong> <a href="{{ req.proof_document.url }}" target="_blank">📎 {{ req.proof_document.name|cut:'leave_grants/' }}</a></div>
+                {% else %}
+                <div style="margin:.4rem 0; color:#999;">（未上傳證明）</div>
+                {% endif %}
+                <div style="color:#888; font-size:12px;">送出時間：{{ req.created_at|date:"Y-m-d H:i" }}</div>
+                {% if req.hr_note %}<div style="margin-top:.5rem; color:#666;"><strong>HR 批註：</strong>{{ req.hr_note }}</div>{% endif %}
+                {% if req.decided_by %}<div style="color:#888; font-size:12px;">審核：{{ req.decided_by }} @ {{ req.decided_at|date:"Y-m-d H:i" }}</div>{% endif %}
+            </div>
+            {% if req.status == 'pending' %}
+            <div style="min-width:320px;">
+                <form method="post" action="{% url 'think4u-leave-grant-decide' req.id %}">
+                    {% csrf_token %}
+                    <div style="margin-bottom:.5rem;">
+                        <label class="oh-label">核發天數（不填則 = 申請天數 {{ req.requested_days }}）</label>
+                        <input type="number" step="0.5" min="0" name="granted_days" class="oh-input" placeholder="{{ req.requested_days }}">
+                    </div>
+                    <div style="margin-bottom:.5rem;">
+                        <label class="oh-label">批註</label>
+                        <textarea name="hr_note" rows="2" class="oh-input" placeholder="可選"></textarea>
+                    </div>
+                    <div style="display:flex; gap:.5rem;">
+                        <button type="submit" name="decision" value="approve" class="oh-btn oh-btn--success" style="flex:1;" onclick="return confirm('確定核發？');">
+                            <ion-icon name="checkmark-outline"></ion-icon> 核發
+                        </button>
+                        <button type="submit" name="decision" value="reject" class="oh-btn oh-btn--danger" style="flex:1;" onclick="return confirm('確定駁回？');">
+                            <ion-icon name="close-outline"></ion-icon> 駁回
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+    {% empty %}
+    <p style="text-align:center; color:#999; padding:2rem;">{% if show_all %}尚無申請{% else %}沒有待審申請 🎉{% endif %}</p>
+    {% endfor %}
+</div>
+{% endblock %}

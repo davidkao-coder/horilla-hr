@@ -23,6 +23,7 @@ from employee.models import EmployeeBankDetails
 from leave.models import AvailableLeave, LeaveRequest, LeaveType
 from think4u.models import (
     ApprovalWorkflow,
+    LeaveGrantRequest,
     OvertimeApplication,
     OvertimeAssignment,
     PunchCorrectionRequest,
@@ -80,12 +81,27 @@ def portal_home(request):
         "-created_at"
     )[:5]
 
-    # 請假
-    leave_types = LeaveType.objects.filter(is_active=True).order_by("name")
-    my_leaves = LeaveRequest.objects.filter(employee_id=emp).order_by("-created_at")[:5]
-    leave_balances = AvailableLeave.objects.filter(employee_id=emp).select_related(
-        "leave_type_id"
+    # 請假 — 只列員工已有 AvailableLeave 配額 且 > 0 的假別
+    leave_balances = list(
+        AvailableLeave.objects.filter(employee_id=emp)
+        .select_related("leave_type_id")
+        .order_by("leave_type_id__name")
     )
+    available_type_ids = [
+        b.leave_type_id_id for b in leave_balances if (b.available_days or 0) + (b.carryforward_days or 0) > 0
+    ]
+    leave_types = LeaveType.objects.filter(id__in=available_type_ids).order_by("name")
+    my_leaves = LeaveRequest.objects.filter(employee_id=emp).order_by("-created_at")[:5]
+
+    # 申請給假（非預設假別才能申請）
+    from think4u.models import DEFAULT_LEAVE_TYPE_NAMES
+
+    grantable_types = LeaveType.objects.filter(is_active=True).exclude(
+        name__in=DEFAULT_LEAVE_TYPE_NAMES
+    ).order_by("name")
+    my_grant_requests = LeaveGrantRequest.objects.filter(employee=emp).order_by(
+        "-created_at"
+    )[:5]
 
     # 加班
     my_overtime_apps = OvertimeApplication.objects.filter(employee=emp).order_by(
@@ -119,6 +135,8 @@ def portal_home(request):
             "leave_types": leave_types,
             "my_leaves": my_leaves,
             "leave_balances": leave_balances,
+            "grantable_types": grantable_types,
+            "my_grant_requests": my_grant_requests,
             "my_overtime_apps": my_overtime_apps,
             "my_overtime_assignments": my_overtime_assignments,
             "bank": bank,
@@ -254,6 +272,14 @@ def portal_leave_submit(request):
         messages.error(request, "無效的假別")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
+    # 必須有 AvailableLeave 才能請（前台已過濾，但後端再驗一次）
+    has_quota = AvailableLeave.objects.filter(
+        employee_id=emp, leave_type_id=lt
+    ).exists()
+    if not has_quota:
+        messages.error(request, f"你尚未取得「{lt.name}」配額，請先送出申請給假")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
     # 計算請假天數
     try:
         d_start = datetime.strptime(start_date, "%Y-%m-%d").date()
@@ -264,6 +290,27 @@ def portal_leave_submit(request):
     except ValueError:
         messages.error(request, "日期格式錯誤或結束日早於起始日")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    # 生理假規則：每月最多 1 天
+    if lt.name == "生理假":
+        if days > 1:
+            messages.error(request, "生理假每次只能請 1 天")
+            return redirect(f"{reverse('think4u-portal')}?tab=leave")
+        month_start = d_start.replace(day=1)
+        # 下個月第一天
+        if d_start.month == 12:
+            next_month = d_start.replace(year=d_start.year + 1, month=1, day=1)
+        else:
+            next_month = d_start.replace(month=d_start.month + 1, day=1)
+        same_month_used = LeaveRequest.objects.filter(
+            employee_id=emp,
+            leave_type_id=lt,
+            start_date__gte=month_start,
+            start_date__lt=next_month,
+        ).exclude(status__in=("cancelled", "rejected")).exists()
+        if same_month_used:
+            messages.error(request, "本月已申請過生理假（每月限 1 天）")
+            return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
     LeaveRequest.save = dj_models.Model.save  # Horilla bug 繞過
     LeaveRequest.objects.create(
@@ -443,3 +490,54 @@ def portal_bank_submit(request):
     )
     messages.success(request, "銀行資訊已更新")
     return redirect(f"{reverse('think4u-portal')}?tab=settings")
+
+
+# ============================================================================
+# 申請給假（非預設假別 — 需 HR 審核 + 上傳證明）
+# ============================================================================
+@login_required
+def portal_leave_grant_submit(request):
+    if request.method != "POST":
+        return redirect("think4u-portal")
+    emp = _emp_or_redirect(request)
+    if not emp:
+        return redirect("/")
+
+    leave_type_id = request.POST.get("leave_type_id")
+    requested_days = request.POST.get("requested_days")
+    reason = (request.POST.get("reason") or "").strip()
+    proof = request.FILES.get("proof_document")
+
+    if not (leave_type_id and requested_days and reason):
+        messages.error(request, "假別、天數、事由皆為必填")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    lt = LeaveType.objects.filter(pk=leave_type_id).first()
+    if not lt:
+        messages.error(request, "無效的假別")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    # 預設假別不能透過此申請（避免繞過固定額度）
+    from think4u.models import DEFAULT_LEAVE_TYPE_NAMES
+
+    if lt.name in DEFAULT_LEAVE_TYPE_NAMES:
+        messages.error(request, f"「{lt.name}」屬於預設假別，不需要申請給假")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    try:
+        days = float(requested_days)
+        if days <= 0:
+            raise ValueError
+    except ValueError:
+        messages.error(request, "天數需大於 0")
+        return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
+    LeaveGrantRequest.objects.create(
+        employee=emp,
+        leave_type=lt,
+        requested_days=days,
+        reason=reason,
+        proof_document=proof,
+    )
+    messages.success(request, f"已送出給假申請（{lt.name}，{days} 天），等待 HR 審核")
+    return redirect(f"{reverse('think4u-portal')}?tab=leave")

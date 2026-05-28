@@ -185,7 +185,7 @@
                     {% csrf_token %}
                     <div class="form-row">
                         <label>{% trans "補哪一天" %}<span class="required">*</span></label>
-                        <input type="date" name="target_date" max="{{ today|date:'Y-m-d' }}" required>
+                        <input type="date" name="target_date" value="{{ today|date:'Y-m-d' }}" max="{{ today|date:'Y-m-d' }}" required>
                     </div>
                     <div class="form-grid-2">
                         <div class="form-row">
@@ -226,14 +226,22 @@
     <div class="panel {% if tab != 'leave' %}hidden{% endif %}" id="panel-leave">
         <div class="card">
             <h3 class="card-title">📅 {% trans "新請假申請" %}</h3>
+            {% if not leave_types %}
+                <p style="color:#999; padding:1rem; text-align:center;">
+                    你目前還沒有任何假別可請。如需婚假、產假、喪假等，請至下方「申請給假」提交申請。
+                </p>
+            {% else %}
             <form method="post" action="{% url 'think4u-portal-leave-submit' %}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-row">
                     <label>{% trans "假別" %}<span class="required">*</span></label>
-                    <select name="leave_type_id" required>
+                    <select name="leave_type_id" required onchange="onLeaveTypeChange(this)">
                         <option value="">— 請選擇 —</option>
-                        {% for lt in leave_types %}<option value="{{ lt.id }}">{{ lt.name }}</option>{% endfor %}
+                        {% for lt in leave_types %}<option value="{{ lt.id }}" data-name="{{ lt.name }}">{{ lt.name }}</option>{% endfor %}
                     </select>
+                    <div id="menstrualHint" style="display:none; margin-top:6px; padding:8px 10px; background:#fff3cd; color:#856404; border-radius:6px; font-size:12px;">
+                        ⚠ <strong>生理假規則：</strong>每月限請 1 天；薪資為 <strong>半薪</strong>；無需附醫師證明；全年累計 3 天內不計入病假 30 天。
+                    </div>
                 </div>
                 <div class="form-grid-2">
                     <div class="form-row">
@@ -255,6 +263,7 @@
                 </div>
                 <button class="btn btn-primary btn-block">📤 送出請假申請</button>
             </form>
+            {% endif %}
         </div>
 
         {% if leave_balances %}
@@ -271,9 +280,55 @@
         </div>
         {% endif %}
 
+        <!-- 申請給假 -->
+        <div class="card">
+            <details>
+                <summary>{% trans "📝 申請給假（婚假 / 喪假 / 產假 等需 HR 核發的假別）" %}</summary>
+                <form method="post" action="{% url 'think4u-portal-leave-grant-submit' %}" enctype="multipart/form-data" style="margin-top:10px;">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <label>{% trans "假別" %}<span class="required">*</span></label>
+                        <select name="leave_type_id" required>
+                            <option value="">— 請選擇 —</option>
+                            {% for lt in grantable_types %}<option value="{{ lt.id }}">{{ lt.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "申請天數" %}<span class="required">*</span></label>
+                        <input type="number" step="0.5" min="0.5" name="requested_days" required placeholder="例：3">
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "事由" %}<span class="required">*</span></label>
+                        <textarea name="reason" rows="2" required placeholder="說明事由"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "證明文件（婚假需結婚證書、喪假需訃文等）" %}</label>
+                        <input type="file" name="proof_document" accept=".pdf,.jpg,.jpeg,.png,.docx">
+                    </div>
+                    <button class="btn btn-outline btn-block">📤 送出給假申請</button>
+                </form>
+
+                {% if my_grant_requests %}
+                <div style="margin-top:12px;">
+                    <small style="color:#888;">最近 5 筆申請：</small>
+                    {% for g in my_grant_requests %}
+                    <div class="item">
+                        <div class="item-head">
+                            <span>{{ g.leave_type.name }} · {{ g.requested_days }} 天{% if g.granted_days %} → 核發 {{ g.granted_days }}{% endif %}</span>
+                            <span class="badge badge-{{ g.status }}">{{ g.get_status_display }}</span>
+                        </div>
+                        <div class="item-desc">{{ g.reason|truncatechars:60 }}</div>
+                        {% if g.hr_note %}<div class="item-desc" style="color:#666;">HR：{{ g.hr_note }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </details>
+        </div>
+
         {% if my_leaves %}
         <div class="card">
-            <h3 class="card-title">📜 {% trans "最近申請" %}</h3>
+            <h3 class="card-title">📜 {% trans "最近請假申請" %}</h3>
             {% for r in my_leaves %}
             <div class="item">
                 <div class="item-head">
@@ -295,7 +350,7 @@
                 {% csrf_token %}
                 <div class="form-row">
                     <label>{% trans "加班日期" %}<span class="required">*</span></label>
-                    <input type="date" name="overtime_date" required>
+                    <input type="date" name="overtime_date" value="{{ today|date:'Y-m-d' }}" required>
                 </div>
                 <div class="form-grid-2">
                     <div class="form-row">
@@ -515,6 +570,13 @@
             var type = document.querySelector('input[name="attendance_type"]:checked').value;
             document.getElementById('officeFields').style.display = type === 'office' ? '' : 'none';
             document.getElementById('fieldFields').style.display = type === 'field' ? '' : 'none';
+        }
+        // 選到生理假時顯示提示
+        function onLeaveTypeChange(sel) {
+            var hint = document.getElementById('menstrualHint');
+            if (!hint) return;
+            var name = sel.selectedOptions[0]?.dataset?.name || '';
+            hint.style.display = (name === '生理假') ? 'block' : 'none';
         }
     </script>
 </body>

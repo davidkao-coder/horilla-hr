@@ -72,6 +72,26 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 假別重構：4 種預設 + 申請給假流程：
+  - **預設給假**（每位員工自動有）：特休 7 / 事假 14 / 病假 30 / 生理假 12（僅 gender=female）
+  - 其他 9 種假別（婚假、產假、喪假 3 類、公傷病假、公假、產檢假、陪產假）→ 必須走「申請給假」流程
+  - **新 model `LeaveGrantRequest`**：employee / leave_type / requested_days / reason / proof_document / status / granted_days / hr_note / decided_by
+  - **management command `seed_default_leaves --purge-others`**：重置每員工的 default 假別配額，刪掉非預設的舊 AvailableLeave
+  - **portal 變更**：
+    - 「請假」下拉只列「員工有 AvailableLeave 配額 且 > 0」的假別
+    - 「申請給假」摺疊區：選非預設假別 + 申請天數 + 證明文件 + 事由
+    - 選到「生理假」會跳提示 banner（每月 1 天 / 半薪 / 不需證明 / 3 天內不計病假 30 天）
+    - 顯示我送出的 grant requests 最近 5 筆
+  - **生理假規則執行**：
+    - 同月已申請過 → 擋
+    - 一次請 > 1 天 → 擋
+    - 全部 unit-tested ✓
+  - **HR 後台 給假審核** `/think4u/leave-grant/pending/`：
+    - 列出待審 grant requests（可切換看歷史）
+    - 顯示員工 / 假別 / 申請天數 / 證明附件 / 事由
+    - 核准：自動建立或加值 AvailableLeave（依 HR 核發天數 — 可調整）
+    - 駁回：寫 hr_note
+    - sidebar 加「HR — 給假審核」（accessibility = hr_accessibility）
 - 2026-05-28 前台 portal 加「設定」tab（個人 + 銀行資訊修改）：
   - 第 5 個 bottom nav tab `⚙️ 設定`
   - 個人資料區：頭像上傳 + 姓名 / Email / 電話 / 地址 / 生日 / 性別 / 緊急聯絡（姓名/電話/關係）

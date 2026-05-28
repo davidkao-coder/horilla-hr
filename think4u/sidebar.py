@@ -45,6 +45,12 @@ SUBMENUS = [
         "accessibility": "think4u.sidebar.hr_accessibility",
     },
     {
+        "menu": trans("HR — 給假審核"),
+        "redirect": reverse("think4u-leave-grant-pending"),
+        "vis_key": "think4u.leave_grant",
+        "accessibility": "think4u.sidebar.hr_accessibility",
+    },
+    {
         "menu": trans("HR — 雙層審核專區"),
         "redirect": reverse("think4u-approval-hr"),
         "vis_key": "think4u.approval_hr",
