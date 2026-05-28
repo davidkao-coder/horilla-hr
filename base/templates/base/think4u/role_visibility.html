@@ -114,7 +114,11 @@ function t4uConfirmSubmit(btn, msg) {
                         <div style="display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:nowrap; white-space:nowrap;">
                             <button type="button" class="oh-btn oh-btn--secondary oh-btn--small"
                                     onclick="openVisModal('vis-modal-{{ row.group.pk }}')">
-                                ✏️ {% trans "編輯可見性" %}
+                                ✏️ {% trans "可見性" %}
+                            </button>
+                            <button type="button" class="oh-btn oh-btn--secondary oh-btn--small"
+                                    onclick="openVisModal('settings-modal-{{ row.group.pk }}')">
+                                ⚙️ {% trans "角色設定" %}
                             </button>
                             <form method="post" style="display:inline; margin:0;">
                                 {% csrf_token %}
@@ -139,8 +143,64 @@ function t4uConfirmSubmit(btn, msg) {
     </section>
 </div>
 
-{# === 每個角色一個 popup modal === #}
+{# === 每個角色一個 popup modal — 可見性 === #}
 {% for row in role_rows %}
+{# settings modal #}
+<div class="t4u-modal-backdrop" id="settings-modal-{{ row.group.pk }}">
+    <div class="t4u-modal">
+        <div class="t4u-modal-header">
+            <h2>⚙️ {{ row.group.name }} — {% trans "角色設定" %}</h2>
+            <button type="button" class="t4u-close" onclick="closeVisModal('settings-modal-{{ row.group.pk }}')">×</button>
+        </div>
+        <form method="post" style="display:contents;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="settings">
+            <input type="hidden" name="pk" value="{{ row.group.pk }}">
+            <div class="t4u-modal-body">
+                <p style="color:#888; font-size:13px; margin-bottom:14px;">
+                    {% trans "控制此角色成員的存取行為。superuser 不受這些設定限制。" %}
+                </p>
+
+                <div style="margin-bottom:18px; padding:12px; background:#f7f9ff; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="can_access_admin" {% if row.can_access_admin %}checked{% endif %}>
+                        <div>
+                            <strong>{% trans "可進後台管理" %}</strong>
+                            <div style="font-size:12px; color:#888;">{% trans "勾選後，此角色成員登入可看到後台。未勾選則只能用前台 portal。" %}</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div style="margin-bottom:18px; padding:12px; background:#fff8e6; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="force_admin_only" {% if row.force_admin_only %}checked{% endif %}>
+                        <div>
+                            <strong>{% trans "強制只能用後台（不顯示前台）" %}</strong>
+                            <div style="font-size:12px; color:#888;">{% trans "適合高管 / 系統管理員 — 登入直接進後台，不需要打卡 / 請假 / 出勤等前台功能。" %}</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div style="margin-bottom:18px; padding:12px; background:#f0fff4; border-radius:8px;">
+                    <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                        <input type="checkbox" name="show_in_personal_reports" {% if row.show_in_personal_reports %}checked{% endif %}>
+                        <div>
+                            <strong>{% trans "顯示在個人加班/請假報表" %}</strong>
+                            <div style="font-size:12px; color:#888;">{% trans "預設勾選。高管 / 不需考勤的角色取消勾選後，不會出現在這些報表中。" %}</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="t4u-modal-footer">
+                <button type="button" class="oh-btn" onclick="closeVisModal('settings-modal-{{ row.group.pk }}')">{% trans "取消" %}</button>
+                <button type="submit" class="oh-btn oh-btn--secondary">
+                    <ion-icon name="save-outline"></ion-icon> {% trans "儲存" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{# visibility modal #}
 <div class="t4u-modal-backdrop" id="vis-modal-{{ row.group.pk }}">
     <div class="t4u-modal">
         <div class="t4u-modal-header">

@@ -15,7 +15,7 @@ think4u/admin_gate_middleware.py — 後台存取守門員
 """
 from django.shortcuts import redirect
 
-from think4u.models import user_can_access_admin
+from think4u.models import user_can_access_admin, user_is_admin_only
 
 # 前台 / 公開路徑前綴
 # 注意：auth 相關 endpoint 用「無 trailing slash」版本，前綴比對自然涵蓋兩者
@@ -34,6 +34,9 @@ ALLOWED_PREFIXES = (
     "/reset-password",
 )
 
+# 純「前台」的路徑前綴 — 受 force_admin_only 限制時導向後台
+PORTAL_PREFIXES = ("/portal/", "/clock/", "/landing")
+
 
 class AdminAccessGateMiddleware:
     def __init__(self, get_response):
@@ -42,8 +45,15 @@ class AdminAccessGateMiddleware:
     def __call__(self, request):
         if request.user.is_authenticated:
             path = request.path
+
+            # 1) 強制只能用後台的角色：點到前台 → 導去後台
+            if user_is_admin_only(request.user) and any(
+                path.startswith(p) for p in PORTAL_PREFIXES
+            ):
+                return redirect("/")
+
+            # 2) 無後台權限：訪問後台路徑 → 導去前台
             if not any(path.startswith(p) for p in ALLOWED_PREFIXES):
                 if not user_can_access_admin(request.user):
-                    # 已登入但無後台權限 → 導前台
                     return redirect("/portal/")
         return self.get_response(request)

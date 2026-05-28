@@ -17,6 +17,7 @@ from base.models import (
     THINK4U_SIDEBAR_TREE,
     think4u_all_keys,
 )
+from think4u.models import AdminAccessGroup
 
 
 def _superuser_required(view_func):
@@ -105,6 +106,21 @@ def role_visibility_view(request):
                 messages.success(request, f"已啟用：{g.name}")
             return redirect(request.path)
 
+        if action == "settings":
+            # Think4U: 儲存「角色設定」（後台可進入 / 強制後台 / 顯示在報表）
+            pk = request.POST.get("pk")
+            g = Group.objects.filter(pk=pk).first()
+            if not g:
+                messages.error(request, "找不到角色")
+                return redirect(request.path)
+            obj, _ = AdminAccessGroup.objects.get_or_create(group=g)
+            obj.can_access_admin = "can_access_admin" in request.POST
+            obj.force_admin_only = "force_admin_only" in request.POST
+            obj.show_in_personal_reports = "show_in_personal_reports" in request.POST
+            obj.save()
+            messages.success(request, f"已儲存「{g.name}」的角色設定")
+            return redirect(request.path)
+
         # action == "visibility" — 單一角色的可見性
         pk = request.POST.get("pk")
         g = Group.objects.filter(pk=pk).first()
@@ -149,12 +165,17 @@ def role_visibility_view(request):
                     "children": child_nodes,
                 }
             )
+        # Think4U: 取得該 group 的 RoleSettings（AdminAccessGroup）
+        rs = AdminAccessGroup.objects.filter(group=g).first()
         role_rows.append(
             {
                 "group": g,
                 "is_active": _is_group_active(g),
                 "user_count": g.user_set.count(),
                 "tree": tree,
+                "can_access_admin": rs.can_access_admin if rs else False,
+                "force_admin_only": rs.force_admin_only if rs else False,
+                "show_in_personal_reports": rs.show_in_personal_reports if rs else True,
             }
         )
 

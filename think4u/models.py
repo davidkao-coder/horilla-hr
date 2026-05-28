@@ -385,29 +385,47 @@ class OvertimeApplication(models.Model):
 
 
 # ============================================================================
-# 後台存取群組（AdminAccessGroup）
+# 角色設定（AdminAccessGroup 擴充 → 通用 RoleSettings）
 # ----------------------------------------------------------------------------
-# 此表內的 Auth Group 成員，才能進入後台管理（/）。
-# 不在表內的人，登入後一律導到前台 portal（/portal/）。
-# superuser 永遠可進後台。
+# 每個 Auth Group 一筆 row（OneToOne），存控制行為的 flags：
+#   - can_access_admin: 該角色可進後台管理（/）
+#   - force_admin_only: 該角色強制只能用後台，登入直接跳 / 而不是 /portal/
+#                       （適合高管 — 不需要打卡/請假/出勤的角色）
+#   - show_in_personal_reports: 該角色員工會出現在個人請假 / 加班報表
+#                                （高管設 False → 報表中過濾掉）
+# superuser 永遠可進後台、不受 force_admin_only 影響。
 # ============================================================================
 
 
 class AdminAccessGroup(models.Model):
+    """歷史名稱 AdminAccessGroup；現在實質上是 per-group RoleSettings。"""
     group = models.OneToOneField(
         "auth.Group",
         on_delete=models.CASCADE,
         related_name="admin_access",
         verbose_name=_("角色"),
     )
+    can_access_admin = models.BooleanField(default=False, verbose_name=_("可進後台"))
+    force_admin_only = models.BooleanField(default=False, verbose_name=_("強制只能用後台"))
+    show_in_personal_reports = models.BooleanField(
+        default=True, verbose_name=_("顯示在個人加班/請假報表")
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = _("後台存取角色")
-        verbose_name_plural = _("後台存取角色")
+        verbose_name = _("角色設定")
+        verbose_name_plural = _("角色設定")
 
     def __str__(self):
-        return f"{self.group.name}（可進後台）"
+        flags = []
+        if self.can_access_admin:
+            flags.append("後台")
+        if self.force_admin_only:
+            flags.append("僅後台")
+        if not self.show_in_personal_reports:
+            flags.append("不入報表")
+        return f"{self.group.name}（{', '.join(flags) or '一般'}）"
 
 
 def user_can_access_admin(user) -> bool:
@@ -416,7 +434,32 @@ def user_can_access_admin(user) -> bool:
         return False
     if user.is_superuser:
         return True
-    return AdminAccessGroup.objects.filter(group__in=user.groups.all()).exists()
+    return AdminAccessGroup.objects.filter(
+        group__in=user.groups.all(), can_access_admin=True
+    ).exists()
+
+
+def user_is_admin_only(user) -> bool:
+    """判定使用者是否被強制只能用後台（不顯示前台 portal）"""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return False  # superuser 不受限
+    return AdminAccessGroup.objects.filter(
+        group__in=user.groups.all(), force_admin_only=True
+    ).exists()
+
+
+def get_hidden_in_reports_employees():
+    """回傳「不應出現在個人請假/加班報表」的 Employee queryset"""
+    from employee.models import Employee
+    from django.contrib.auth.models import Group
+    hidden_groups = AdminAccessGroup.objects.filter(
+        show_in_personal_reports=False
+    ).values_list("group_id", flat=True)
+    return Employee.objects.filter(
+        employee_user_id__groups__in=hidden_groups
+    ).distinct()
 
 
 # ============================================================================
