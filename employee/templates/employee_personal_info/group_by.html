@@ -74,14 +74,10 @@
                       </div>
                       <div class="oh-sticky-table__th">{% trans "Email" %}</div>
                       <div class="oh-sticky-table__th">{% trans "Phone" %}</div>
-                      <div class="oh-sticky-table__th" hx-target="#view-container" hx-get="{% url 'employee-filter-view' %}?{{pd}}&orderby=badge_id">{% trans "Badge Id" %}</div>
+                      {# Think4U: 拿掉 Badge Id / Shift / Work Type / Job Role / Company #}
                       <div class="oh-sticky-table__th">{% trans "Job Position" %}</div>
                       <div class="oh-sticky-table__th">{% trans "Department" %}</div>
-                      <div class="oh-sticky-table__th">{% trans "Shift" %}</div>
-                      <div class="oh-sticky-table__th">{% trans "Work Type" %}</div>
-                      <div class="oh-sticky-table__th">{% trans "Job Role" %}</div>
-                      <div class="oh-sticky-table__th" hx-target="#view-container" hx-get="{% url 'employee-filter-view' %}?{{pd}}&orderby=employee_work_info__reporting_manager_id">{% trans "Reporting Manager" %}</div>
-                      <div class="oh-sticky-table__th">{% trans "Company" %}</div>
+                      <div class="oh-sticky-table__th">{% trans "部門主管" %}</div>
                       <div class="oh-sticky-table__th">{% trans "Work Email" %}</div>
                       <div class="oh-sticky-table__th" hx-target="#view-container" hx-get="{% url 'employee-filter-view' %}?{{pd}}&orderby=date_joining">{% trans "Date of Joining" %}</div>
                       <div class="oh-sticky-table__th oh-sticky-table__right" style="width:190px">{% trans "Actions" %}</div>
@@ -126,12 +122,7 @@
                         class="oh-sticky-table__td"
                         >{{emp.phone}}</a
                       >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.badge_id}}</a
-                      >
+                      {# Think4U: 拿掉 Badge Id / Shift / Work Type / Job Role / Company #}
                       <a
                         href="{% url 'employee-view-individual' emp.id %}"
                         style="color: inherit; text-decoration: none"
@@ -144,35 +135,12 @@
                         class="oh-sticky-table__td"
                         >{{emp.employee_work_info.department_id}}</a
                       >
+                      {# Think4U: 部門主管（依組織樹推導） #}
                       <a
                         href="{% url 'employee-view-individual' emp.id %}"
                         style="color: inherit; text-decoration: none"
                         class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.shift_id}}</a
-                      >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.work_type_id}}</a
-                      >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.job_role_id}}</a
-                      >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.reporting_manager_id}}</a
-                      >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.company_id}}</a
+                        >{% if emp.employee_work_info.department_id %}{{ emp.employee_work_info.department_id.get_effective_manager|default:"—" }}{% else %}—{% endif %}</a
                       >
                       <a
                         href="{% url 'employee-view-individual' emp.id %}"
