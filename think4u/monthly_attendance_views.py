@@ -112,20 +112,41 @@ def monthly_attendance(request):
             by_emp_date[key]["out"] = a.clock_out
 
     # 一次撈該月所有 LeaveRequest（approved 才算）
+    # 同時考慮跨月份的 leave (起訖日有任一日在本月內)
+    month_start = date(year, month, 1)
+    month_end = date(year, month, last_day)
     leaves = LeaveRequest.objects.filter(
         employee_id__in=emp_ids,
-        start_date__gte=date(year, month, 1),
-        start_date__lte=date(year, month, last_day),
+        start_date__lte=month_end,
+        end_date__gte=month_start,
         status="approved",
     ).select_related("leave_type_id")
-    # group by (emp_id, date) → list of (leave_name, hours)
+    # group by (emp_id, date) → list of (leave_name, hours)；每日攤分後的時數
     leaves_by_emp_date: dict = defaultdict(list)
     # group by emp_id → {leave_type_name: total_hours}
     leaves_by_emp_type: dict = defaultdict(lambda: defaultdict(float))
+    # 每日分鐘 (供 evaluate() 使用)
+    leave_minutes_by_emp_date: dict = defaultdict(int)
     for r in leaves:
-        hours = float(r.requested_days or 0) * 8.0
-        leaves_by_emp_date[(r.employee_id_id, r.start_date)].append((r.leave_type_id.name, hours))
-        leaves_by_emp_type[r.employee_id_id][r.leave_type_id.name] += hours
+        span = (r.end_date - r.start_date).days + 1
+        if span <= 0:
+            span = 1
+        daily_days = float(r.requested_days or 0) / span
+        daily_hours = daily_days * 8.0
+        daily_minutes = int(min(daily_days, 1.0) * 480)
+        # 在 leave 的每個跨日撒一筆
+        cur = max(r.start_date, month_start)
+        last = min(r.end_date, month_end)
+        while cur <= last:
+            leaves_by_emp_date[(r.employee_id_id, cur)].append(
+                (r.leave_type_id.name, daily_hours)
+            )
+            leave_minutes_by_emp_date[(r.employee_id_id, cur)] = min(
+                leave_minutes_by_emp_date[(r.employee_id_id, cur)] + daily_minutes, 480
+            )
+            cur = cur.fromordinal(cur.toordinal() + 1)
+        # 月度合計（總時數）
+        leaves_by_emp_type[r.employee_id_id][r.leave_type_id.name] += daily_hours * span
 
     # 為每位員工建一列：包含每日 cell + 月度摘要
     rows = []
@@ -146,15 +167,8 @@ def monthly_attendance(request):
                 continue
             data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
             lvs_today = leaves_by_emp_date.get((emp.id, d), [])
-            # Think4U: 計算當日請假分鐘（多日 leave 平均分配）
-            lv_mins = 0
-            for lv in lvs_today:
-                span = (lv.end_date - lv.start_date).days + 1
-                if span <= 0:
-                    span = 1
-                daily_share = float(lv.requested_days or 0) / span
-                lv_mins += int(min(daily_share, 1.0) * 480)
-            lv_mins = min(lv_mins, 480)
+            # Think4U: 用預先算好的當日請假分鐘（避免在 loop 內計算）
+            lv_mins = leave_minutes_by_emp_date.get((emp.id, d), 0)
             ev = evaluate(data["in"], data["out"], leave_minutes=lv_mins)
             # 決定 cell color 同步「工作記錄」: FDP/ABS/partial leave
             has_att = bool(data["in"])
