@@ -6,6 +6,7 @@ from think4u import (
     approval_workflow_views,
     attendance_exports,
     audit_views,
+    day_detail_views,
     leave_grant_views,
     monthly_attendance_views,
     org_views,
@@ -66,6 +67,12 @@ urlpatterns = [
         "attendance/monthly/",
         monthly_attendance_views.monthly_attendance,
         name="think4u-attendance-monthly",
+    ),
+    # 某員工某天打卡明細
+    path(
+        "attendance/day/<int:emp_id>/<str:ymd>/",
+        day_detail_views.day_detail,
+        name="think4u-attendance-day-detail",
     ),
     # 稽核紀錄（superuser only）
     path("audit-log/", audit_views.audit_log_list, name="think4u-audit-log"),

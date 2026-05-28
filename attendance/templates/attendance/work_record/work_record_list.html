@@ -53,13 +53,9 @@
         </div>
     </div>
 
-    {# Think4U: 改 label / 拿掉「出席半天」/「衝突」加 tooltip #}
+    {# Think4U: 改 label / 拿掉「出席半天」+「衝突」#}
     <div class="d-flex flex-row-reverse m-2">
-        <span class="" style="margin-left: 10px" title="同日有打卡也有整日請假，請至 出勤明細 確認">
-            <span class="oh-dot oh-dot--small me-1" style="background-color: #ed4c4c"></span>
-            {% trans "衝突（請假 + 打卡 同日）" %}
-        </span>
-        <span class="me-3" style="margin-left: 10px">
+        <span class="" style="margin-left: 10px">
             <span class="oh-dot oh-dot--small me-1" style="background-color: #a8b1ff"></span>
             {% trans "無打卡紀錄" %}
         </span>
@@ -130,23 +126,13 @@
                     "
                     >
                         {% if work_record %}
+                            {# Think4U: 點 cell → Think4U 的 day-detail 頁，看當天完整打卡/請假/加班 #}
                             <div
                                 {% if work_record.title_message %}
                                     title="{{work_record.title_message}}"
                                 {% endif %}
                                 class="fw-bold"
-                                onclick="
-                                    {% if work_record.work_record_type == 'ABS' %}
-                                        window.location.href = `{% url 'request-view' %}?employee_id={{work_record.employee_id.id}}&from_date={{work_record.date|date:'Y-m-d'}}&to_date={{work_record.date|date:'Y-m-d'}}`;
-                                    {% elif work_record.work_record_type != 'DFT' %}
-                                        {% if work_record.work_record_type == 'CONF' %}
-                                            localStorage.setItem('activeTabAttendance', '#tab_1');
-                                        {% else %}
-                                            localStorage.setItem('activeTabAttendance', '#tab_2');
-                                        {% endif %}
-                                        window.location.href = `{% url 'attendance-view' %}?employee_id={{work_record.employee_id.id}}&attendance_date={{work_record.date|date:'Y-m-d'}}`;
-                                    {% endif %}
-                                "
+                                onclick="window.location.href = '{% url 'think4u-attendance-day-detail' work_record.employee_id.id work_record.date|date:'Y-m-d' %}';"
                             >
                                 <a class="text-decoration-none" role="button">
                                     {% if work_record.work_record_type == 'CONF' %} !

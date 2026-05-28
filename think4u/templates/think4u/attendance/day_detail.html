@@ -1,0 +1,137 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<style>
+    .dd-wrap { padding: 1rem; max-width: 980px; }
+    .dd-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .dd-back { color: #666; text-decoration: none; font-size: 13px; }
+    .dd-back:hover { color: #333; }
+    .card { background: white; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #eee; }
+    .card h3 { margin: 0 0 .8rem; font-size: 15px; color: #444; }
+    .info-grid { display: grid; grid-template-columns: 130px 1fr; gap: .3rem .8rem; font-size: 13px; }
+    .info-grid .lbl { color: #888; }
+    .status { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+    .status-on_time { background: #d4edda; color: #155724; }
+    .status-late, .status-early_leave, .status-late_and_early { background: #fff3e0; color: #e65100; }
+    .status-incomplete { background: #cfe2ff; color: #084298; }
+    .status-absent { background: #f8d7da; color: #721c24; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; text-align: left; }
+    th { background: #f5f6fa; color: #666; font-size: 12px; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+    .badge-success { background: #d4edda; color: #155724; }
+    .badge-warning { background: #fff3cd; color: #856404; }
+    .badge-info { background: #d1ecf1; color: #0c5460; }
+</style>
+
+<div class="dd-wrap">
+    <a class="dd-back" href="javascript:history.back()">← 返回</a>
+    <div class="dd-head">
+        <h1 class="fw-bold">{{ employee.get_full_name }} — {{ date|date:"Y 年 m 月 d 日 (D)" }}</h1>
+        <span class="status status-{{ ev.status }}">{{ ev.status_label }}</span>
+    </div>
+
+    <!-- 摘要 -->
+    <section class="card">
+        <h3>📊 摘要</h3>
+        <div class="info-grid">
+            <div class="lbl">最早上班</div><div>{{ ev.has_check_in|yesno:"" }}{{ punches.0.clock_in|time:"H:i:s"|default:"—" }}</div>
+            <div class="lbl">最晚下班</div>
+            <div>
+                {% for p in punches reversed %}
+                    {% if p.clock_out and forloop.first %}{{ p.clock_out|time:"H:i:s" }}{% endif %}
+                {% empty %}—{% endfor %}
+            </div>
+            <div class="lbl">實際工時</div><div>{{ work_label }}</div>
+            {% if ev.late_minutes %}<div class="lbl">遲到</div><div style="color:#e65100;">{{ ev.late_minutes }} 分</div>{% endif %}
+            {% if ev.early_minutes %}<div class="lbl">早退</div><div style="color:#e65100;">{{ ev.early_minutes }} 分</div>{% endif %}
+            {% if ev.short_minutes and ev.is_complete is False %}<div class="lbl">工時不足</div><div style="color:#c0392b;">{{ ev.short_minutes }} 分（規定 8h）</div>{% endif %}
+        </div>
+        <p style="color:#999; font-size:11px; margin-top:.7rem;">
+            規則：上班 09:30~10:00 / 下班 18:30~19:00 為彈性時段；午休 12:30~13:30 自動扣 1h；每日工時須 ≥ 8h。
+        </p>
+    </section>
+
+    <!-- 打卡明細 -->
+    <section class="card">
+        <h3>🕐 打卡明細</h3>
+        {% if punches %}
+        <table>
+            <thead><tr>
+                <th>#</th><th>上班</th><th>下班</th><th>類型</th><th>IP</th><th>外勤原因</th>
+            </tr></thead>
+            <tbody>
+                {% for p in punches %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ p.clock_in|time:"H:i:s"|default:"—" }}</td>
+                    <td>{{ p.clock_out|time:"H:i:s"|default:"—" }}</td>
+                    <td>
+                        {% if p.attendance_type == 'office' %}
+                            <span class="badge badge-info">公司</span>
+                        {% else %}
+                            <span class="badge badge-warning">外勤</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ p.client_ip|default:"—" }}</td>
+                    <td>{{ p.field_reason|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="color:#999;">今日無打卡紀錄</p>
+        {% endif %}
+    </section>
+
+    <!-- 請假 -->
+    {% if leaves %}
+    <section class="card">
+        <h3>📅 請假紀錄</h3>
+        <table>
+            <thead><tr><th>假別</th><th>天數</th><th>狀態</th><th>說明</th></tr></thead>
+            <tbody>
+                {% for r in leaves %}
+                <tr>
+                    <td><strong>{{ r.leave_type_id.name }}</strong></td>
+                    <td>{{ r.requested_days }} 天</td>
+                    <td><span class="badge badge-{% if r.status == 'approved' %}success{% else %}warning{% endif %}">{{ r.get_status_display }}</span></td>
+                    <td>{{ r.description|truncatechars:120 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+
+    <!-- 加班 -->
+    {% if overtimes_apps or overtimes_assigns %}
+    <section class="card">
+        <h3>⏱️ 加班紀錄</h3>
+        <table>
+            <thead><tr><th>來源</th><th>時段</th><th>時長</th><th>狀態</th><th>事由</th></tr></thead>
+            <tbody>
+                {% for a in overtimes_apps %}
+                <tr>
+                    <td><span class="badge badge-info">員工申請</span></td>
+                    <td>{{ a.start_time|time:"H:i" }} ~ {{ a.end_time|time:"H:i" }}</td>
+                    <td>{{ a.duration_hours|floatformat:1 }}h</td>
+                    <td><span class="badge badge-success">{{ a.get_status_display }}</span></td>
+                    <td>{{ a.reason|truncatechars:80 }}</td>
+                </tr>
+                {% endfor %}
+                {% for a in overtimes_assigns %}
+                <tr>
+                    <td><span class="badge badge-warning">主管指派</span></td>
+                    <td>{{ a.start_time|time:"H:i" }} ~ {{ a.end_time|time:"H:i" }}</td>
+                    <td>{{ a.duration_hours|floatformat:1 }}h</td>
+                    <td>{{ a.get_status_display }}</td>
+                    <td>{{ a.reason|truncatechars:80 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

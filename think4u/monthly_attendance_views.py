@@ -15,6 +15,7 @@ from django.utils import timezone
 
 from attendance.models import AttendanceActivity
 from employee.models import Employee, EmployeeWorkInformation
+from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
 
 
@@ -79,7 +80,6 @@ def monthly_attendance(request):
         attendance_date__lte=date(year, month, last_day),
     ).order_by("employee_id_id", "attendance_date", "clock_in")
 
-    # group by (emp_id, date) — 取該日「最早 in / 最晚 out」
     by_emp_date: dict = defaultdict(lambda: {"in": None, "out": None})
     for a in activities:
         key = (a.employee_id_id, a.attendance_date)
@@ -87,6 +87,22 @@ def monthly_attendance(request):
             by_emp_date[key]["in"] = a.clock_in
         if a.clock_out and (by_emp_date[key]["out"] is None or a.clock_out > by_emp_date[key]["out"]):
             by_emp_date[key]["out"] = a.clock_out
+
+    # 一次撈該月所有 LeaveRequest（approved 才算）
+    leaves = LeaveRequest.objects.filter(
+        employee_id__in=emp_ids,
+        start_date__gte=date(year, month, 1),
+        start_date__lte=date(year, month, last_day),
+        status="approved",
+    ).select_related("leave_type_id")
+    # group by (emp_id, date) → list of (leave_name, hours)
+    leaves_by_emp_date: dict = defaultdict(list)
+    # group by emp_id → {leave_type_name: total_hours}
+    leaves_by_emp_type: dict = defaultdict(lambda: defaultdict(float))
+    for r in leaves:
+        hours = float(r.requested_days or 0) * 8.0
+        leaves_by_emp_date[(r.employee_id_id, r.start_date)].append((r.leave_type_id.name, hours))
+        leaves_by_emp_type[r.employee_id_id][r.leave_type_id.name] += hours
 
     # 為每位員工建一列：包含每日 cell + 月度摘要
     rows = []
@@ -100,6 +116,18 @@ def monthly_attendance(request):
                 continue
             data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
             ev = evaluate(data["in"], data["out"])
+            lvs_today = leaves_by_emp_date.get((emp.id, d), [])
+            # 決定 cell color 同步「工作記錄」: FDP/ABS/partial leave
+            has_att = bool(data["in"])
+            has_lv = bool(lvs_today)
+            if has_att and has_lv:
+                cell_class = "wr-partial"   # 橘 = 請假+有打卡
+            elif has_att:
+                cell_class = "wr-present"   # 綠 = 出勤
+            elif has_lv:
+                cell_class = "wr-leave"     # 灰 = 請假
+            else:
+                cell_class = "wr-empty"
             cell = {
                 "date": d,
                 "is_workday": True,
@@ -107,6 +135,8 @@ def monthly_attendance(request):
                 "check_out": data["out"],
                 "ev": ev,
                 "work_label": format_minutes(ev.work_minutes),
+                "leaves": lvs_today,
+                "cell_class": cell_class,
             }
             cells.append(cell)
             sum_work += ev.work_minutes
@@ -146,8 +176,14 @@ def monthly_attendance(request):
                     "total_late": format_minutes(sum_late),
                     "total_early": format_minutes(sum_early),
                 },
+                # 該員工該月各假別總時數 e.g. {"事假": 4.5, "病假": 8.0}
+                "leave_by_type": dict(leaves_by_emp_type.get(emp.id, {})),
             }
         )
+
+    # 計薪基準（依用戶定義：單月總天數 × 8h）
+    payroll_base_days = last_day
+    payroll_base_hours = last_day * 8
 
     # 上 / 下個月導航
     if month == 1:
@@ -172,5 +208,7 @@ def monthly_attendance(request):
             "next_y": next_y,
             "next_m": next_m,
             "is_hr": _is_hr(request.user),
+            "payroll_base_days": payroll_base_days,
+            "payroll_base_hours": payroll_base_hours,
         },
     )

@@ -395,13 +395,12 @@ class Command(BaseCommand):
             for emp_id, d in all_keys:
                 has_att = (emp_id, d) in att_set
                 lvs = lv_set.get((emp_id, d), [])
-                total_lv_h = sum(h for _, h in lvs)
-                if has_att and total_lv_h >= 8:
-                    wt = "CONF"   # 衝突
-                elif has_att:
-                    wt = "FDP"    # 出勤
+                # 有打卡 → FDP（出勤），同時有請假時 is_leave_record=True 會在 template
+                #   顯示橘色「請假+有打卡」；不再用 CONF（衝突）
+                if has_att:
+                    wt = "FDP"
                 elif lvs:
-                    wt = "ABS"    # 請假
+                    wt = "ABS"
                 else:
                     continue
                 WorkRecords.objects.create(

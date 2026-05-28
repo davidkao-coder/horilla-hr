@@ -15,12 +15,15 @@
     .att-matrix thead .emp-name { background: #f5f5f5; z-index: 3; }
     .att-matrix .weekend { background: #fafafa; color: #ccc; }
     .att-matrix .day-cell { cursor: help; }
-    .att-cell-normal { background: #e8f5e9; }
-    .att-cell-late { background: #fff3e0; color: #e65100; }
-    .att-cell-early { background: #fff3e0; color: #e65100; }
-    .att-cell-late-and-early { background: #ffe0b2; color: #d84315; }
-    .att-cell-absent { background: #ffebee; color: #c62828; }
-    .att-cell-incomplete { background: #e3f2fd; color: #0d47a1; }
+    /* 與「工作記錄」頁同步配色 */
+    .wr-present { background: #38c338; color: white; }       /* 綠：出勤 */
+    .wr-leave { background: #808080; color: white; }         /* 灰：請假 */
+    .wr-partial { background: #c65d0f; color: white; }       /* 橘：請假+打卡 */
+    .wr-empty { background: #a8b1ff; color: white; }         /* 藍：無打卡（缺勤） */
+    .att-cell-normal { background: #38c338; color: white; }
+    .att-cell-late, .att-cell-early, .att-cell-late-and-early { background: #c65d0f; color: white; }
+    .att-cell-absent { background: #a8b1ff; color: white; }
+    .att-cell-incomplete { background: #a8b1ff; color: white; }
     .att-summary-cell { font-weight: 600; background: #f5f5f5; }
     .att-summary-pill { display: inline-block; padding: 1px 6px; border-radius: 10px; font-size: 11px; margin: 0 2px; }
     .att-pill-normal { background: #e8f5e9; color: #2e7d32; }
@@ -38,14 +41,15 @@
     </div>
 
     <div class="att-legend">
-        <span class="att-cell-normal">正常</span>
-        <span class="att-cell-late">遲到</span>
-        <span class="att-cell-early">早退</span>
-        <span class="att-cell-late-and-early">遲到+早退</span>
-        <span class="att-cell-incomplete">未打卡完整</span>
-        <span class="att-cell-absent">缺勤</span>
+        <span class="wr-present">出勤</span>
+        <span class="wr-partial">請假 + 有打卡</span>
+        <span class="wr-leave">請假</span>
+        <span class="wr-empty">無打卡紀錄</span>
     </div>
-    <p style="color:#888; font-size:12px;">規則：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、中午 12:30~13:30 休息、每日工時須 ≥ 8h。週六/日不計考勤。</p>
+    <p style="color:#888; font-size:12px;">
+        規則：上班 09:30~10:00 彈性、下班 18:30~19:00 彈性、中午 12:30~13:30 休息、每日工時須 ≥ 8h。週六/日不計考勤。
+        <strong>計薪基準：{{ payroll_base_days }} 天 × 8h = {{ payroll_base_hours }} 小時</strong>
+    </p>
 
     <div class="att-matrix-wrapper">
         <table class="att-matrix">
@@ -58,10 +62,9 @@
                         </th>
                     {% endfor %}
                     <th>總工時</th>
-                    <th>正常</th>
                     <th>遲到</th>
                     <th>早退</th>
-                    <th>缺勤</th>
+                    <th>請假時數明細</th>
                 </tr>
             </thead>
             <tbody>
@@ -75,34 +78,48 @@
                         {% if not c.is_workday %}
                             <td class="weekend">—</td>
                         {% else %}
-                            <td class="day-cell att-cell-{{ c.ev.status|cut:'_' }}"
+                            <td class="day-cell {{ c.cell_class }}"
+                                onclick="window.location.href='{% url 'think4u-attendance-day-detail' row.employee.id c.date|date:'Y-m-d' %}';"
+                                style="cursor:pointer;"
                                 title="{{ c.ev.status_label }}
 in: {{ c.check_in|default:'—' }}
 out: {{ c.check_out|default:'—' }}
 工時: {{ c.work_label }}{% if c.ev.late_minutes %}
 遲到: {{ c.ev.late_minutes }}分{% endif %}{% if c.ev.early_minutes %}
-早退: {{ c.ev.early_minutes }}分{% endif %}">
-                                {% if c.ev.status == 'absent' %}✗
-                                {% elif c.ev.status == 'on_time' %}✓
-                                {% elif c.ev.status == 'late_and_early' %}↑↓
-                                {% elif c.ev.status == 'late' %}↑
-                                {% elif c.ev.status == 'early_leave' %}↓
-                                {% else %}!
+早退: {{ c.ev.early_minutes }}分{% endif %}{% for lt, h in c.leaves %}
+{{ lt }}: {{ h }}h{% endfor %}">
+                                {% if c.cell_class == 'wr-present' %}P
+                                {% elif c.cell_class == 'wr-partial' %}P/L
+                                {% elif c.cell_class == 'wr-leave' %}L
+                                {% else %}—
                                 {% endif %}
                             </td>
                         {% endif %}
                     {% endfor %}
                     <td class="att-summary-cell">{{ row.summary.total_work }}</td>
-                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-normal">{{ row.summary.normal }}</span></td>
-                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.late }}</span></td>
-                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.early }}</span></td>
-                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-absent">{{ row.summary.absent }}</span></td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.total_late }}</span></td>
+                    <td class="att-summary-cell"><span class="att-summary-pill att-pill-late">{{ row.summary.total_early }}</span></td>
+                    <td class="att-summary-cell" style="text-align:left; font-size:11px;">
+                        {% for ltype, hours in row.leave_by_type.items %}
+                            <span style="background:#f0f0f0; padding:2px 6px; border-radius:4px; margin:1px; display:inline-block;">
+                                {{ ltype }} {{ hours|floatformat:1 }}h
+                            </span>
+                        {% empty %}—{% endfor %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr><td colspan="40" style="text-align:center; padding:2rem; color:#999;">無資料</td></tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <div style="margin-top:1rem; padding:1rem; background:#fffde7; border-left:4px solid #fbc02d; border-radius:4px; font-size:13px;">
+        <strong>💰 計薪基準</strong>
+        ：{{ year }}/{{ month }} 共 <strong>{{ payroll_base_days }} 天</strong> × 每日 8 小時 =
+        <strong>{{ payroll_base_hours }} 小時</strong>
+        <br>
+        <small style="color:#888;">薪資計算以「該月總天數 × 8 小時」為基準（含假日）。</small>
     </div>
 </div>
 {% endblock %}
