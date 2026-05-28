@@ -101,6 +101,25 @@
     - ⏱️ 加班 → 跳 `?tab=overtime&prefill_date=…`
     - 三個 tab 的對應日期欄位都會自動帶入點選的那天
   - 底部「最近申請彙整」摺疊區：請假 / 加班 / 補打卡 三類
+- 2026-05-28 特休 Model B (週年制獲假 + 歷年使用) + 歷史資料匯入：
+  - **Model B 切換**：calculator 改用「週年那天獲假 → 拆 2 段：當年剩餘（小段） + 隔年完整（大段）」
+    - calculator round_to_half → floor_to_half（0.5 精度向下取，與用戶範例對齊）
+    - 新 model `think4u.LeaveAllocation`：每 anniv 拆 2 筆，存 service_years / anniv_date / tier / grant_type / days / start_date / end_date / days_used
+    - migration `think4u/0008_leaveallocation`、`0009_alter_grant_type`（+ 'carryforward'）
+  - **Management command `precompute_annual_leave --years 20 --reset`**：
+    - 一次性產生每位員工往後 20 年的所有 anniv allocations
+    - 同步寫入 `AvailableLeave.available_days` = 所有「today 在 start..end 區間內」的 allocations 加總
+    - 不需 cron，新人入職時手動跑一次
+  - **匯入 Excel command `import_attendance`**：
+    - 支援單檔 / 整個資料夾、多年份（2023~2026）
+    - 解析 sheet `01_出勤明細表` 的 31 個欄位
+    - 出勤 → AttendanceActivity / 請假 → LeaveRequest / 加班 → OvertimeApplication
+    - 假別 mapping（事假/特休/病假/公假/婚假/補休/生理假/產假/陪產假/產檢假）
+    - 起迄時間格式相容（datetime.time / str / `19:00~20:30`）
+    - tz-aware datetime / NOT NULL clock_in 防呆
+  - **特休遞延**：算 2025 unused (allocation - used) → 寫成 grant_type='carryforward' 的 LeaveAllocation（有效 2026/1/1~12/31）
+  - **新假別**：補休（LeaveType） — 加班轉換而來
+  - 加進 `.gitignore`：`import_data/` + `*.xlsx`（不入版控）
 - 2026-05-28 假別重構：4 種預設 + 申請給假流程：
   - **預設給假**（每位員工自動有）：特休 7 / 事假 14 / 病假 30 / 生理假 12（僅 gender=female）
   - 其他 9 種假別（婚假、產假、喪假 3 類、公傷病假、公假、產檢假、陪產假）→ 必須走「申請給假」流程

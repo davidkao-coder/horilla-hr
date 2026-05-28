@@ -552,3 +552,76 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.timestamp:%Y-%m-%d %H:%M} {self.user_repr} {self.action} {self.model_label}#{self.object_id}"
+
+
+# ============================================================================
+# 特休 Anniversary 配給細項（Model B：週年獲假 + 歷年使用）
+# ----------------------------------------------------------------------------
+# 每次 anniversary 拆 2 筆：
+#   - small：anniv ~ 該年 12/31 可用
+#   - big  ：anniv+1 年 1/1 ~ 12/31 可用
+# 一次性 precompute 20 年存進來，不再用 cron。
+# ============================================================================
+
+
+class LeaveAllocation(models.Model):
+    GRANT_TYPE_CHOICES = [
+        ("anniv_small", _("週年小段（當年剩餘）")),
+        ("anniv_big", _("週年大段（隔年整年）")),
+        ("carryforward", _("遞延")),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="leave_allocations",
+        verbose_name=_("員工"),
+    )
+    leave_type = models.ForeignKey(
+        "leave.LeaveType",
+        on_delete=models.PROTECT,
+        related_name="t4u_allocations",
+        verbose_name=_("假別"),
+    )
+    service_years = models.PositiveSmallIntegerField(
+        verbose_name=_("累積年資（滿 N 年）")
+    )
+    anniversary_date = models.DateField(verbose_name=_("獲假日"))
+    tier_days = models.DecimalField(
+        max_digits=4, decimal_places=1, verbose_name=_("該年 tier 總天數")
+    )
+    grant_type = models.CharField(
+        max_length=20, choices=GRANT_TYPE_CHOICES, verbose_name=_("段類型")
+    )
+    days_granted = models.DecimalField(
+        max_digits=4, decimal_places=1, verbose_name=_("此段天數")
+    )
+    days_used = models.DecimalField(
+        max_digits=4, decimal_places=1, default=0, verbose_name=_("已使用")
+    )
+    start_date = models.DateField(verbose_name=_("可用起"))
+    end_date = models.DateField(verbose_name=_("可用迄"))
+    note = models.CharField(max_length=200, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["employee_id", "start_date"]
+        unique_together = ("employee", "leave_type", "anniversary_date", "grant_type")
+        indexes = [
+            models.Index(fields=["employee", "leave_type", "start_date"]),
+        ]
+        verbose_name = _("特休配給")
+        verbose_name_plural = _("特休配給")
+
+    def __str__(self):
+        return f"{self.employee} | 滿{self.service_years}年 {self.get_grant_type_display()} {self.days_granted}天"
+
+    @property
+    def days_remaining(self):
+        return float(self.days_granted) - float(self.days_used)
+
+    def is_active(self, on: "date | None" = None) -> bool:
+        from datetime import date as _d
+        on = on or _d.today()
+        return self.start_date <= on <= self.end_date

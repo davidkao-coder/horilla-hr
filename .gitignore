@@ -135,6 +135,10 @@ dmypy.json
 !**/migrations
 !**/migrations/__init__.py
 
+# Think4U: 不要把客戶原始資料進版控
+import_data/
+*.xlsx
+
 # Think4U: 客製化 app + base 的 schema 變動需要進版控才能部署
 !think4u/migrations/*.py
 !base/migrations/0003_rolepagevisibility.py

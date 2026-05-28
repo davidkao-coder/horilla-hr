@@ -4,12 +4,11 @@ think4u/services/annual_leave_calculator.py
 WP-05 台灣勞基法第 38 條 — 歷年制特休計算邏輯。
 
 公司決策三原則（已寫入程式）：
-1. 比例天數 ≥ 0.5 進位，< 0.5 捨去
+1. 比例天數 精度到 0.5 天（四捨五入到最近 0.5）
 2. 到職未滿 6 個月遇 1/1：給 0 天；滿 6 個月當天另外補給 3 天
 3. 年底未休完允許遞延至隔年，最多遞延 1 年；隔年 12/31 未休則歸零
 """
 
-import math
 from datetime import date
 
 from dateutil.relativedelta import relativedelta
@@ -30,19 +29,21 @@ def get_service_months(hire_date: date, reference_date: date) -> int:
     return delta.years * 12 + delta.months
 
 
-def calculate_prorated_days(full_days: int, remaining_months: int) -> int:
+def calculate_prorated_days(full_days: int, remaining_months: int) -> float:
     """
-    比例計算：≥ 0.5 進位（即四捨五入但對 0.5 規則統一進位）。
+    比例計算：精度到 0.5 天（四捨五入到最近 0.5）。
 
     full_days：年資 1 年時應給的天數（勞基法為 7）
     remaining_months：到職月起算當年度還剩幾個月
+
+    e.g. 7 * 6/12 = 3.5 → 3.5 天（不再進位到 4）
     """
     if remaining_months <= 0:
-        return 0
+        return 0.0
     ratio = remaining_months / 12.0
     raw = full_days * ratio
-    # math.floor(raw + 0.5) — 對 0.5 進位
-    return math.floor(raw + 0.5)
+    # 四捨五入到最近 0.5：raw*2 後四捨五入，再除回 2
+    return round(raw * 2) / 2.0
 
 
 # ---------------------------------------------------------------------------
