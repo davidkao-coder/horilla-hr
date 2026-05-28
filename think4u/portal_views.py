@@ -171,8 +171,17 @@ def portal_home(request):
                 "work_label": "—",
             })
             continue
-        ev = evaluate(data["in"], data["out"])
         day_leaves = leaves_by_date.get(d, [])
+        # Think4U: 計算當日請假分鐘以套用「工時+請假達標就不顯示遲到/早退」邏輯
+        lv_mins = 0
+        for lv in day_leaves:
+            span = (lv.end_date - lv.start_date).days + 1
+            if span <= 0:
+                span = 1
+            daily_share = float(lv.requested_days or 0) / span
+            lv_mins += int(min(daily_share, 1.0) * 480)
+        lv_mins = min(lv_mins, 480)
+        ev = evaluate(data["in"], data["out"], leave_minutes=lv_mins)
         # 如果當天有請假紀錄，狀態顯示請假審核狀態
         has_leave = bool(day_leaves)
         # 工時超過 9 小時才顯示加班按鈕

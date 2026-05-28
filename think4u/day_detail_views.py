@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, render
 from attendance.models import AttendanceActivity
 from employee.models import Employee
 from leave.models import LeaveRequest
-from think4u.attendance_rules import evaluate, format_minutes
+from think4u.attendance_rules import evaluate, format_minutes, leave_minutes_on_date
 from think4u.models import OvertimeApplication, OvertimeAssignment
 
 
@@ -38,7 +38,8 @@ def day_detail(request, emp_id: int, ymd: str):
         if p.clock_out:
             last_out = p.clock_out
             break
-    ev = evaluate(first_in, last_out)
+    lv_mins = leave_minutes_on_date(emp, the_date)
+    ev = evaluate(first_in, last_out, leave_minutes=lv_mins)
 
     leaves = list(
         LeaveRequest.objects.filter(

@@ -145,8 +145,17 @@ def monthly_attendance(request):
                 })
                 continue
             data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
-            ev = evaluate(data["in"], data["out"])
             lvs_today = leaves_by_emp_date.get((emp.id, d), [])
+            # Think4U: 計算當日請假分鐘（多日 leave 平均分配）
+            lv_mins = 0
+            for lv in lvs_today:
+                span = (lv.end_date - lv.start_date).days + 1
+                if span <= 0:
+                    span = 1
+                daily_share = float(lv.requested_days or 0) / span
+                lv_mins += int(min(daily_share, 1.0) * 480)
+            lv_mins = min(lv_mins, 480)
+            ev = evaluate(data["in"], data["out"], leave_minutes=lv_mins)
             # 決定 cell color 同步「工作記錄」: FDP/ABS/partial leave
             has_att = bool(data["in"])
             has_lv = bool(lvs_today)

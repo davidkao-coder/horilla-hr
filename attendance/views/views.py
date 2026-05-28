@@ -180,6 +180,15 @@ def attendance_tab(request, emp_id):
     Returns: return attendance-tab template
     """
 
+    # Think4U: 直接顯示該員工的出缺勤明細（最近 60 天）
+    from datetime import date, timedelta
+    since = date.today() - timedelta(days=60)
+    attendance_records = Attendance.objects.filter(
+        employee_id=emp_id,
+        attendance_date__gte=since,
+    ).order_by("-attendance_date")[:60]
+
+    # 保留原 Horilla 變數以免 template 其它區塊報錯
     requests = Attendance.objects.filter(
         is_validate_request=True,
         employee_id=emp_id,
@@ -195,6 +204,7 @@ def attendance_tab(request, emp_id):
     accounts_ids = json.dumps([instance.id for instance in accounts])
 
     context = {
+        "attendance_records": attendance_records,
         "requests": requests,
         "attendances_ids": attendances_ids,
         "accounts": accounts,

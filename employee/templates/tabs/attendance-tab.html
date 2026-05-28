@@ -2,6 +2,54 @@
 {% load static %}
 {% load basefilters %}
 {% load horillafilters %}
+
+{# Think4U: 出缺勤紀錄主要顯示區 — 該員工最近 60 天打卡明細 #}
+<div class="oh-wrapper mt-4">
+    <h4 style="margin-bottom: 16px; color: #333;">{% trans "出缺勤紀錄" %} <small style="color:#999; font-size:0.7em;">{% trans "（最近 60 天）" %}</small></h4>
+    {% if attendance_records %}
+    <div class="oh-sticky-table">
+        <div class="oh-sticky-table__table oh-table--sortable">
+            <div class="oh-sticky-table__thead">
+                <div class="oh-sticky-table__tr">
+                    <div class="oh-sticky-table__th">{% trans "日期" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "星期" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "上班" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "下班" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "工時" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "加班" %}</div>
+                    <div class="oh-sticky-table__th">{% trans "狀態" %}</div>
+                </div>
+            </div>
+            <div class="oh-sticky-table__tbody">
+            {% for a in attendance_records %}
+                <div class="oh-sticky-table__tr">
+                    <div class="oh-sticky-table__td dateformat_changer">{{ a.attendance_date }}</div>
+                    <div class="oh-sticky-table__td">{{ a.attendance_day|capfirst }}</div>
+                    <div class="oh-sticky-table__td">{{ a.attendance_clock_in|default:"—" }}</div>
+                    <div class="oh-sticky-table__td">{{ a.attendance_clock_out|default:"—" }}</div>
+                    <div class="oh-sticky-table__td">{{ a.attendance_worked_hour|default:"—" }}</div>
+                    <div class="oh-sticky-table__td">{{ a.attendance_overtime|default:"—" }}</div>
+                    <div class="oh-sticky-table__td">
+                        {% if a.attendance_validated %}
+                            <span style="color:#28a745;">✓ {% trans "已驗證" %}</span>
+                        {% else %}
+                            <span style="color:#fd7e14;">○ {% trans "未驗證" %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="d-flex justify-content-center align-items-center" style="height:40vh">
+        <h5 class="oh-404__subtitle">{% trans "最近 60 天無出缺勤紀錄" %}</h5>
+    </div>
+    {% endif %}
+</div>
+
+{# Think4U: 以下原 Horilla 三個 tab (Requested / Validate / Hour Account) 已隱藏 #}
+{% if False %}
 <div class="oh-wrapper mt-4">
     <div class="oh-tabs">
 		<ul class="oh-tabs__tablist">
@@ -466,3 +514,4 @@
         });
     });
 </script>
+{% endif %}{# Think4U: 結束 if False（隱藏原 Horilla 三個 tab）#}

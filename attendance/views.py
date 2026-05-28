@@ -886,11 +886,11 @@ def clock_out(request):
 def late_come_early_out_view(request):
     """
     This method render template to view all late come early out entries
+
+    Think4U: 顯示公司所有員工的紀錄（不再過濾到 reporting subordinates）
     """
     reports = AttendanceLateComeEarlyOut.objects.all()
-    reports = filtersubordinates(
-        request, reports, "attendance.view_attendancelatecomeearlyout"
-    )
+    # Think4U: 拿掉 filtersubordinates，所有可進此頁的角色都看全公司紀錄
     filter_obj = LateComeEarlyOutFilter()
     return render(
         request,
