@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from attendance.models import AttendanceActivity
 from base.think4u_clock import get_client_ip, get_today_code, verify_code
+from employee.models import EmployeeBankDetails
 from leave.models import AvailableLeave, LeaveRequest, LeaveType
 from think4u.models import (
     ApprovalWorkflow,
@@ -94,6 +95,9 @@ def portal_home(request):
         "-created_at"
     )[:5]
 
+    # 銀行資訊
+    bank = EmployeeBankDetails.objects.filter(employee_id=emp).first()
+
     # superuser / HR 可看當日驗證碼
     user = request.user
     show_code = user.is_superuser or user.groups.filter(
@@ -117,6 +121,7 @@ def portal_home(request):
             "leave_balances": leave_balances,
             "my_overtime_apps": my_overtime_apps,
             "my_overtime_assignments": my_overtime_assignments,
+            "bank": bank,
             "todays_code": get_today_code() if show_code else None,
             "show_code": show_code,
             "client_ip": get_client_ip(request),
@@ -350,3 +355,91 @@ def portal_cancel(request, kind, pk):
 
     tab_map = {"punch": "clock", "leave": "leave", "overtime": "overtime"}
     return redirect(f"{reverse('think4u-portal')}?tab={tab_map[kind]}")
+
+
+# ============================================================================
+# 個人資料修改
+# ============================================================================
+@login_required
+def portal_personal_submit(request):
+    if request.method != "POST":
+        return redirect("think4u-portal")
+    emp = _emp_or_redirect(request)
+    if not emp:
+        return redirect("/")
+
+    # 可編輯欄位（與 Think4U 精簡後的個人資料表單一致）
+    EDITABLE = [
+        "employee_first_name",
+        "email",
+        "phone",
+        "address",
+        "dob",
+        "gender",
+        "emergency_contact",
+        "emergency_contact_name",
+        "emergency_contact_relation",
+    ]
+    from django.db import models as dj_models
+    from employee.models import Employee
+
+    Employee.save = dj_models.Model.save  # 繞 Horilla bug
+
+    changed = False
+    for f in EDITABLE:
+        if f not in request.POST:
+            continue
+        val = (request.POST.get(f) or "").strip() or None
+        if f == "employee_first_name" and not val:
+            messages.error(request, "姓名必填")
+            return redirect(f"{reverse('think4u-portal')}?tab=settings")
+        if f == "email" and not val:
+            messages.error(request, "Email 必填")
+            return redirect(f"{reverse('think4u-portal')}?tab=settings")
+        # dob 可以是空白
+        if getattr(emp, f) != val:
+            setattr(emp, f, val)
+            changed = True
+
+    # 大頭照
+    img = request.FILES.get("employee_profile")
+    if img:
+        emp.employee_profile = img
+        changed = True
+
+    if changed:
+        emp.save()
+        messages.success(request, "個人資料已更新")
+    else:
+        messages.info(request, "沒有變更")
+    return redirect(f"{reverse('think4u-portal')}?tab=settings")
+
+
+# ============================================================================
+# 銀行資訊修改（只留：銀行名稱、帳號）
+# ============================================================================
+@login_required
+def portal_bank_submit(request):
+    if request.method != "POST":
+        return redirect("think4u-portal")
+    emp = _emp_or_redirect(request)
+    if not emp:
+        return redirect("/")
+
+    bank_name = (request.POST.get("bank_name") or "").strip()
+    account_number = (request.POST.get("account_number") or "").strip()
+
+    if not bank_name or not account_number:
+        messages.error(request, "銀行名稱與帳號皆必填")
+        return redirect(f"{reverse('think4u-portal')}?tab=settings")
+
+    from django.db import models as dj_models
+
+    EmployeeBankDetails.save = dj_models.Model.save  # 繞 Horilla bug
+
+    bank, _created = EmployeeBankDetails.objects.update_or_create(
+        employee_id=emp,
+        defaults={"bank_name": bank_name, "account_number": account_number},
+    )
+    messages.success(request, "銀行資訊已更新")
+    return redirect(f"{reverse('think4u-portal')}?tab=settings")

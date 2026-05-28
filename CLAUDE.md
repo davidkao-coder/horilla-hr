@@ -72,6 +72,11 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 前台 portal 加「設定」tab（個人 + 銀行資訊修改）：
+  - 第 5 個 bottom nav tab `⚙️ 設定`
+  - 個人資料區：頭像上傳 + 姓名 / Email / 電話 / 地址 / 生日 / 性別 / 緊急聯絡（姓名/電話/關係）
+  - 銀行資訊區：銀行名稱 + 帳號（其他欄位 Think4U 已精簡掉，不顯示）
+  - URLs：`/portal/personal/submit/` + `/portal/bank/submit/`
 - 2026-05-28 前台 / 後台分離：
   - **新模型** `OvertimeApplication`（員工主動加班申請，走 ApprovalWorkflow，與主管指派的 OvertimeAssignment 並存）
   - **新模型** `AdminAccessGroup(group)`：哪些角色能進後台；helper `user_can_access_admin(user)` superuser 永遠 True、其他角色看是否在 AdminAccessGroup

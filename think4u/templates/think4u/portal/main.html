@@ -87,7 +87,7 @@
         .alert-info { background: #d1ecf1; color: #0c5460; }
 
         /* Bottom navigation */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #eee; display: grid; grid-template-columns: repeat(4, 1fr); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #eee; display: grid; grid-template-columns: repeat(5, 1fr); padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.05); }
         .bottom-nav a { display: flex; flex-direction: column; align-items: center; padding: 6px 4px; text-decoration: none; color: #999; font-size: 11px; gap: 2px; }
         .bottom-nav a.active { color: #667eea; }
         .bottom-nav a .icon { font-size: 22px; line-height: 1; }
@@ -346,6 +346,89 @@
         {% endif %}
     </div>
 
+    {# ====================== Settings tab (個人 + 銀行) ====================== #}
+    <div class="panel {% if tab != 'settings' %}hidden{% endif %}" id="panel-settings">
+        <div class="card">
+            <h3 class="card-title">👤 {% trans "個人資料" %}</h3>
+            <form method="post" action="{% url 'think4u-portal-personal-submit' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-row" style="text-align:center;">
+                    <img src="{{ employee.get_avatar }}" alt="頭像" style="width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid #e0e0e0;">
+                    <div style="margin-top:8px;">
+                        <input type="file" name="employee_profile" accept="image/*" style="font-size:13px;">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "姓名" %}<span class="required">*</span></label>
+                    <input type="text" name="employee_first_name" value="{{ employee.employee_first_name|default:'' }}" required>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label>{% trans "Email" %}<span class="required">*</span></label>
+                        <input type="email" name="email" value="{{ employee.email|default:'' }}" required>
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "電話" %}</label>
+                        <input type="tel" name="phone" value="{{ employee.phone|default:'' }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "地址" %}</label>
+                    <input type="text" name="address" value="{{ employee.address|default:'' }}">
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label>{% trans "生日" %}</label>
+                        <input type="date" name="dob" value="{{ employee.dob|date:'Y-m-d' }}">
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "性別" %}</label>
+                        <select name="gender">
+                            <option value="">— 請選擇 —</option>
+                            <option value="male" {% if employee.gender == 'male' %}selected{% endif %}>男</option>
+                            <option value="female" {% if employee.gender == 'female' %}selected{% endif %}>女</option>
+                            <option value="other" {% if employee.gender == 'other' %}selected{% endif %}>其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-section">
+                    <h4 style="font-size:13px; color:#666; margin-bottom:8px;">緊急聯絡</h4>
+                    <div class="form-row">
+                        <label>{% trans "聯絡人姓名" %}</label>
+                        <input type="text" name="emergency_contact_name" value="{{ employee.emergency_contact_name|default:'' }}">
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-row">
+                            <label>{% trans "聯絡電話" %}</label>
+                            <input type="tel" name="emergency_contact" value="{{ employee.emergency_contact|default:'' }}">
+                        </div>
+                        <div class="form-row">
+                            <label>{% trans "關係" %}</label>
+                            <input type="text" name="emergency_contact_relation" value="{{ employee.emergency_contact_relation|default:'' }}" placeholder="如：配偶 / 父母">
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-primary btn-block">💾 儲存個人資料</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">🏦 {% trans "銀行資訊" %}</h3>
+            <form method="post" action="{% url 'think4u-portal-bank-submit' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <label>{% trans "銀行名稱" %}<span class="required">*</span></label>
+                    <input type="text" name="bank_name" value="{{ bank.bank_name|default:'' }}" placeholder="如：中國信託" required>
+                </div>
+                <div class="form-row">
+                    <label>{% trans "銀行帳號" %}<span class="required">*</span></label>
+                    <input type="text" name="account_number" value="{{ bank.account_number|default:'' }}" inputmode="numeric" required>
+                </div>
+                <button class="btn btn-primary btn-block">💾 儲存銀行資訊</button>
+            </form>
+        </div>
+    </div>
+
     {# ====================== My records tab ====================== #}
     <div class="panel {% if tab != 'my' %}hidden{% endif %}" id="panel-my">
         <div class="card">
@@ -407,6 +490,9 @@
         </a>
         <a href="?tab=my" class="{% if tab == 'my' %}active{% endif %}">
             <span class="icon">📋</span><span>我的</span>
+        </a>
+        <a href="?tab=settings" class="{% if tab == 'settings' %}active{% endif %}">
+            <span class="icon">⚙️</span><span>設定</span>
         </a>
     </nav>
 

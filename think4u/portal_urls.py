@@ -30,4 +30,15 @@ urlpatterns = [
         portal_views.portal_cancel,
         name="think4u-portal-cancel",
     ),
+    # 個人 / 銀行資訊修改
+    path(
+        "personal/submit/",
+        portal_views.portal_personal_submit,
+        name="think4u-portal-personal-submit",
+    ),
+    path(
+        "bank/submit/",
+        portal_views.portal_bank_submit,
+        name="think4u-portal-bank-submit",
+    ),
 ]
