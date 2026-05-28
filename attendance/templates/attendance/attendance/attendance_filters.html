@@ -1,137 +1,42 @@
 {% load static %} {% load i18n %}
-  <div class="oh-dropdown__filter-body">
-    {# Think4U: 拿掉「Work Info」整個 accordion #}
-    {# 只保留員工選擇器（attendance 篩選常用） #}
+{# Think4U: 篩選器精簡 — 工作資訊只留員工，進階只留起始/截止日期 #}
+<div class="oh-dropdown__filter-body">
     <div class="oh-accordion">
-      <div class="oh-accordion-header">{% trans "員工" %}</div>
-      <div class="oh-accordion-body">
-        <div class="row">
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Employee" %}</label>
-              {{f.form.employee_id}}
+        <div class="oh-accordion-header">{% trans "Work Info" %}</div>
+        <div class="oh-accordion-body">
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-12">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "Employee" %}</label>
+                        {{f.form.employee_id}}
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Department" %}</label>
-              {{f.form.employee_id__employee_work_info__department_id}}
-            </div>
-          </div>
         </div>
-      </div>
-    </div>
-    {% comment %} {{f.form}} {% endcomment %}
-    <div class="oh-accordion">
-      <div class="oh-accordion-header">{% trans "Attendance" %}</div>
-      <div class="oh-accordion-body">
-        <div class="row">
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Attendance Date" %}</label>
-              {{f.form.attendance_date}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "In Time" %}</label>
-              {{f.form.attendance_clock_in}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Validated?" %}</label>
-              {{f.form.attendance_validated}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Min Hour" %}</label>
-              {{f.form.minimum_hour}}
-            </div>
-          </div>
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Batch" %}</label>
-                {{f.form.batch_attendance_id}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Out Time" %}</label>
-              {{f.form.attendance_clock_out}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "OT Approved?" %}</label>
-              {{f.form.attendance_overtime_approve}}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="oh-accordion">
-      <div class="oh-accordion-header">{% trans "Advanced" %}</div>
-      <div class="oh-accordion-body">
-        <div class="row">
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            {# Think4U: 拿掉「Attendance From」(已有 Attendance Date 區間) #}
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "In From" %}</label>
-              {{f.form.attendance_clock_in__gte}}
+        <div class="oh-accordion-header">{% trans "Advanced" %}</div>
+        <div class="oh-accordion-body">
+            <div class="row">
+                <div class="col-sm-12 col-md-12 col-lg-6">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "起始日期" %}</label>
+                        {{f.form.attendance_date__gte}}
+                    </div>
+                </div>
+                <div class="col-sm-12 col-md-12 col-lg-6">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "截止日期" %}</label>
+                        {{f.form.attendance_date__lte}}
+                    </div>
+                </div>
             </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Out From" %}</label>
-              {{f.form.attendance_clock_out__gte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label"
-                >{% trans "At Work Greater or Equal" %}</label
-              >
-              {{f.form.at_work_second__gte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label"
-                >{% trans "Pending Hour Greater or Equal" %}</label
-              >
-              {{f.form.pending_hour__gte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "OT Greater or Equal" %}</label>
-              {{f.form.overtime_second__gte}}
-            </div>
-          </div>
-          <div class="col-sm-12 col-md-12 col-lg-6">
-            {# Think4U: 拿掉「Attendance Till」(已有 Attendance Date 區間) #}
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "In Till" %}</label>
-              {{f.form.attendance_clock_in__lte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label">{% trans "Out Till" %}</label>
-              {{f.form.attendance_clock_out__lte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label"
-                >{% trans "At Work Less Than or Equal" %}</label
-              >
-              {{f.form.at_work_second__lte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label"
-                >{% trans "Pending Hour Less Than or Equal" %}</label
-              >
-              {{f.form.pending_hour__lte}}
-            </div>
-            <div class="oh-input-group">
-              <label class="oh-label"
-                >{% trans "OT Less Than or Equal" %}</label
-              >
-              {{f.form.overtime_second__lte}}
-            </div>
-          </div>
         </div>
-      </div>
     </div>
-  </div>
-  <div class="oh-dropdown__filter-footer">
-    <button
-      class="oh-btn oh-btn--secondary oh-btn--small w-100 filterButton"
-      id="filterSubmit"
-    >
-      {% trans "Filter" %}
+</div>
+<div class="oh-dropdown__filter-footer">
+    <button class="oh-btn oh-btn--secondary oh-btn--small w-100 filterButton" id="filterSubmit">
+        {% trans "Filter" %}
     </button>
-  </div>
-
+</div>
 <script src="{% static '/base/filter.js' %}"></script>
