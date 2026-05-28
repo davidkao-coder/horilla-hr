@@ -32,8 +32,8 @@
         /* Form */
         label { display: block; font-size: 13px; color: #666; margin-bottom: 4px; }
         input, select, textarea, button { font-size: 15px; font-family: inherit; }
-        input[type=text], input[type=date], input[type=time], input[type=number], select, textarea {
-            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafbfc; -webkit-appearance: none;
+        input[type=text], input[type=email], input[type=tel], input[type=date], input[type=time], input[type=number], input[type=file], select, textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; background: #fafbfc; -webkit-appearance: none; box-sizing: border-box; font-size: 15px;
         }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #667eea; background: white; }
         textarea { resize: vertical; min-height: 60px; }
@@ -105,6 +105,11 @@
         .att-status-incomplete { background: #cfe2ff; color: #084298; }
         .att-status-absent { background: #f8d7da; color: #721c24; }
         .att-status-weekend, .att-status-future { background: #e9ecef; color: #6c757d; }
+        .att-status-holiday { background: #fde7e9; color: #c62828; }
+        .att-status-leave_approved { background: #d4edda; color: #155724; }
+        .att-status-leave_requested, .att-status-leave_pending { background: #fff3cd; color: #856404; }
+        .att-status-leave_rejected, .att-status-leave_cancelled { background: #f8d7da; color: #721c24; }
+        tr.holiday-row { background: #fff5f5; }
         .att-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
         .att-action-btn { display: inline-block; padding: 3px 8px; font-size: 11px; border-radius: 10px; border: 1px solid #ddd; background: white; color: #333; text-decoration: none; cursor: pointer; white-space: nowrap; }
         .att-action-btn:hover { background: #f5f5f5; }
@@ -176,8 +181,11 @@
                 {% endif %}
             </div>
 
-            <form method="post" action="{% url 'think4u-portal-clock-submit' %}">
+            <form method="post" action="{% url 'think4u-portal-clock-submit' %}" id="clockForm">
                 {% csrf_token %}
+                <input type="hidden" name="gps_lat" id="gpsLatInput">
+                <input type="hidden" name="gps_lng" id="gpsLngInput">
+
                 <div class="form-grid-2" style="margin-bottom: 12px;">
                     <label style="display:flex; align-items:center; gap:6px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; background:#fafbfc; cursor:pointer;">
                         <input type="radio" name="attendance_type" value="office" checked onchange="toggleClockType()"> 公司打卡
@@ -188,9 +196,10 @@
                 </div>
 
                 <div id="officeFields" class="form-row">
-                    <label>{% trans "今日驗證碼" %}<span class="required">*</span></label>
-                    <input type="text" name="verification_code" maxlength="6" placeholder="6 位數字" inputmode="numeric" pattern="[0-9]{6}">
-                    {% if show_code %}<small style="color:#888;">（HR 顯示：<code>{{ todays_code }}</code>）</small>{% endif %}
+                    <div id="gpsStatus" style="padding:10px 12px; border-radius:8px; background:#f0f3ff; font-size:13px;">
+                        📍 <span id="gpsStatusText">正在取得 GPS 定位…</span>
+                    </div>
+                    <small style="color:#888;">公司打卡需位於 <strong>公司 GPS ({{ company_gps_lat }}, {{ company_gps_lng }})</strong> 半徑 {{ company_gps_radius_m }} 公尺內。每 10 秒自動更新。</small>
                 </div>
                 <div id="fieldFields" class="form-row" style="display:none;">
                     <label>{% trans "外勤原因" %}<span class="required">*</span></label>
@@ -202,6 +211,57 @@
                     <button type="submit" name="action" value="out" class="btn btn-danger btn-large">■ 下班打卡</button>
                 </div>
             </form>
+
+            <script>
+            (function () {
+                const CO_LAT = {{ company_gps_lat }};
+                const CO_LNG = {{ company_gps_lng }};
+                const RADIUS = {{ company_gps_radius_m }};
+                const statusEl = document.getElementById('gpsStatusText');
+                const statusBox = document.getElementById('gpsStatus');
+                const latInput = document.getElementById('gpsLatInput');
+                const lngInput = document.getElementById('gpsLngInput');
+
+                function haversine(lat1, lon1, lat2, lon2) {
+                    const R = 6371000;
+                    const toRad = d => d * Math.PI / 180;
+                    const dLat = toRad(lat2 - lat1);
+                    const dLon = toRad(lon2 - lon1);
+                    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+                    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                }
+
+                function update() {
+                    if (!navigator.geolocation) {
+                        statusEl.textContent = '⚠ 此瀏覽器不支援 GPS';
+                        statusBox.style.background = '#f8d7da';
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        pos => {
+                            const { latitude: la, longitude: ln, accuracy } = pos.coords;
+                            latInput.value = la.toFixed(6);
+                            lngInput.value = ln.toFixed(6);
+                            const dist = haversine(la, ln, CO_LAT, CO_LNG);
+                            const inside = dist <= RADIUS;
+                            statusEl.innerHTML = inside
+                                ? `✓ 在公司範圍內（距離 <strong>${dist.toFixed(0)}</strong> m，精度 ±${accuracy.toFixed(0)}m）`
+                                : `✗ 距離公司 <strong>${dist.toFixed(0)}</strong> m（超出 ${RADIUS}m），請改選外勤`;
+                            statusBox.style.background = inside ? '#d4edda' : '#f8d7da';
+                            statusBox.style.color = inside ? '#155724' : '#721c24';
+                        },
+                        err => {
+                            statusEl.textContent = '⚠ GPS 取得失敗：' + err.message;
+                            statusBox.style.background = '#f8d7da';
+                        },
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                    );
+                }
+
+                update();
+                setInterval(update, 10000);  // 每 10 秒更新
+            })();
+            </script>
         </div>
 
         <!-- 補打卡 -->
@@ -285,7 +345,7 @@
                     <textarea name="description" rows="3" required placeholder="請說明請假事由（病假請附醫療證明）"></textarea>
                 </div>
                 <div class="form-row">
-                    <label>{% trans "附件（病假必須）" %}</label>
+                    <label>{% trans "附件" %} <small style="color:#999;">（{% trans "可先送申請後補件" %}）</small></label>
                     <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
                 <button class="btn btn-primary btn-block">📤 送出請假申請</button>
@@ -300,7 +360,8 @@
                 {% for b in leave_balances %}
                 <div class="balance-pill">
                     <div class="name">{{ b.leave_type_id.name }}</div>
-                    <div class="value">{{ b.available_days }}</div>
+                    <div class="value">{{ b.available_days }} <small style="font-size:11px; color:#666; font-weight:400;">天</small></div>
+                    <div style="font-size:11px; color:#888;">= {% widthratio b.available_days 1 8 %} 小時</div>
                 </div>
                 {% endfor %}
             </div>
@@ -500,7 +561,7 @@
                 {% csrf_token %}
                 <div class="form-row">
                     <label>{% trans "銀行名稱" %}<span class="required">*</span></label>
-                    <input type="text" name="bank_name" value="{{ bank.bank_name|default:'' }}" placeholder="如：中國信託" required>
+                    <input type="text" name="bank_name" value="{{ bank.bank_name|default:'' }}" placeholder="例：國泰世華銀行 xx分行" required>
                 </div>
                 <div class="form-row">
                     <label>{% trans "銀行帳號" %}<span class="required">*</span></label>
@@ -548,23 +609,30 @@
                     </thead>
                     <tbody>
                         {% for r in attendance_rows %}
-                        <tr class="{% if not r.is_workday %}weekend{% elif r.is_abnormal %}abnormal{% endif %}">
+                        <tr class="{% if r.status == 'holiday' %}holiday-row{% elif not r.is_workday %}weekend{% elif r.is_abnormal %}abnormal{% endif %}">
                             <td>{{ r.date|date:"m/d" }}<br><small style="color:#999;">{{ r.date|date:"D" }}</small></td>
-                            {% if r.is_workday and r.status != 'future' %}
+                            {% if r.status == 'holiday' %}
+                                <td colspan="5" style="text-align:center; color:#c62828; background:#fde7e9;">🎌 {{ r.status_label }}</td>
+                            {% elif r.is_workday and r.status != 'future' %}
                                 <td>{{ r.check_in|time:"H:i"|default:"—" }}</td>
                                 <td>{{ r.check_out|time:"H:i"|default:"—" }}</td>
                                 <td>{{ r.work_label }}</td>
-                                <td><span class="att-status att-status-{{ r.status }}">{{ r.status_label }}{% if r.late_minutes %} {{ r.late_minutes }}m{% endif %}{% if r.early_minutes %} -{{ r.early_minutes }}m{% endif %}</span></td>
                                 <td>
-                                    {% if r.is_abnormal %}
+                                    <span class="att-status att-status-{{ r.status }}">{{ r.status_label }}{% if r.late_minutes %} {{ r.late_minutes }}m{% endif %}{% if r.early_minutes %} -{{ r.early_minutes }}m{% endif %}</span>
+                                    {% for lt, h in r.leaves %}<br><small style="color:#888;">{{ lt }} {{ h }}h</small>{% endfor %}
+                                </td>
+                                <td>
                                     <div class="att-actions">
                                         {% if r.status == 'absent' or r.status == 'incomplete' %}
                                             <a class="att-action-btn primary" href="?tab=clock&prefill_date={{ r.date|date:'Y-m-d' }}" title="補打卡">📝 補打卡</a>
                                         {% endif %}
-                                        <a class="att-action-btn" href="?tab=leave&prefill_date={{ r.date|date:'Y-m-d' }}" title="請假">📅 請假</a>
-                                        <a class="att-action-btn" href="?tab=overtime&prefill_date={{ r.date|date:'Y-m-d' }}" title="加班">⏱️ 加班</a>
+                                        {% if r.is_leave_candidate %}
+                                            <a class="att-action-btn" href="?tab=leave&prefill_date={{ r.date|date:'Y-m-d' }}" title="請假">📅 請假</a>
+                                        {% endif %}
+                                        {% if r.is_overtime_candidate %}
+                                            <a class="att-action-btn" href="?tab=overtime&prefill_date={{ r.date|date:'Y-m-d' }}" title="加班">⏱️ 加班</a>
+                                        {% endif %}
                                     </div>
-                                    {% endif %}
                                 </td>
                             {% else %}
                                 <td colspan="5" style="text-align:center; color:#999;">{% if r.status == 'weekend' %}週末{% else %}—{% endif %}</td>

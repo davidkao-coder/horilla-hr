@@ -17,8 +17,26 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
+import math
 from attendance.models import AttendanceActivity
-from base.think4u_clock import get_client_ip, get_today_code, verify_code
+from base.think4u_clock import get_client_ip
+
+# Think4U: 公司 GPS 中心 + 允許距離（公尺）
+COMPANY_GPS_LAT = 25.007396
+COMPANY_GPS_LNG = 121.463511
+COMPANY_GPS_RADIUS_M = 200
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """兩經緯度距離（公尺）"""
+    R = 6371000.0
+    p1 = math.radians(lat1)
+    p2 = math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 from employee.models import EmployeeBankDetails
 from leave.models import AvailableLeave, LeaveRequest, LeaveType
 from think4u.models import (
@@ -80,7 +98,26 @@ def portal_home(request):
     month_first = _date(att_year, att_month, 1)
     month_last = _date(att_year, att_month, last_day)
 
-    # 該員工該月的 AttendanceActivity，整合成 (date -> {in, out})
+    # 國定假日（該月內）
+    from base.models import Holidays as _Holidays
+
+    holiday_dates_att = {}
+    for h in _Holidays.objects.entire().filter(start_date__lte=month_last):
+        e_d = h.end_date or h.start_date
+        s_d = h.start_date
+        if h.recurring:
+            try:
+                s_d = s_d.replace(year=att_year)
+                e_d = e_d.replace(year=att_year)
+            except ValueError:
+                pass
+        cur = s_d
+        while cur <= e_d:
+            if cur.year == att_year and cur.month == att_month:
+                holiday_dates_att[cur] = h.name
+            cur = cur.fromordinal(cur.toordinal() + 1)
+
+    # 該員工該月的 AttendanceActivity
     month_acts = AttendanceActivity.objects.filter(
         employee_id=emp,
         attendance_date__gte=month_first,
@@ -94,15 +131,35 @@ def portal_home(request):
         if a.clock_out and (by_date[d]["out"] is None or a.clock_out > by_date[d]["out"]):
             by_date[d]["out"] = a.clock_out
 
+    # 該員工該月所有 LeaveRequest（status != cancelled/rejected）
+    month_leaves = (
+        LeaveRequest.objects.filter(
+            employee_id=emp,
+            start_date__lte=month_last,
+            end_date__gte=month_first,
+        ).exclude(status__in=("cancelled", "rejected")).select_related("leave_type_id")
+    )
+    leaves_by_date = defaultdict(list)
+    for lr in month_leaves:
+        cur = max(lr.start_date, month_first)
+        end = min(lr.end_date, month_last)
+        while cur <= end:
+            leaves_by_date[cur].append(lr)
+            cur = cur.fromordinal(cur.toordinal() + 1)
+
     attendance_rows = []
     s_normal = s_late = s_early = s_absent = s_incomplete = 0
     sum_work = sum_late = sum_early = 0
     for day in range(1, last_day + 1):
         d = _date(att_year, att_month, day)
-        if not is_workday(d):
+        # 週末 / 國定假日 → 顯示「假日」
+        if not is_workday(d) or d in holiday_dates_att:
             attendance_rows.append({
-                "date": d, "is_workday": False, "status": "weekend",
-                "status_label": "週末", "work_label": "—",
+                "date": d, "is_workday": False,
+                "status": "holiday" if d in holiday_dates_att else "weekend",
+                "status_label": holiday_dates_att.get(d, "週末"),
+                "work_label": "—",
+                "is_holiday": d in holiday_dates_att,
             })
             continue
         data = by_date.get(d, {"in": None, "out": None})
@@ -115,19 +172,46 @@ def portal_home(request):
             })
             continue
         ev = evaluate(data["in"], data["out"])
+        day_leaves = leaves_by_date.get(d, [])
+        # 如果當天有請假紀錄，狀態顯示請假審核狀態
+        has_leave = bool(day_leaves)
+        # 工時超過 9 小時才顯示加班按鈕
+        is_overtime_candidate = ev.work_minutes > 9 * 60
+        # 工時不足 8 小時 且 無請假 才顯示請假按鈕
+        is_leave_candidate = ev.work_minutes < 8 * 60 and not has_leave
+        # 顯示狀態：有請假 → 顯示請假狀態；缺勤 → 但有請假就不算缺勤
+        if has_leave:
+            # 取第一筆 leave 的 status 當代表
+            first = day_leaves[0]
+            display_status = f"leave_{first.status}"
+            status_label = f"請假（{first.get_status_display()}）"
+            is_abnormal = False  # 請假不算異常
+        elif ev.status == "absent":
+            display_status = "absent"
+            status_label = "缺勤"
+            is_abnormal = True
+        else:
+            display_status = ev.status
+            status_label = ev.status_label
+            is_abnormal = ev.status not in ("on_time",)
+
         attendance_rows.append({
             "date": d, "is_workday": True,
-            "status": ev.status, "status_label": ev.status_label,
+            "status": display_status, "status_label": status_label,
             "check_in": data["in"], "check_out": data["out"],
             "work_label": format_minutes(ev.work_minutes),
             "late_minutes": ev.late_minutes,
             "early_minutes": ev.early_minutes,
-            "is_abnormal": ev.status not in ("on_time",),
+            "is_abnormal": is_abnormal,
+            "has_leave": has_leave,
+            "is_overtime_candidate": is_overtime_candidate,
+            "is_leave_candidate": is_leave_candidate,
+            "leaves": [(lr.leave_type_id.name, float(lr.requested_days or 0) * 8) for lr in day_leaves],
         })
         sum_work += ev.work_minutes
         sum_late += ev.late_minutes
         sum_early += ev.early_minutes
-        if ev.status == "absent":
+        if ev.status == "absent" and not has_leave:
             s_absent += 1
         elif ev.status == "incomplete":
             s_incomplete += 1
@@ -232,9 +316,10 @@ def portal_home(request):
             "my_overtime_apps": my_overtime_apps,
             "my_overtime_assignments": my_overtime_assignments,
             "bank": bank,
-            "todays_code": get_today_code() if show_code else None,
-            "show_code": show_code,
             "client_ip": get_client_ip(request),
+            "company_gps_lat": COMPANY_GPS_LAT,
+            "company_gps_lng": COMPANY_GPS_LNG,
+            "company_gps_radius_m": COMPANY_GPS_RADIUS_M,
             "can_access_admin": user_can_access_admin(request.user),
             # 出勤表
             "att_year": att_year,
@@ -261,17 +346,31 @@ def portal_clock_submit(request):
 
     action = request.POST.get("action")
     a_type = request.POST.get("attendance_type", "office")
-    code = (request.POST.get("verification_code") or "").strip()
     reason = (request.POST.get("field_reason") or "").strip()
     client_ip = get_client_ip(request)
+    # Think4U: GPS 定位（公司打卡才需要）
+    lat_raw = request.POST.get("gps_lat")
+    lng_raw = request.POST.get("gps_lng")
 
     if a_type not in ("office", "field"):
         messages.error(request, "無效的打卡類型")
         return redirect(f"{reverse('think4u-portal')}?tab=clock")
 
     if a_type == "office":
-        if not verify_code(code):
-            messages.error(request, "驗證碼錯誤或已過期")
+        # 公司打卡：必須在公司 200m 內
+        try:
+            lat = float(lat_raw)
+            lng = float(lng_raw)
+        except (TypeError, ValueError):
+            messages.error(request, "公司打卡需要 GPS 定位（請允許瀏覽器存取位置）")
+            return redirect(f"{reverse('think4u-portal')}?tab=clock")
+        dist = haversine_distance(lat, lng, COMPANY_GPS_LAT, COMPANY_GPS_LNG)
+        if dist > COMPANY_GPS_RADIUS_M:
+            messages.error(
+                request,
+                f"距離公司 {dist:.0f} 公尺，超出 {COMPANY_GPS_RADIUS_M}m 範圍。"
+                "如非在公司請改選「外勤打卡」並填原因。",
+            )
             return redirect(f"{reverse('think4u-portal')}?tab=clock")
     elif not reason:
         messages.error(request, "外勤打卡必須填寫原因")
@@ -291,7 +390,7 @@ def portal_clock_submit(request):
             attendance_type=a_type,
             field_reason=reason or None,
             client_ip=client_ip,
-            verification_code_used=(code[:2] + "****") if code else None,
+            verification_code_used=f"GPS@{lat_raw[:8]},{lng_raw[:8]}" if a_type == "office" and lat_raw else None,
         )
         messages.success(request, f"上班打卡成功：{now.strftime('%H:%M:%S')}")
     elif action == "out":

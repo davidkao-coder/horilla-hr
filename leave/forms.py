@@ -37,15 +37,9 @@ class _SickLeaveAttachmentMixin:
 
     def clean(self):
         cleaned = super().clean()
-        leave_type = cleaned.get("leave_type_id")
         attachment = cleaned.get("attachment") or self.files.get("attachment")
-        # 病假必填
-        is_sick = leave_type and leave_type.name in self.THINK4U_SICK_LEAVE_NAMES
-        if is_sick and not attachment:
-            self.add_error(
-                "attachment", _("病假需上傳醫療證明（PDF / JPG / PNG，10 MB 內）")
-            )
-        # 若有上傳則檢查格式與大小（不論假別）
+        # Think4U: 病假附件改為「可後補」，送申請時不強制
+        # 若有上傳則仍檢查格式與大小
         if attachment and hasattr(attachment, "name"):
             name_lower = attachment.name.lower()
             if not any(name_lower.endswith(ext) for ext in self.THINK4U_ALLOWED_EXT):

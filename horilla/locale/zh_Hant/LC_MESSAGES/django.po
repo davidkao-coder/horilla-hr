@@ -240,7 +240,7 @@ msgid "Requested"
 msgstr "已請求"
 
 msgid "Approved"
-msgstr "得到正式認可的"
+msgstr "已審核"
 
 msgid "Rejected"
 msgstr "被拒絕"
@@ -1178,7 +1178,7 @@ msgid "This does not satisfy the minimum OT requirement!"
 msgstr "這不滿足最低加班時數要求！"
 
 msgid "Approved!"
-msgstr "得到正式認可的！"
+msgstr "已審核！"
 
 msgid "Your action has been approved."
 msgstr "您的操作已獲批准。"
@@ -4367,7 +4367,7 @@ msgid "requested"
 msgstr "請求"
 
 msgid "approved"
-msgstr "得到正式認可的"
+msgstr "已審核"
 
 msgid "cancelled"
 msgstr "取消"

@@ -576,6 +576,7 @@ class AuditLog(models.Model):
 
 class LeaveAllocation(models.Model):
     GRANT_TYPE_CHOICES = [
+        ("six_month", _("滿半年（一次性 3 天）")),
         ("anniv_small", _("週年小段（當年剩餘）")),
         ("anniv_big", _("週年大段（隔年整年）")),
         ("carryforward", _("遞延")),

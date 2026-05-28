@@ -40,10 +40,28 @@ def floor_half(x: float) -> float:
 
 
 def project_grants(hire_date: date, num_years: int = 20):
-    """產生未來 num_years 個 anniversary 的 (small, big) grant pairs"""
+    """產生未來 num_years 個 anniversary 的 (small, big) grant pairs + 滿半年 grant"""
     grants = []
     hm, hd = hire_date.month, hire_date.day
     today = date.today()
+
+    # 「滿半年」(六個月) 一次性 3 天 grant
+    # 期間：六個月當天 ~ 該年 12/31
+    six_mo_anniv = hire_date + relativedelta(months=6)
+    six_mo_end = date(six_mo_anniv.year, 12, 31)
+    grants.append({
+        "service_years": 0,  # 0 表示滿半年
+        "anniv": six_mo_anniv,
+        "tier_days": 3.0,
+        "small_days": 3.0,
+        "small_start": six_mo_anniv,
+        "small_end": six_mo_end,
+        "big_days": 0,  # 沒有 big chunk
+        "big_start": six_mo_end,  # placeholder
+        "big_end": six_mo_end,
+        "_six_month": True,
+    })
+
     for off in range(num_years + 1):  # +1 含今年 anniv
         anniv_year = today.year + off
         sy = anniv_year - hire_date.year
@@ -142,7 +160,26 @@ class Command(BaseCommand):
                 grants = project_grants(dj, years)
                 created = 0
                 for g in grants:
-                    # small
+                    if g.get("_six_month"):
+                        # 滿半年 grant：只有一段
+                        _, c1 = LeaveAllocation.objects.update_or_create(
+                            employee=e,
+                            leave_type=lt,
+                            anniversary_date=g["anniv"],
+                            grant_type="six_month",
+                            defaults=dict(
+                                service_years=0,
+                                tier_days=3.0,
+                                days_granted=3.0,
+                                start_date=g["small_start"],
+                                end_date=g["small_end"],
+                                note="滿半年 3 天",
+                            ),
+                        )
+                        if c1:
+                            created += 1
+                        continue
+                    # 一般 anniv：small + big
                     _, c1 = LeaveAllocation.objects.update_or_create(
                         employee=e,
                         leave_type=lt,
@@ -157,7 +194,6 @@ class Command(BaseCommand):
                             note=f"滿{g['service_years']}年 小段",
                         ),
                     )
-                    # big
                     _, c2 = LeaveAllocation.objects.update_or_create(
                         employee=e,
                         leave_type=lt,
