@@ -36,7 +36,7 @@ from django.db import models as dj_models
 from django.db import transaction
 from django.utils import timezone
 
-from attendance.models import AttendanceActivity
+from attendance.models import AttendanceActivity, WorkRecords
 from employee.models import Employee
 from leave.models import LeaveRequest, LeaveType
 from think4u.models import OvertimeApplication
@@ -52,10 +52,15 @@ COL_DATE = 2
 COL_IN = 4
 COL_OUT = 5
 COL_ABNORMAL = 7
-COL_LEAVE_TYPE = 9        # 核准假別（請假時填）
-COL_OT_HOURS = 11         # 核准加班時數
-COL_OT_PERIOD = 24        # 加班 起/迄
-COL_OT_REASON = 23        # 加班申請原因
+COL_LEAVE_TYPE_APPROVED = 9      # 核准假別
+COL_LEAVE_HOURS_APPROVED = 10    # 核准請假時數
+COL_OT_HOURS = 11                # 核准加班時數
+COL_LEAVE_APPLICATION = 13       # 請假申請（員工原始申請）
+COL_LEAVE_PERIOD = 14            # 起/迄時間 例 09:30~18:30
+COL_LEAVE_HOURS = 15             # 請假時數
+COL_LEAVE_REASON = 16            # 請假原因
+COL_OT_PERIOD = 24               # 加班 起/迄
+COL_OT_REASON = 23               # 加班申請原因
 
 # 假別名稱對應 (excel) → LeaveType.name (DB)
 LEAVE_TYPE_MAP = {
@@ -209,27 +214,47 @@ class Command(BaseCommand):
                     d = d.date()
                 if d.year != target_year:
                     continue
-                in_t = row[COL_IN]
-                out_t = row[COL_OUT]
+                in_t = _coerce_time(row[COL_IN])
+                out_t = _coerce_time(row[COL_OUT])
                 abnormal = row[COL_ABNORMAL]
-                lv = row[COL_LEAVE_TYPE]
-                ot_hours = row[COL_OT_HOURS]
-                ot_period = row[COL_OT_PERIOD]
-                ot_reason = row[COL_OT_REASON]
 
-                in_t = _coerce_time(in_t)
-                out_t = _coerce_time(out_t)
-
+                # 打卡
                 if in_t or out_t:
                     all_attendance.append((emp, d, in_t, out_t, abnormal))
                     n_att += 1
-                if lv:
-                    all_leave.append((emp, d, str(lv).strip(), abnormal))
+
+                # 請假：優先讀 col 13（請假申請），fallback 到 col 9（核准假別）
+                lv_app = row[COL_LEAVE_APPLICATION]
+                lv_approved = row[COL_LEAVE_TYPE_APPROVED]
+                lv_name = None
+                if lv_app and str(lv_app).strip() not in ("", "請選擇", "None"):
+                    lv_name = str(lv_app).strip()
+                elif lv_approved:
+                    lv_name = str(lv_approved).strip()
+
+                if lv_name:
+                    lv_hours = row[COL_LEAVE_HOURS] or row[COL_LEAVE_HOURS_APPROVED] or 0
+                    try:
+                        lv_hours = float(lv_hours)
+                    except (TypeError, ValueError):
+                        lv_hours = 0
+                    if lv_hours <= 0:
+                        # 沒填時數但有假別 → 預設 8 小時（一整天）
+                        lv_hours = 8.0
+                    lv_period = row[COL_LEAVE_PERIOD]
+                    lv_reason = row[COL_LEAVE_REASON]
+                    all_leave.append((emp, d, lv_name, lv_hours,
+                                     str(lv_period or "").strip(),
+                                     str(lv_reason or "").strip(),
+                                     abnormal))
                     n_lv += 1
+
+                # 加班
+                ot_hours = row[COL_OT_HOURS]
                 if ot_hours and float(ot_hours) > 0:
                     all_overtime.append((emp, d, float(ot_hours),
-                                         str(ot_period or "").strip(),
-                                         str(ot_reason or "").strip()))
+                                         str(row[COL_OT_PERIOD] or "").strip(),
+                                         str(row[COL_OT_REASON] or "").strip()))
                     n_ot += 1
 
             self.stdout.write(f"  ✓ {fname}: {n_att} 打卡 / {n_lv} 請假 / {n_ot} 加班")
@@ -286,11 +311,10 @@ class Command(BaseCommand):
             if n_skipped_att:
                 self.stdout.write(self.style.WARNING(f"  跳過 {n_skipped_att} 筆 只有下班沒上班的紀錄"))
 
-            # 寫入 LeaveRequest
+            # 寫入 LeaveRequest（精度到 0.5 小時，requested_days = hours/8）
             n_created_lv = 0
             n_skipped_lv = 0
-            for emp, d, lv_name, abnormal in all_leave:
-                # 對應 DB 假別
+            for emp, d, lv_name, lv_hours, lv_period, lv_reason, abnormal in all_leave:
                 db_lt_name = LEAVE_TYPE_MAP.get(lv_name, lv_name)
                 if db_lt_name is None:
                     n_skipped_lv += 1
@@ -299,14 +323,32 @@ class Command(BaseCommand):
                 if not lt:
                     n_skipped_lv += 1
                     continue
+
+                days = round((lv_hours / 8.0) * 16) / 16.0  # 對齊到 0.5 小時 = 0.0625 day
+                # breakdown：≤4h half day，>4h full day
+                if lv_hours >= 8:
+                    breakdown = "full_day"
+                else:
+                    breakdown = "first_half" if lv_hours <= 4 else "full_day"
+
+                desc_parts = [f"匯入 {lv_name} {lv_hours} 小時"]
+                if lv_period:
+                    desc_parts.append(f"時段 {lv_period}")
+                if lv_reason:
+                    desc_parts.append(f"原因：{lv_reason}")
+                if abnormal:
+                    desc_parts.append(f"異常：{abnormal}")
+
                 LeaveRequest.objects.create(
                     employee_id=emp,
                     leave_type_id=lt,
                     start_date=d,
                     end_date=d,
-                    requested_days=1,
-                    description=f"匯入自 Excel（{lv_name}）" + (f"｜異常：{abnormal}" if abnormal else ""),
-                    status="approved",  # 歷史資料，已確定
+                    requested_days=days,
+                    start_date_breakdown=breakdown,
+                    end_date_breakdown=breakdown,
+                    description=" | ".join(desc_parts),
+                    status="approved",
                 )
                 n_created_lv += 1
 
@@ -339,3 +381,36 @@ class Command(BaseCommand):
                 f"LeaveRequest {n_created_lv} 筆（跳過 {n_skipped_lv} 筆），"
                 f"OvertimeApplication {n_created_ot} 筆"
             ))
+
+            # 生成 WorkRecords（給「工作記錄」頁顯示用）
+            WorkRecords.objects.filter(date__year=target_year).delete()
+            wr_created = 0
+            # collect (emp, date) from attendance + leave
+            att_set = {(a[0].id, a[1]): a for a in all_attendance if a[2]}  # 有 in
+            lv_set = {}
+            for emp, d, lv_name, lv_hours, _, _, _ in all_leave:
+                key = (emp.id, d)
+                lv_set.setdefault(key, []).append((lv_name, lv_hours))
+            all_keys = set(att_set.keys()) | set(lv_set.keys())
+            for emp_id, d in all_keys:
+                has_att = (emp_id, d) in att_set
+                lvs = lv_set.get((emp_id, d), [])
+                total_lv_h = sum(h for _, h in lvs)
+                if has_att and total_lv_h >= 8:
+                    wt = "CONF"   # 衝突
+                elif has_att:
+                    wt = "FDP"    # 出勤
+                elif lvs:
+                    wt = "ABS"    # 請假
+                else:
+                    continue
+                WorkRecords.objects.create(
+                    employee_id_id=emp_id,
+                    date=d,
+                    work_record_type=wt,
+                    is_attendance_record=has_att,
+                    is_leave_record=bool(lvs),
+                    note=("匯入：" + ", ".join(f"{n} {h}h" for n, h in lvs)) if lvs else "匯入",
+                )
+                wr_created += 1
+            self.stdout.write(self.style.SUCCESS(f"✓ WorkRecord 同步：{wr_created} 筆"))
