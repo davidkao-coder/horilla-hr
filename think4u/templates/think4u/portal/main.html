@@ -144,7 +144,7 @@
             {% if can_access_admin %}
                 <a href="/" class="admin-link" title="進後台管理">{% trans "進後台" %} →</a>
             {% endif %}
-            <a href="/logout/">{% trans "登出" %}</a>
+            <a href="{% url 'logout' %}">{% trans "登出" %}</a>
         </div>
     </header>
 

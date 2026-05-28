@@ -29,7 +29,7 @@
     <div class="container">
         <div class="welcome-bar">
             <span>👤 {% if employee %}{{ employee.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>
-            <a href="/logout/" class="logout-link">{% trans "登出" %}</a>
+            <a href="{% url 'logout' %}" class="logout-link">{% trans "登出" %}</a>
         </div>
 
         <h1>{% trans "Think4U Tech 人事管理系統" %}</h1>
