@@ -1,0 +1,82 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<style>
+    .detail-card { background: white; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+    .detail-row { display: grid; grid-template-columns: 130px 1fr; padding: .4rem 0; border-bottom: 1px solid #f0f0f0; }
+    .detail-row .label { color: #888; font-size: 13px; }
+    .changes-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .changes-table th, .changes-table td { padding: 8px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .changes-table th { background: #f5f5f5; text-align: left; }
+    .old-val { color: #c0392b; background: #ffeaea; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+    .new-val { color: #27ae60; background: #eaffea; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+    .audit-action { padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+    .audit-action-CREATE { background: #d4edda; color: #155724; }
+    .audit-action-UPDATE { background: #fff3cd; color: #856404; }
+    .audit-action-DELETE { background: #f8d7da; color: #721c24; }
+</style>
+<div class="oh-wrapper">
+    <p><a href="{% url 'think4u-audit-log' %}">← 返回稽核紀錄</a></p>
+    <h1 class="fw-bold">稽核紀錄詳細 #{{ log.id }}</h1>
+
+    <div class="detail-card">
+        <div class="detail-row"><div class="label">時間</div><div>{{ log.timestamp|date:"Y-m-d H:i:s.u" }}</div></div>
+        <div class="detail-row"><div class="label">使用者</div><div>{{ log.user_repr|default:"(系統或匿名)" }}{% if log.user %} (id={{ log.user.id }}){% endif %}</div></div>
+        <div class="detail-row"><div class="label">動作</div><div><span class="audit-action audit-action-{{ log.action }}">{{ log.action }} - {{ log.get_action_display }}</span></div></div>
+        <div class="detail-row"><div class="label">Model</div><div><code>{{ log.model_label }}</code></div></div>
+        <div class="detail-row"><div class="label">Object ID</div><div>{{ log.object_id }}</div></div>
+        <div class="detail-row"><div class="label">Object</div><div>{{ log.object_repr }}</div></div>
+        <div class="detail-row"><div class="label">來源 URL</div><div>{{ log.request_method }} {{ log.request_path|default:"—" }}</div></div>
+        <div class="detail-row"><div class="label">IP</div><div>{{ log.ip_address|default:"—" }}</div></div>
+    </div>
+
+    <div class="detail-card">
+        <h3>{% if log.action == 'DELETE' %}刪除前快照{% elif log.action == 'CREATE' %}建立時的欄位值{% else %}欄位變更{% endif %}</h3>
+        {% if log.action == 'DELETE' %}
+            <table class="changes-table">
+                <thead><tr><th style="width:200px;">欄位</th><th>值</th></tr></thead>
+                <tbody>
+                    {% for field, val in deleted_snapshot.items %}
+                    <tr><td><code>{{ field }}</code></td><td><span class="old-val">{{ val|default:"(空)" }}</span></td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <table class="changes-table">
+                <thead><tr><th style="width:200px;">欄位</th><th>舊值</th><th>新值</th></tr></thead>
+                <tbody>
+                    {% for field, vals in log.changes.items %}
+                    <tr>
+                        <td><code>{{ field }}</code></td>
+                        <td>{% if vals.0 != None %}<span class="old-val">{{ vals.0 }}</span>{% else %}<em style="color:#999;">(空)</em>{% endif %}</td>
+                        <td>{% if vals.1 != None %}<span class="new-val">{{ vals.1 }}</span>{% else %}<em style="color:#999;">(空)</em>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    {% if related %}
+    <div class="detail-card">
+        <h3>同一 Object 的其他變更紀錄（最近 30 筆）</h3>
+        <table class="changes-table">
+            <thead><tr><th>時間</th><th>使用者</th><th>動作</th><th>變更欄位</th></tr></thead>
+            <tbody>
+                {% for r in related %}
+                <tr>
+                    <td>{{ r.timestamp|date:"Y-m-d H:i:s" }}</td>
+                    <td>{{ r.user_repr|default:"—" }}</td>
+                    <td><span class="audit-action audit-action-{{ r.action }}">{{ r.action }}</span></td>
+                    <td>
+                        {% for f, _ in r.changes.items %}<code>{{ f }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}
+                        <a href="{% url 'think4u-audit-log-detail' r.id %}" style="margin-left:8px;">看</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

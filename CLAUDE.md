@@ -72,6 +72,22 @@
 - 2026-05-26 WP-07 雙層審核專區：`think4u/approval_views.py` 三個 dashboard（manager / hr / employee）綜合請假 + 加班；think4u sidebar 加 4 個入口；隨角色顯示。
 - 2026-05-26 WP-08 角色 / 權限 fixture：`configure_roles` management command 為 4 個 Auth Group 配 Django permissions + 預設 RolePageVisibility；`--dump` 輸出 `fixtures/initial_groups.json`。
 - 2026-05-26 WP-09 正式部署：`docker-compose.prod.yaml`（server + db + nginx + 內建每日 backup）；`nginx/nginx.conf` HTTPS reverse proxy + 安全標頭；`.env.prod.example`；`DEPLOYMENT.md` 含 cron 設定、備份/還原、升級流程。
+- 2026-05-28 中央稽核紀錄（AuditLog）— 全 DB CUD 自動追蹤：
+  - **Model `think4u.AuditLog`**：timestamp / user / user_repr / action / model_label / object_id / object_repr / changes JSON / request_path / ip_address
+    - 3 個 db_index：`timestamp` / `(model_label, object_id)` / `user`
+  - **Signal handlers `think4u/audit_log.py`**：
+    - `pre_save` 抓 DB 原值掛在 instance._t4u_audit_original
+    - `post_save` 計算欄位 diff，create 寫 [null, new]，update 寫 [old, new]
+    - `post_delete` 寫整筆 snapshot 到 `{__deleted__: {...}}`
+  - **Exclusion 清單**：AuditLog 自己（防遞迴）/ Session / ContentType / Notification / Permission / Historical* / admin.LogEntry
+  - **連 signals**：`think4u/apps.py:Think4uConfig.ready()` import `audit_log` module
+  - **後台稽核頁** `/think4u/audit-log/`（superuser only）：
+    - 過濾：user / action / model / object_id / 日期區間 / 關鍵字
+    - 分頁 50 筆/頁
+    - 詳細頁顯示完整 changes table（舊→新對比）+ 同 object 其他歷史 30 筆
+    - sidebar「配置」加入入口
+  - **保留期限 management command**：`purge_audit_log --years 3 [--dry-run]`
+    - cron: `0 3 1 * * docker compose exec server python manage.py purge_audit_log`
 - 2026-05-28 前台「出勤」tab + 異常日快捷申請：
   - 取代原本的「我的紀錄」tab（紀錄移到出勤頁底部摺疊區）
   - 5 個 nav：打卡 / 請假 / 加班 / **出勤** / 設定

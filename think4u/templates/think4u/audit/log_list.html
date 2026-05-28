@@ -1,0 +1,144 @@
+{% extends 'index.html' %}
+{% load i18n %}
+{% block content %}
+<style>
+    .audit-filters { background: white; padding: 1rem; border-radius: 6px; margin-bottom: 1rem; }
+    .audit-filters .row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .5rem; }
+    .audit-filters label { font-size: 12px; color: #666; }
+    .audit-table { width: 100%; border-collapse: collapse; font-size: 13px; background: white; }
+    .audit-table th { background: #f5f5f5; padding: 8px; text-align: left; }
+    .audit-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .audit-action { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+    .audit-action-CREATE { background: #d4edda; color: #155724; }
+    .audit-action-UPDATE { background: #fff3cd; color: #856404; }
+    .audit-action-DELETE { background: #f8d7da; color: #721c24; }
+    .audit-model { font-family: monospace; font-size: 12px; color: #555; }
+    .audit-changes { font-family: monospace; font-size: 11px; color: #666; max-width: 360px; }
+    .audit-changes .field { color: #333; font-weight: 600; }
+    .audit-changes .old { color: #c0392b; text-decoration: line-through; }
+    .audit-changes .new { color: #27ae60; }
+    .pagination { display: flex; gap: .5rem; justify-content: center; padding: 1rem; }
+    .pagination a, .pagination span { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; text-decoration: none; color: #333; }
+    .pagination .active { background: #667eea; color: white; border-color: #667eea; }
+</style>
+<div class="oh-wrapper">
+    <h1 class="fw-bold">{% trans "稽核紀錄" %}</h1>
+    <p style="color:#888;">共 {{ total_count }} 筆紀錄；保留 3 年。</p>
+
+    <form class="audit-filters" method="get">
+        <div class="row">
+            <div>
+                <label>使用者</label>
+                <select name="user" class="oh-input">
+                    <option value="">— 全部 —</option>
+                    {% for u in users %}
+                    <option value="{{ u.id }}" {% if filters.user == u.id|stringformat:'s' %}selected{% endif %}>{{ u.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>動作</label>
+                <select name="action" class="oh-input">
+                    <option value="">— 全部 —</option>
+                    <option value="CREATE" {% if filters.action == 'CREATE' %}selected{% endif %}>CREATE 建立</option>
+                    <option value="UPDATE" {% if filters.action == 'UPDATE' %}selected{% endif %}>UPDATE 更新</option>
+                    <option value="DELETE" {% if filters.action == 'DELETE' %}selected{% endif %}>DELETE 刪除</option>
+                </select>
+            </div>
+            <div>
+                <label>Model</label>
+                <select name="model" class="oh-input">
+                    <option value="">— 全部 —</option>
+                    {% for m in distinct_models %}
+                    <option value="{{ m }}" {% if filters.model == m %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>Object ID</label>
+                <input type="text" name="object_id" value="{{ filters.object_id }}" class="oh-input">
+            </div>
+            <div>
+                <label>從</label>
+                <input type="date" name="date_from" value="{{ filters.date_from }}" class="oh-input">
+            </div>
+            <div>
+                <label>到</label>
+                <input type="date" name="date_to" value="{{ filters.date_to }}" class="oh-input">
+            </div>
+            <div>
+                <label>關鍵字</label>
+                <input type="text" name="q" value="{{ filters.q }}" placeholder="object 名稱" class="oh-input">
+            </div>
+            <div style="display:flex; align-items:end; gap:.4rem;">
+                <button class="oh-btn oh-btn--secondary oh-btn--small">查詢</button>
+                <a href="?" class="oh-btn oh-btn--small">清除</a>
+            </div>
+        </div>
+    </form>
+
+    <table class="audit-table">
+        <thead>
+            <tr>
+                <th style="width:140px;">時間</th>
+                <th style="width:100px;">使用者</th>
+                <th style="width:80px;">動作</th>
+                <th>Object</th>
+                <th>變更</th>
+                <th style="width:140px;">來源</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in page %}
+            <tr>
+                <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                <td>{{ log.user_repr|default:"—" }}</td>
+                <td><span class="audit-action audit-action-{{ log.action }}">{{ log.action }}</span></td>
+                <td>
+                    <div class="audit-model">{{ log.model_label }} #{{ log.object_id }}</div>
+                    <div style="font-size:12px; color:#666;">{{ log.object_repr|truncatechars:60 }}</div>
+                </td>
+                <td class="audit-changes">
+                    {% if log.action == 'DELETE' %}
+                        <em style="color:#c0392b;">已刪除（點查詳細看快照）</em>
+                    {% else %}
+                        {% for field, vals in log.changes.items %}
+                            {% if forloop.counter <= 3 %}
+                            <div>
+                                <span class="field">{{ field }}:</span>
+                                {% if vals.0 != None %}<span class="old">{{ vals.0|truncatechars:40 }}</span> →{% endif %}
+                                <span class="new">{{ vals.1|truncatechars:40 }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                        {% if log.changes|length > 3 %}
+                            <small style="color:#999;">… 還有 {{ log.changes|length|add:'-3' }} 個欄位</small>
+                        {% endif %}
+                    {% endif %}
+                </td>
+                <td style="font-size:11px; color:#888;">
+                    {% if log.request_method %}<div>{{ log.request_method }} {{ log.request_path|truncatechars:30 }}</div>{% endif %}
+                    {% if log.ip_address %}<div>IP: {{ log.ip_address }}</div>{% endif %}
+                </td>
+                <td><a href="{% url 'think4u-audit-log-detail' log.id %}" class="oh-btn oh-btn--small">詳細</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" style="text-align:center; padding:2rem; color:#999;">無資料</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page.paginator.num_pages > 1 %}
+    <div class="pagination">
+        {% if page.has_previous %}
+            <a href="?{% for k,v in filters.items %}{% if v %}{{k}}={{v}}&{% endif %}{% endfor %}page={{ page.previous_page_number }}">上一頁</a>
+        {% endif %}
+        <span class="active">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+            <a href="?{% for k,v in filters.items %}{% if v %}{{k}}={{v}}&{% endif %}{% endfor %}page={{ page.next_page_number }}">下一頁</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

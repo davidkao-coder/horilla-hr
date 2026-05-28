@@ -496,3 +496,59 @@ def get_default_leave_types_for(employee):
     if getattr(employee, "gender", None) != "female":
         names = [n for n in names if n not in FEMALE_ONLY_LEAVE_TYPES]
     return LeaveType.objects.filter(name__in=names, is_active=True)
+
+
+# ============================================================================
+# 中央稽核紀錄（AuditLog）
+# ----------------------------------------------------------------------------
+# 自動透過 signals 攔截所有 model 的 Create / Update / Delete，寫入此表。
+# 記錄：時間 / 操作人 / 動作 / model / object / 欄位 舊→新 / IP / URL
+# 保留 3 年（用 management command + cron 定期清理）
+# ============================================================================
+
+
+class AuditLog(models.Model):
+    ACTION_CHOICES = [
+        ("CREATE", _("建立")),
+        ("UPDATE", _("更新")),
+        ("DELETE", _("刪除")),
+    ]
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="t4u_audit_logs",
+    )
+    user_repr = models.CharField(
+        max_length=150, blank=True, default="",
+        help_text="使用者顯示名稱（即使 User 被刪除也保留）",
+    )
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES, db_index=True)
+    model_label = models.CharField(
+        max_length=120, db_index=True,
+        help_text="app_label.ModelName",
+    )
+    object_id = models.CharField(max_length=64, db_index=True, blank=True, default="")
+    object_repr = models.CharField(max_length=200, blank=True, default="")
+    changes = models.JSONField(
+        default=dict, blank=True,
+        help_text="UPDATE: {field: [old, new], ...}; CREATE: {field: [null, new]}; DELETE: {__deleted__: {...}}",
+    )
+    request_path = models.CharField(max_length=300, blank=True, default="")
+    request_method = models.CharField(max_length=10, blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+        verbose_name = _("稽核紀錄")
+        verbose_name_plural = _("稽核紀錄")
+        indexes = [
+            models.Index(fields=["model_label", "object_id"]),
+            models.Index(fields=["timestamp"]),
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self):
+        return f"{self.timestamp:%Y-%m-%d %H:%M} {self.user_repr} {self.action} {self.model_label}#{self.object_id}"

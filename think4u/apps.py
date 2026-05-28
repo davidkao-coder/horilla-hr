@@ -7,3 +7,7 @@ class Think4uConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "think4u"
     verbose_name = "Think4U Customizations"
+
+    def ready(self):
+        # 連上中央稽核紀錄的 signals
+        from think4u import audit_log  # noqa: F401

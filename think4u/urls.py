@@ -5,6 +5,7 @@ from think4u import (
     approval_views,
     approval_workflow_views,
     attendance_exports,
+    audit_views,
     leave_grant_views,
     monthly_attendance_views,
     org_views,
@@ -66,6 +67,14 @@ urlpatterns = [
         monthly_attendance_views.monthly_attendance,
         name="think4u-attendance-monthly",
     ),
+    # 稽核紀錄（superuser only）
+    path("audit-log/", audit_views.audit_log_list, name="think4u-audit-log"),
+    path(
+        "audit-log/<int:pk>/",
+        audit_views.audit_log_detail,
+        name="think4u-audit-log-detail",
+    ),
+
     # 給假申請審核（HR）
     path(
         "leave-grant/pending/",
