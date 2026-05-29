@@ -20,8 +20,42 @@ from base.models import Holidays
 from employee.models import Employee, EmployeeWorkInformation
 from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
-from think4u.models import EmployeeSalary, get_hidden_in_reports_employees
+from think4u.models import (
+    SALARY_COMPONENT_FIELDS,
+    EmployeeSalary,
+    get_hidden_in_reports_employees,
+)
 from think4u.payroll_rules import compute_salary
+
+
+# 薪資組成預設值（無 EmployeeSalary 紀錄時）
+_DEFAULT_COMPONENTS = {"base_salary": 50000}
+
+
+def _components_of(sal_row):
+    """從 EmployeeSalary 取出各組成欄位 dict（無紀錄則預設本薪 50000）"""
+    comp = {}
+    for key, _label, _grp in SALARY_COMPONENT_FIELDS:
+        if sal_row is not None:
+            comp[key] = int(getattr(sal_row, key, 0) or 0)
+        else:
+            comp[key] = _DEFAULT_COMPONENTS.get(key, 0)
+    return comp
+
+
+def _build_salary(sal_row, leave_hours):
+    """組合薪資明細：含各組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 實領"""
+    comp = _components_of(sal_row)
+    gross = sum(comp.values())
+    deps = int(getattr(sal_row, "dependents", 0) or 0) if sal_row else 0
+    s = compute_salary(gross, deps, leave_hours_by_type=leave_hours)
+    s["components"] = comp
+    # 有序 (key, value) 供 template 依欄位順序顯示
+    s["components_pairs"] = [
+        (key, comp[key]) for key, _label, _grp in SALARY_COMPONENT_FIELDS
+    ]
+    s["dependents"] = deps
+    return s
 
 
 def _is_hr(user) -> bool:
@@ -253,12 +287,11 @@ def monthly_attendance(request):
                 },
                 # 該員工該月各假別總時數 e.g. {"事假": 4.5, "病假": 8.0}
                 "leave_by_type": dict(leaves_by_emp_type.get(emp.id, {})),
-                # 即時試算薪資（月薪 − 勞健保 − 請假扣薪），月薪預設 50000
-                # 請假扣薪：事假全扣、病假/生理假半扣、特休等不扣
-                "salary": compute_salary(
-                    salary_map[emp.id].monthly_salary if emp.id in salary_map else 50000,
-                    salary_map[emp.id].dependents if emp.id in salary_map else 0,
-                    leave_hours_by_type=dict(leaves_by_emp_type.get(emp.id, {})),
+                # 即時試算薪資（全薪 − 勞健保 − 請假扣薪）
+                # 全薪 = 本薪 + 津貼 + 加給；請假扣薪：事假全扣、病假/生理假半扣
+                "salary": _build_salary(
+                    salary_map.get(emp.id),
+                    dict(leaves_by_emp_type.get(emp.id, {})),
                 ),
             }
         )
@@ -300,12 +333,11 @@ def monthly_attendance(request):
 @login_required
 @require_POST
 def update_salary(request):
-    """HR 即時更新員工月薪 → 回傳重算後的勞健保 / 請假扣薪 / 實領（JSON）"""
+    """HR 即時更新員工薪資組成（本薪/津貼/加給/眷屬）→ 回傳重算結果（JSON）"""
     if not _is_hr(request.user):
         return JsonResponse({"ok": False, "error": "no_permission"}, status=403)
     try:
         emp_id = int(request.POST.get("employee_id"))
-        salary = max(0, int(request.POST.get("monthly_salary")))
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "bad_input"}, status=400)
 
@@ -319,8 +351,23 @@ def update_salary(request):
         return JsonResponse({"ok": False, "error": "no_employee"}, status=404)
 
     row, _ = EmployeeSalary.objects.get_or_create(employee_id=emp_id)
-    row.monthly_salary = salary
-    row.save(update_fields=["monthly_salary", "updated_at"])
+    update_fields = ["updated_at"]
+    # 各薪資組成欄位
+    for key, _label, _grp in SALARY_COMPONENT_FIELDS:
+        if key in request.POST:
+            try:
+                setattr(row, key, max(0, int(request.POST.get(key) or 0)))
+                update_fields.append(key)
+            except (TypeError, ValueError):
+                pass
+    # 健保眷屬
+    if "dependents" in request.POST:
+        try:
+            row.dependents = max(0, int(request.POST.get("dependents") or 0))
+            update_fields.append("dependents")
+        except (TypeError, ValueError):
+            pass
+    row.save(update_fields=update_fields)
 
     # 用所在年月重算請假扣薪（讓即時更新與表格一致）
     today = timezone.localdate()
@@ -332,9 +379,7 @@ def update_salary(request):
     last_day = _calendar.monthrange(year, month)[1]
     lh = leave_hours_by_type(emp_id, _date(year, month, 1), _date(year, month, last_day))
 
-    return JsonResponse(
-        {"ok": True, **compute_salary(salary, row.dependents, leave_hours_by_type=lh)}
-    )
+    return JsonResponse({"ok": True, **_build_salary(row, lh)})
 
 
 @login_required
@@ -376,28 +421,33 @@ def export_salary(request):
         s.employee_id: s for s in EmployeeSalary.objects.filter(employee_id__in=emp_ids)
     }
 
+    comp_labels = [(k, lbl) for k, lbl, _g in SALARY_COMPONENT_FIELDS]
+
     rows = []
     for emp in employees:
-        gross = salary_map[emp.id].monthly_salary if emp.id in salary_map else 50000
-        deps = salary_map[emp.id].dependents if emp.id in salary_map else 0
         lh = leave_hours_by_type(emp.id, m_start, m_end)
-        s = compute_salary(gross, deps, leave_hours_by_type=lh)
+        s = _build_salary(salary_map.get(emp.id), lh)
         detail = "；".join(
             f"{b['type']} {b['hours']}h({b['ratio_label']} -{b['amount']})"
             for b in s["leave_breakdown"]
         )
-        rows.append(
+        row = {
+            "員工": emp.get_full_name(),
+            "部門": (
+                emp.employee_work_info.department_id.department
+                if getattr(emp, "employee_work_info", None)
+                and emp.employee_work_info.department_id
+                else ""
+            ),
+        }
+        for key, lbl in comp_labels:
+            row[lbl] = s["components"][key]
+        row.update(
             {
-                "員工": emp.get_full_name(),
-                "部門": (
-                    emp.employee_work_info.department_id.department
-                    if getattr(emp, "employee_work_info", None)
-                    and emp.employee_work_info.department_id
-                    else ""
-                ),
-                "月薪": s["gross"],
+                "全薪": s["gross"],
                 f"日薪(÷{PAYROLL_BASE_DAYS})": s["daily"],
                 "勞保自付": -s["labor"],
+                "健保眷屬": s["dependents"],
                 "健保自付": -s["health"],
                 "請假明細": detail,
                 "請假扣薪": -s["leave_ded"],
@@ -405,11 +455,16 @@ def export_salary(request):
                 "實領": s["net"],
             }
         )
+        rows.append(row)
 
-    columns = [
-        "員工", "部門", "月薪", f"日薪(÷{PAYROLL_BASE_DAYS})", "勞保自付",
-        "健保自付", "請假明細", "請假扣薪", "計算式", "實領",
-    ]
+    columns = (
+        ["員工", "部門"]
+        + [lbl for _k, lbl in comp_labels]
+        + [
+            "全薪", f"日薪(÷{PAYROLL_BASE_DAYS})", "勞保自付", "健保眷屬",
+            "健保自付", "請假明細", "請假扣薪", "計算式", "實領",
+        ]
+    )
     df = pd.DataFrame(rows, columns=columns)
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:

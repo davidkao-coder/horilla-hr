@@ -703,23 +703,63 @@ class EmployeeSalary(models.Model):
         related_name="t4u_salary",
         verbose_name=_("員工"),
     )
+    # 舊欄位（保留相容；全薪改由各組成欄位加總）
     monthly_salary = models.PositiveIntegerField(
-        default=50000, verbose_name=_("月薪（NT$）")
+        default=50000, verbose_name=_("月薪（NT$，舊）")
     )
+    # 薪資組成（2026 公司規則）
+    base_salary = models.PositiveIntegerField(default=50000, verbose_name=_("本薪"))
+    # 津貼項目
+    meal_allowance = models.PositiveIntegerField(default=0, verbose_name=_("伙食津貼"))
+    transport_allowance = models.PositiveIntegerField(
+        default=0, verbose_name=_("交通津貼")
+    )
+    # 加給項目
+    management_allowance = models.PositiveIntegerField(
+        default=0, verbose_name=_("管理加給")
+    )
+    tech_management_allowance = models.PositiveIntegerField(
+        default=0, verbose_name=_("技術管理加給")
+    )
+    salary_addition = models.PositiveIntegerField(default=0, verbose_name=_("薪資加給"))
+
     dependents = models.PositiveSmallIntegerField(
         default=0, verbose_name=_("健保眷屬人數")
     )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = _("員工月薪")
-        verbose_name_plural = _("員工月薪")
+        verbose_name = _("員工薪資")
+        verbose_name_plural = _("員工薪資")
+
+    @property
+    def gross(self) -> int:
+        """全薪 = 本薪 + 津貼 + 加給"""
+        return (
+            int(self.base_salary or 0)
+            + int(self.meal_allowance or 0)
+            + int(self.transport_allowance or 0)
+            + int(self.management_allowance or 0)
+            + int(self.tech_management_allowance or 0)
+            + int(self.salary_addition or 0)
+        )
 
     def __str__(self):
-        return f"{self.employee} | {self.monthly_salary}"
+        return f"{self.employee} | 全薪 {self.gross}"
+
+
+# 薪資組成欄位（key, 中文標籤, 群組）— 供 UI 與匯出共用
+SALARY_COMPONENT_FIELDS = [
+    ("base_salary", "本薪", "base"),
+    ("meal_allowance", "伙食津貼", "津貼"),
+    ("transport_allowance", "交通津貼", "津貼"),
+    ("management_allowance", "管理加給", "加給"),
+    ("tech_management_allowance", "技術管理加給", "加給"),
+    ("salary_addition", "薪資加給", "加給"),
+]
 
 
 def get_monthly_salary(employee) -> int:
-    """取員工月薪（無紀錄則預設 50000）"""
+    """取員工全薪（無紀錄則預設 50000）"""
     row = EmployeeSalary.objects.filter(employee=employee).first()
-    return row.monthly_salary if row else 50000
+    return row.gross if row else 50000
