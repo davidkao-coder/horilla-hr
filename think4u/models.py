@@ -765,6 +765,57 @@ def get_monthly_salary(employee) -> int:
     return row.gross if row else 50000
 
 
+# 每月變動加項（其他）— 不在員工工作資訊維護，於月度出勤統計頁逐月填入
+EXTRA_PAY_FIELDS = [
+    ("overtime_pay", "加班費"),
+    ("unused_annual_leave", "特休未休"),
+    ("birthday_gift", "生日禮金"),
+    ("dragonboat_gift", "端午禮金"),
+    ("midautumn_gift", "中秋禮金"),
+    ("expense_reimbursement", "給付代墊公司費用"),
+    ("perfect_attendance_bonus", "全勤獎勵金"),
+    ("admin_assistant_fee", "行政助理費"),
+]
+
+
+class MonthlyPayExtra(models.Model):
+    """某員工某年月的變動加項（其他）。實領 = 全薪 − 勞健保 − 請假扣薪 + 其他合計。
+    這些屬不定期 / 每月變動項目，不計入勞健保投保薪資。"""
+
+    employee = models.ForeignKey(
+        Employee, on_delete=models.CASCADE, related_name="t4u_pay_extras",
+        verbose_name=_("員工"),
+    )
+    year = models.PositiveSmallIntegerField(verbose_name=_("年"))
+    month = models.PositiveSmallIntegerField(verbose_name=_("月"))
+
+    overtime_pay = models.IntegerField(default=0, verbose_name=_("加班費"))
+    unused_annual_leave = models.IntegerField(default=0, verbose_name=_("特休未休"))
+    birthday_gift = models.IntegerField(default=0, verbose_name=_("生日禮金"))
+    dragonboat_gift = models.IntegerField(default=0, verbose_name=_("端午禮金"))
+    midautumn_gift = models.IntegerField(default=0, verbose_name=_("中秋禮金"))
+    expense_reimbursement = models.IntegerField(
+        default=0, verbose_name=_("給付代墊公司費用")
+    )
+    perfect_attendance_bonus = models.IntegerField(
+        default=0, verbose_name=_("全勤獎勵金")
+    )
+    admin_assistant_fee = models.IntegerField(default=0, verbose_name=_("行政助理費"))
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("employee", "year", "month")
+        verbose_name = _("每月變動加項")
+        verbose_name_plural = _("每月變動加項")
+
+    @property
+    def total(self) -> int:
+        return sum(int(getattr(self, k) or 0) for k, _ in EXTRA_PAY_FIELDS)
+
+    def __str__(self):
+        return f"{self.employee} | {self.year}/{self.month} 其他 {self.total}"
+
+
 class HealthInsuranceDependent(models.Model):
     """健保眷屬（依附被保險人加保）。每位加保眷屬一筆，健保自付額 ×(本人+加保眷屬數)。"""
 

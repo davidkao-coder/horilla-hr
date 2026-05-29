@@ -128,19 +128,25 @@ def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
 
 
 def compute_salary(
-    salary: float, dependents: int = 0, leave_hours_by_type: dict = None
+    salary: float,
+    dependents: int = 0,
+    leave_hours_by_type: dict = None,
+    extra_total: float = 0,
 ) -> dict:
     """
     回傳薪資明細：
-      gross / labor / health / leave_ded / net / daily（日薪 = gross / 30）
-      net = gross − 勞保 − 健保 − 請假扣薪
+      gross / labor / health / leave_ded / extra_total / net / daily（日薪 = gross / 30）
+      net = gross − 勞保 − 健保 − 請假扣薪 + 其他加項
+    勞健保以 gross（全薪）為投保基準；extra_total（加班費 / 禮金 / 全勤獎等不定期項目）
+    不計入投保薪資，僅在最後加回實領。
     """
     gross = int(round(salary))
     labor = labor_insurance_employee(gross)
     health = health_insurance_employee(gross, dependents)
     ld = leave_deduction(gross, leave_hours_by_type)
     leave_ded = ld["total"]
-    net = gross - labor - health - leave_ded
+    extra_total = int(round(extra_total or 0))
+    net = gross - labor - health - leave_ded + extra_total
     daily = round(gross / PAYROLL_BASE_DAYS)
     return {
         "gross": gross,
@@ -148,6 +154,7 @@ def compute_salary(
         "health": health,
         "leave_ded": leave_ded,
         "leave_breakdown": ld["breakdown"],
+        "extra_total": extra_total,
         "net": net,
         "daily": daily,
         "labor_grade": _grade(gross, LABOR_GRADES),

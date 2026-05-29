@@ -128,7 +128,8 @@ out: {{ c.check_out|default:'—' }}
     <p style="color:#888; font-size:12px; margin-bottom:8px;">
         計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 全薪 ÷ {{ payroll_base_days }}）。
         <strong>全薪 = 本薪 + 津貼（伙食 / 交通）+ 加給（管理 / 技術管理 / 薪資）</strong>。
-        實領 = 全薪 − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800）。
+        實領 = 全薪 <strong>+ 其他（加班費/禮金/全勤獎等每月變動加項）</strong> − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800）。
+        「其他」逐月填入、不計入勞健保投保薪資。
         健保自付依<strong>眷屬人數</strong>計（本人 + 眷屬，眷屬上限 3）。
         請假扣薪：<strong>事假全扣</strong>、<strong>病假 / 生理假半扣</strong>，特休 / 公假 / 婚假 / 喪假 / 產假 / 補休等不扣。
         勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}<strong>各欄位可直接點選修改，全薪與扣除額會即時重算。</strong>{% endif %}
@@ -142,13 +143,15 @@ out: {{ c.check_out|default:'—' }}
                     <th rowspan="2">本薪</th>
                     <th colspan="2" style="background:#e8f5e9;">津貼項目</th>
                     <th colspan="3" style="background:#e8f5e9;">加給項目</th>
+                    <th colspan="8" style="background:#fff3e0;">其他（每月變動）</th>
+                    <th rowspan="2" style="background:#fff3e0;">其他<br>合計</th>
                     <th rowspan="2">健保<br>眷屬</th>
                     <th rowspan="2">日薪<br><small>(÷{{ payroll_base_days }})</small></th>
                     <th rowspan="2">勞保<br>自付</th>
                     <th rowspan="2">健保<br>自付</th>
                     <th rowspan="2" style="min-width:190px;">請假明細<br><small>(假別 時數→扣薪)</small></th>
                     <th rowspan="2">請假<br>扣薪</th>
-                    <th rowspan="2" style="min-width:220px;">計算式</th>
+                    <th rowspan="2" style="min-width:240px;">計算式</th>
                     <th rowspan="2">實領</th>
                 </tr>
                 <tr>
@@ -157,6 +160,14 @@ out: {{ c.check_out|default:'—' }}
                     <th style="background:#e8f5e9;">管理加給</th>
                     <th style="background:#e8f5e9;">技術管理加給</th>
                     <th style="background:#e8f5e9;">薪資加給</th>
+                    <th style="background:#fff3e0;">加班費</th>
+                    <th style="background:#fff3e0;">特休未休</th>
+                    <th style="background:#fff3e0;">生日禮金</th>
+                    <th style="background:#fff3e0;">端午禮金</th>
+                    <th style="background:#fff3e0;">中秋禮金</th>
+                    <th style="background:#fff3e0;">給付代墊<br>公司費用</th>
+                    <th style="background:#fff3e0;">全勤<br>獎勵金</th>
+                    <th style="background:#fff3e0;">行政<br>助理費</th>
                 </tr>
             </thead>
             <tbody>
@@ -173,6 +184,16 @@ out: {{ c.check_out|default:'—' }}
                         {% else %}{{ comp }}{% endif %}
                     </td>
                     {% endfor %}
+                    {% for key, val in row.salary.extras_pairs %}
+                    <td style="background:#fffaf3;">
+                        {% if is_hr %}
+                            <input type="number" class="extra-input" data-emp="{{ row.employee.id }}" data-field="{{ key }}"
+                                value="{{ val }}" step="100"
+                                style="width:74px; padding:2px 4px; border:1px solid #e0c9a6; border-radius:4px;">
+                        {% else %}{{ val }}{% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="sal-extra" style="background:#fff3e0; font-weight:600; color:#b26a00;">+{{ row.salary.extra_total }}</td>
                     <td title="{% trans '加保眷屬數在員工工作資訊維護' %}">{{ row.salary.dependents }}</td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
                     <td class="sal-labor" style="color:#c0392b;">-{{ row.salary.labor }}</td>
@@ -187,12 +208,12 @@ out: {{ c.check_out|default:'—' }}
                         {% if row.salary.leave_ded %}-{{ row.salary.leave_ded }}{% else %}0{% endif %}
                     </td>
                     <td class="sal-formula" style="font-size:12px; color:#555; white-space:nowrap;">
-                        {{ row.salary.gross }} −{{ row.salary.labor }} −{{ row.salary.health }} −{{ row.salary.leave_ded }} = <strong style="color:#2e7d32;">{{ row.salary.net }}</strong>
+                        {{ row.salary.gross }} +{{ row.salary.extra_total }} −{{ row.salary.labor }} −{{ row.salary.health }} −{{ row.salary.leave_ded }} = <strong style="color:#2e7d32;">{{ row.salary.net }}</strong>
                     </td>
                     <td class="sal-net" style="font-weight:700; color:#2e7d32;">{{ row.salary.net }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="16" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
+                <tr><td colspan="25" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -208,6 +229,7 @@ out: {{ c.check_out|default:'—' }}
             const tr = document.querySelector(`tr[data-emp="${emp}"]`);
             const body = new URLSearchParams({employee_id: emp, year: "{{ year }}", month: "{{ month }}"});
             tr.querySelectorAll('.comp-input').forEach(i => body.append(i.dataset.field, i.value || 0));
+            tr.querySelectorAll('.extra-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             const dep = tr.querySelector('.dep-input');
             if (dep) body.append('dependents', dep.value || 0);
             fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
@@ -215,6 +237,7 @@ out: {{ c.check_out|default:'—' }}
                 .then(d => {
                     if (!d.ok) { alert('更新失敗'); return; }
                     tr.querySelector('.sal-gross').textContent = d.gross;
+                    tr.querySelector('.sal-extra').textContent = '+' + d.extra_total;
                     tr.querySelector('.sal-daily').textContent = d.daily;
                     tr.querySelector('.sal-labor').textContent = '-' + d.labor;
                     tr.querySelector('.sal-health').textContent = '-' + d.health;
@@ -227,7 +250,7 @@ out: {{ c.check_out|default:'—' }}
                         ).join('');
                     } else { detail.innerHTML = '<span style="color:#999;">—</span>'; }
                     tr.querySelector('.sal-formula').innerHTML =
-                        `${d.gross} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                        `${d.gross} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
                 })
                 .catch(() => alert('更新失敗'));
         }

@@ -21,8 +21,10 @@ from employee.models import Employee, EmployeeWorkInformation
 from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
 from think4u.models import (
+    EXTRA_PAY_FIELDS,
     SALARY_COMPONENT_FIELDS,
     EmployeeSalary,
+    MonthlyPayExtra,
     get_hidden_in_reports_employees,
 )
 from think4u.payroll_rules import compute_salary
@@ -43,17 +45,30 @@ def _components_of(sal_row):
     return comp
 
 
-def _build_salary(sal_row, leave_hours):
-    """組合薪資明細：含各組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 實領"""
+def _extras_of(extra_row):
+    """從 MonthlyPayExtra 取出各加項 dict（無紀錄則全 0）"""
+    return {
+        key: int(getattr(extra_row, key, 0) or 0) if extra_row else 0
+        for key, _label in EXTRA_PAY_FIELDS
+    }
+
+
+def _build_salary(sal_row, leave_hours, extra_row=None):
+    """組合薪資明細：組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 其他加項 + 實領"""
     comp = _components_of(sal_row)
     gross = sum(comp.values())
     deps = int(getattr(sal_row, "dependents", 0) or 0) if sal_row else 0
-    s = compute_salary(gross, deps, leave_hours_by_type=leave_hours)
+    extras = _extras_of(extra_row)
+    extra_total = sum(extras.values())
+    s = compute_salary(
+        gross, deps, leave_hours_by_type=leave_hours, extra_total=extra_total
+    )
     s["components"] = comp
-    # 有序 (key, value) 供 template 依欄位順序顯示
     s["components_pairs"] = [
         (key, comp[key]) for key, _label, _grp in SALARY_COMPONENT_FIELDS
     ]
+    s["extras"] = extras
+    s["extras_pairs"] = [(key, extras[key]) for key, _label in EXTRA_PAY_FIELDS]
     s["dependents"] = deps
     return s
 
@@ -150,6 +165,13 @@ def monthly_attendance(request):
     salary_map = {
         s.employee_id: s
         for s in EmployeeSalary.objects.filter(employee_id__in=emp_ids)
+    }
+    # 預取該年月的變動加項（其他）
+    extra_map = {
+        x.employee_id: x
+        for x in MonthlyPayExtra.objects.filter(
+            employee_id__in=emp_ids, year=year, month=month
+        )
     }
 
     # 一次撈該月所有 AttendanceActivity
@@ -292,6 +314,7 @@ def monthly_attendance(request):
                 "salary": _build_salary(
                     salary_map.get(emp.id),
                     dict(leaves_by_emp_type.get(emp.id, {})),
+                    extra_map.get(emp.id),
                 ),
             }
         )
@@ -352,7 +375,7 @@ def update_salary(request):
 
     row, _ = EmployeeSalary.objects.get_or_create(employee_id=emp_id)
     update_fields = ["updated_at"]
-    # 各薪資組成欄位
+    # 各薪資組成欄位（標準月薪 → EmployeeSalary）
     for key, _label, _grp in SALARY_COMPONENT_FIELDS:
         if key in request.POST:
             try:
@@ -369,17 +392,39 @@ def update_salary(request):
             pass
     row.save(update_fields=update_fields)
 
-    # 用所在年月重算請假扣薪（讓即時更新與表格一致）
+    # 所在年月
     today = timezone.localdate()
     try:
         year = int(request.POST.get("year", today.year))
         month = int(request.POST.get("month", today.month))
     except (TypeError, ValueError):
         year, month = today.year, today.month
+
+    # 每月變動加項（其他）→ MonthlyPayExtra(year, month)
+    extra_keys = [k for k, _ in EXTRA_PAY_FIELDS]
+    if any(k in request.POST for k in extra_keys):
+        extra_row, _ = MonthlyPayExtra.objects.get_or_create(
+            employee_id=emp_id, year=year, month=month
+        )
+        ex_fields = []
+        for k in extra_keys:
+            if k in request.POST:
+                try:
+                    setattr(extra_row, k, int(request.POST.get(k) or 0))
+                    ex_fields.append(k)
+                except (TypeError, ValueError):
+                    pass
+        if ex_fields:
+            extra_row.save(update_fields=ex_fields + ["updated_at"])
+    else:
+        extra_row = MonthlyPayExtra.objects.filter(
+            employee_id=emp_id, year=year, month=month
+        ).first()
+
     last_day = _calendar.monthrange(year, month)[1]
     lh = leave_hours_by_type(emp_id, _date(year, month, 1), _date(year, month, last_day))
 
-    return JsonResponse({"ok": True, **_build_salary(row, lh)})
+    return JsonResponse({"ok": True, **_build_salary(row, lh, extra_row)})
 
 
 @login_required
@@ -420,13 +465,20 @@ def export_salary(request):
     salary_map = {
         s.employee_id: s for s in EmployeeSalary.objects.filter(employee_id__in=emp_ids)
     }
+    extra_map = {
+        x.employee_id: x
+        for x in MonthlyPayExtra.objects.filter(
+            employee_id__in=emp_ids, year=year, month=month
+        )
+    }
 
     comp_labels = [(k, lbl) for k, lbl, _g in SALARY_COMPONENT_FIELDS]
+    extra_labels = list(EXTRA_PAY_FIELDS)
 
     rows = []
     for emp in employees:
         lh = leave_hours_by_type(emp.id, m_start, m_end)
-        s = _build_salary(salary_map.get(emp.id), lh)
+        s = _build_salary(salary_map.get(emp.id), lh, extra_map.get(emp.id))
         detail = "；".join(
             f"{b['type']} {b['hours']}h({b['ratio_label']} -{b['amount']})"
             for b in s["leave_breakdown"]
@@ -442,16 +494,19 @@ def export_salary(request):
         }
         for key, lbl in comp_labels:
             row[lbl] = s["components"][key]
+        row["全薪"] = s["gross"]
+        for key, lbl in extra_labels:
+            row[lbl] = s["extras"][key]
+        row["其他合計"] = s["extra_total"]
         row.update(
             {
-                "全薪": s["gross"],
                 f"日薪(÷{PAYROLL_BASE_DAYS})": s["daily"],
                 "勞保自付": -s["labor"],
                 "健保眷屬": s["dependents"],
                 "健保自付": -s["health"],
                 "請假明細": detail,
                 "請假扣薪": -s["leave_ded"],
-                "計算式": f"{s['gross']} -{s['labor']} -{s['health']} -{s['leave_ded']} = {s['net']}",
+                "計算式": f"{s['gross']} +{s['extra_total']} -{s['labor']} -{s['health']} -{s['leave_ded']} = {s['net']}",
                 "實領": s["net"],
             }
         )
@@ -460,8 +515,11 @@ def export_salary(request):
     columns = (
         ["員工", "部門"]
         + [lbl for _k, lbl in comp_labels]
+        + ["全薪"]
+        + [lbl for _k, lbl in extra_labels]
+        + ["其他合計"]
         + [
-            "全薪", f"日薪(÷{PAYROLL_BASE_DAYS})", "勞保自付", "健保眷屬",
+            f"日薪(÷{PAYROLL_BASE_DAYS})", "勞保自付", "健保眷屬",
             "健保自付", "請假明細", "請假扣薪", "計算式", "實領",
         ]
     )
