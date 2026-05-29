@@ -121,9 +121,17 @@ out: {{ c.check_out|default:'—' }}
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2rem;">
         <h2 style="font-size:18px; margin:0;">💰 {{ year }}/{{ month }} 薪資試算</h2>
-        <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-salary-export' %}?year={{ year }}&month={{ month }}">
-            <ion-icon name="download-outline" class="mr-1"></ion-icon>{% trans "匯出 Excel" %}
-        </a>
+        <div style="display:flex; align-items:center; gap:10px;">
+            {% if is_hr %}
+            <span id="salSaveStatus" style="font-size:13px; color:#888;"></span>
+            <button type="button" id="salSaveBtn" class="oh-btn oh-btn--secondary" disabled>
+                <ion-icon name="save-outline" class="mr-1"></ion-icon>{% trans "儲存" %}
+            </button>
+            {% endif %}
+            <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-salary-export' %}?year={{ year }}&month={{ month }}">
+                <ion-icon name="download-outline" class="mr-1"></ion-icon>{% trans "匯出 Excel" %}
+            </a>
+        </div>
     </div>
     <p style="color:#888; font-size:12px; margin-bottom:8px;">
         計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 全薪 ÷ {{ payroll_base_days }}）。
@@ -132,7 +140,7 @@ out: {{ c.check_out|default:'—' }}
         「其他」逐月填入、不計入勞健保投保薪資。
         健保自付依<strong>眷屬人數</strong>計（本人 + 眷屬，眷屬上限 3）。
         請假扣薪：<strong>事假全扣</strong>、<strong>病假 / 生理假半扣</strong>，特休 / 公假 / 婚假 / 喪假 / 產假 / 補休等不扣。
-        勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}<strong>各欄位可直接點選修改，全薪與扣除額會即時重算。</strong>{% endif %}
+        勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}<strong>修改欄位後，按右上「儲存」才會寫入。</strong>{% endif %}
     </p>
     <div class="att-matrix-wrapper">
         <table class="att-matrix sal-table" style="width:100%; min-width:100%; table-layout:auto;">
@@ -225,17 +233,31 @@ out: {{ c.check_out|default:'—' }}
         const url = "{% url 'think4u-salary-update' %}";
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
             || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-        function submitRow(emp) {
+        const saveBtn = document.getElementById('salSaveBtn');
+        const status = document.getElementById('salSaveStatus');
+        const dirty = new Set();
+
+        function markDirty(emp) {
+            dirty.add(String(emp));
+            const tr = document.querySelector(`tr[data-emp="${emp}"]`);
+            if (tr) tr.style.background = '#fffbea';
+            saveBtn.disabled = false;
+            status.textContent = '有未儲存的修改';
+            status.style.color = '#b26a00';
+        }
+
+        // 送出單一 row → 回傳 Promise，並更新該列重算結果
+        function saveRow(emp) {
             const tr = document.querySelector(`tr[data-emp="${emp}"]`);
             const body = new URLSearchParams({employee_id: emp, year: "{{ year }}", month: "{{ month }}"});
             tr.querySelectorAll('.comp-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             tr.querySelectorAll('.extra-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             const dep = tr.querySelector('.dep-input');
             if (dep) body.append('dependents', dep.value || 0);
-            fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
+            return fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
                 .then(r => r.json())
                 .then(d => {
-                    if (!d.ok) { alert('更新失敗'); return; }
+                    if (!d.ok) throw new Error('update failed');
                     tr.querySelector('.sal-gross').textContent = d.gross;
                     tr.querySelector('.sal-extra').textContent = '+' + d.extra_total;
                     tr.querySelector('.sal-daily').textContent = d.daily;
@@ -251,11 +273,36 @@ out: {{ c.check_out|default:'—' }}
                     } else { detail.innerHTML = '<span style="color:#999;">—</span>'; }
                     tr.querySelector('.sal-formula').innerHTML =
                         `${d.gross} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
-                })
-                .catch(() => alert('更新失敗'));
+                    tr.style.background = '';
+                });
         }
-        document.querySelectorAll('.comp-input, .dep-input').forEach(function (inp) {
-            inp.addEventListener('change', function () { submitRow(this.dataset.emp); });
+
+        // 欄位修改 → 僅標記未儲存，不立即寫入
+        document.querySelectorAll('.comp-input, .extra-input, .dep-input').forEach(function (inp) {
+            inp.addEventListener('input', function () { markDirty(this.dataset.emp); });
+        });
+
+        // 按「儲存」→ 一次寫入所有未儲存的列
+        saveBtn.addEventListener('click', function () {
+            if (!dirty.size) return;
+            saveBtn.disabled = true;
+            status.textContent = '儲存中…'; status.style.color = '#888';
+            const ids = Array.from(dirty);
+            Promise.all(ids.map(saveRow))
+                .then(() => {
+                    dirty.clear();
+                    status.textContent = '✓ 已儲存'; status.style.color = '#2e7d32';
+                    setTimeout(() => { status.textContent = ''; }, 3000);
+                })
+                .catch(() => {
+                    status.textContent = '儲存失敗，請重試'; status.style.color = '#c0392b';
+                    saveBtn.disabled = false;
+                });
+        });
+
+        // 離開頁面前提醒未儲存
+        window.addEventListener('beforeunload', function (e) {
+            if (dirty.size) { e.preventDefault(); e.returnValue = ''; }
         });
     })();
     </script>
