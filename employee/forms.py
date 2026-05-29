@@ -387,18 +387,10 @@ class _SalaryComponentsMixin:
     _T4U_SALARY_FIELDS = [k for k, _l in _T4U_SALARY_DEFS]
 
     def _setup_salary_fields(self):
-        """動態加入薪資組成欄位 + 帶入該員工 EmployeeSalary 初始值"""
+        """動態加入薪資組成欄位 + 帶入該員工 EmployeeSalary 初始值
+        （健保眷屬改用 HealthInsuranceDependent 明細維護，不在此表單）"""
         for key, label in self._T4U_SALARY_DEFS:
             self.fields[key] = _salary_field(label)
-        self.fields["dependents"] = forms.IntegerField(
-            required=False,
-            min_value=0,
-            max_value=3,
-            label=_("健保眷屬人數"),
-            widget=forms.NumberInput(
-                attrs={"class": "oh-input w-100", "min": "0", "max": "3"}
-            ),
-        )
         emp = getattr(self.instance, "employee_id", None) if self.instance else None
         if not emp:
             self.fields["base_salary"].initial = 50000
@@ -409,7 +401,6 @@ class _SalaryComponentsMixin:
         if sal:
             for f in self._T4U_SALARY_FIELDS:
                 self.fields[f].initial = getattr(sal, f, 0)
-            self.fields["dependents"].initial = sal.dependents
         else:
             self.fields["base_salary"].initial = 50000
 
@@ -418,7 +409,7 @@ class _SalaryComponentsMixin:
         self._setup_salary_fields()
 
     def save_salary(self, employee):
-        """把薪資組成欄位存到 think4u.EmployeeSalary"""
+        """把薪資組成欄位存到 think4u.EmployeeSalary（眷屬數不在此處理）"""
         if not employee:
             return
         from think4u.models import EmployeeSalary
@@ -428,9 +419,6 @@ class _SalaryComponentsMixin:
             val = self.cleaned_data.get(f)
             if val is not None:
                 setattr(sal, f, max(0, int(val)))
-        dep = self.cleaned_data.get("dependents")
-        if dep is not None:
-            sal.dependents = max(0, min(int(dep), 3))
         sal.save()
 
 

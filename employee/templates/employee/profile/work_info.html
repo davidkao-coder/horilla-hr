@@ -102,14 +102,9 @@
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "健保眷屬人數" %}</label>
-                    {{work_form.dependents}}
-                </div>
-            </div>
-        </div>
+        <hr style="margin:1rem 0;">
+        {# Think4U: 健保眷屬明細（加保）— HTMX 載入 #}
+        <div hx-get="{% url 'think4u-dependent-section' employee.id %}" hx-trigger="load"></div>
 
         {% comment %}Think4U: 已拿掉 職級 / 直屬主管 / 員工標籤 / 工作地點 / 公司 / 時薪 / Role-Groups；月薪改為薪資組成{% endcomment %}
     </div>

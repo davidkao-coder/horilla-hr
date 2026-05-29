@@ -1,0 +1,89 @@
+{% load i18n %}
+<div id="dependentsSection">
+    <h5 style="font-weight:bold; color:#4a5dc7; margin-top:8px;">👨‍👩‍👧 {% trans "健保眷屬（加保）" %}
+        <small style="color:#888; font-weight:normal;">
+            {% trans "加保中" %} {{ enrolled_count }} {% trans "人" %}
+            {% if enrolled_count > 3 %}（{% trans "健保計費上限 3 人" %}）{% endif %}
+            ｜{% trans "健保自付額 ×(本人 + 加保眷屬數)" %}
+        </small>
+    </h5>
+
+    {% if dependents %}
+    <table class="oh-table" style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:8px;">
+        <thead>
+            <tr style="background:#f5f5f5; border-bottom:1px solid #ddd;">
+                <th style="padding:6px; text-align:left;">{% trans "姓名" %}</th>
+                <th style="padding:6px;">{% trans "關係" %}</th>
+                <th style="padding:6px;">{% trans "身分證字號" %}</th>
+                <th style="padding:6px;">{% trans "出生日期" %}</th>
+                <th style="padding:6px;">{% trans "加保起日" %}</th>
+                <th style="padding:6px;">{% trans "狀態" %}</th>
+                {% if can_edit %}<th style="padding:6px;">{% trans "操作" %}</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in dependents %}
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px;">{{ d.name }}</td>
+                <td style="padding:6px; text-align:center;">{{ d.get_relationship_display }}</td>
+                <td style="padding:6px;">{{ d.national_id|default:"—" }}</td>
+                <td style="padding:6px; text-align:center;">{{ d.birth_date|date:"Y-m-d"|default:"—" }}</td>
+                <td style="padding:6px; text-align:center;">{{ d.enroll_date|date:"Y-m-d"|default:"—" }}</td>
+                <td style="padding:6px; text-align:center;">
+                    {% if can_edit %}
+                    <button type="button" class="oh-btn oh-btn--small {% if d.is_enrolled %}oh-btn--success{% else %}oh-btn--light{% endif %}"
+                        hx-post="{% url 'think4u-dependent-toggle' d.id %}" hx-target="#dependentsSection" hx-swap="outerHTML">
+                        {% if d.is_enrolled %}{% trans "加保中" %}{% else %}{% trans "已退保" %}{% endif %}
+                    </button>
+                    {% else %}{% if d.is_enrolled %}{% trans "加保中" %}{% else %}{% trans "已退保" %}{% endif %}{% endif %}
+                </td>
+                {% if can_edit %}
+                <td style="padding:6px; text-align:center;">
+                    <button type="button" class="oh-btn oh-btn--small oh-btn--danger-outline"
+                        hx-post="{% url 'think4u-dependent-delete' d.id %}" hx-target="#dependentsSection" hx-swap="outerHTML"
+                        hx-confirm="{% trans '確定刪除此眷屬？' %}">{% trans "刪除" %}</button>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#999; font-size:13px;">{% trans "目前無加保眷屬。" %}</p>
+    {% endif %}
+
+    {% if can_edit and employee %}
+    <div style="background:#f8f9ff; border:1px solid #e0e6ff; border-radius:6px; padding:10px; margin-top:6px;">
+        <div class="row" style="align-items:end;">
+            <div class="col-md-3 mb-2">
+                <label class="oh-label">{% trans "姓名" %}</label>
+                <input type="text" name="name" form="depAddForm" class="oh-input w-100" required>
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="oh-label">{% trans "關係" %}</label>
+                <select name="relationship" form="depAddForm" class="oh-select w-100">
+                    {% for val, label in relation_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="oh-label">{% trans "身分證字號" %}</label>
+                <input type="text" name="national_id" form="depAddForm" class="oh-input w-100">
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="oh-label">{% trans "出生日期" %}</label>
+                <input type="date" name="birth_date" form="depAddForm" class="oh-input w-100">
+            </div>
+            <div class="col-md-2 mb-2">
+                <label class="oh-label">{% trans "加保起日" %}</label>
+                <input type="date" name="enroll_date" form="depAddForm" class="oh-input w-100">
+            </div>
+        </div>
+        <form id="depAddForm" hx-post="{% url 'think4u-dependent-add' employee.id %}"
+              hx-target="#dependentsSection" hx-swap="outerHTML"
+              hx-on::after-request="this.reset()">
+            <input type="hidden" name="is_enrolled" value="on">
+            <button type="submit" class="oh-btn oh-btn--secondary oh-btn--small">＋ {% trans "新增眷屬" %}</button>
+        </form>
+    </div>
+    {% endif %}
+</div>

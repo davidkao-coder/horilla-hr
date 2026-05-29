@@ -7,6 +7,7 @@ from think4u import (
     attendance_exports,
     audit_views,
     day_detail_views,
+    dependent_views,
     leave_grant_views,
     monthly_attendance_views,
     org_views,
@@ -77,6 +78,27 @@ urlpatterns = [
         "attendance/salary/export/",
         monthly_attendance_views.export_salary,
         name="think4u-salary-export",
+    ),
+    # 健保眷屬維護（HTMX）
+    path(
+        "dependents/<int:emp_id>/",
+        dependent_views.dependent_section,
+        name="think4u-dependent-section",
+    ),
+    path(
+        "dependents/<int:emp_id>/add/",
+        dependent_views.dependent_add,
+        name="think4u-dependent-add",
+    ),
+    path(
+        "dependent/<int:dep_id>/delete/",
+        dependent_views.dependent_delete,
+        name="think4u-dependent-delete",
+    ),
+    path(
+        "dependent/<int:dep_id>/toggle/",
+        dependent_views.dependent_toggle,
+        name="think4u-dependent-toggle",
     ),
     # 某員工某天打卡明細
     path(

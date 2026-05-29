@@ -173,13 +173,7 @@ out: {{ c.check_out|default:'—' }}
                         {% else %}{{ comp }}{% endif %}
                     </td>
                     {% endfor %}
-                    <td>
-                        {% if is_hr %}
-                            <input type="number" class="dep-input" data-emp="{{ row.employee.id }}"
-                                value="{{ row.salary.dependents }}" min="0" max="3" step="1"
-                                style="width:48px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
-                        {% else %}{{ row.salary.dependents }}{% endif %}
-                    </td>
+                    <td title="{% trans '加保眷屬數在員工工作資訊維護' %}">{{ row.salary.dependents }}</td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
                     <td class="sal-labor" style="color:#c0392b;">-{{ row.salary.labor }}</td>
                     <td class="sal-health" style="color:#c0392b;">-{{ row.salary.health }}</td>

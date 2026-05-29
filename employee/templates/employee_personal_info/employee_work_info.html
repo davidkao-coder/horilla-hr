@@ -92,11 +92,12 @@
                     <label class="oh-label">{% trans "薪資加給" %}</label>
                     {{work_form.salary_addition.errors}}{{work_form.salary_addition}}
                 </div>
-                <div class="col-md-4 mb-4">
-                    <label class="oh-label">{% trans "健保眷屬人數" %}</label>
-                    {{work_form.dependents.errors}}{{work_form.dependents}}
-                </div>
             </div>
+            {# Think4U: 健保眷屬明細（加保）— HTMX 載入 #}
+            {% if form.instance.pk %}
+            <hr>
+            <div hx-get="{% url 'think4u-dependent-section' form.instance.pk %}" hx-trigger="load"></div>
+            {% endif %}
             {% if perms.employee.change_employeeworkinformation %}
             {% if form.instance.employee_work_info %}
                 <button

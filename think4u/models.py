@@ -763,3 +763,53 @@ def get_monthly_salary(employee) -> int:
     """取員工全薪（無紀錄則預設 50000）"""
     row = EmployeeSalary.objects.filter(employee=employee).first()
     return row.gross if row else 50000
+
+
+class HealthInsuranceDependent(models.Model):
+    """健保眷屬（依附被保險人加保）。每位加保眷屬一筆，健保自付額 ×(本人+加保眷屬數)。"""
+
+    RELATION_CHOICES = [
+        ("spouse", _("配偶")),
+        ("child", _("子女")),
+        ("parent", _("父母")),
+        ("grandparent", _("祖父母")),
+        ("other", _("其他")),
+    ]
+
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="t4u_dependents",
+        verbose_name=_("員工"),
+    )
+    name = models.CharField(max_length=50, verbose_name=_("眷屬姓名"))
+    relationship = models.CharField(
+        max_length=20, choices=RELATION_CHOICES, default="spouse",
+        verbose_name=_("關係"),
+    )
+    national_id = models.CharField(
+        max_length=20, blank=True, default="", verbose_name=_("身分證字號")
+    )
+    birth_date = models.DateField(null=True, blank=True, verbose_name=_("出生日期"))
+    enroll_date = models.DateField(null=True, blank=True, verbose_name=_("加保起日"))
+    is_enrolled = models.BooleanField(default=True, verbose_name=_("加保中"))
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["employee_id", "id"]
+        verbose_name = _("健保眷屬")
+        verbose_name_plural = _("健保眷屬")
+
+    def __str__(self):
+        return f"{self.employee} | {self.name}（{self.get_relationship_display()}）"
+
+
+def sync_dependent_count(employee) -> int:
+    """依加保中的眷屬筆數，回寫 EmployeeSalary.dependents（健保計費上限 3）。回傳實際加保人數。"""
+    enrolled = HealthInsuranceDependent.objects.filter(
+        employee=employee, is_enrolled=True
+    ).count()
+    sal, _ = EmployeeSalary.objects.get_or_create(employee=employee)
+    sal.dependents = min(enrolled, 3)
+    sal.save(update_fields=["dependents", "updated_at"])
+    return enrolled

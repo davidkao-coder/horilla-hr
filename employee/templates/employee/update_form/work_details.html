@@ -93,6 +93,11 @@
           </button>
         </div>
       </form>
+      {# Think4U: 健保眷屬明細（加保）— HTMX 載入，獨立於工作資訊表單 #}
+      {% if obj_id %}
+      <hr class="mt-4 mb-3" />
+      <div hx-get="{% url 'think4u-dependent-section' obj_id %}" hx-trigger="load"></div>
+      {% endif %}
     </div>
   </div>
 </div>
