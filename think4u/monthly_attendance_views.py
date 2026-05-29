@@ -69,6 +69,13 @@ def _build_salary(sal_row, leave_hours, extra_row=None):
     ]
     s["extras"] = extras
     s["extras_pairs"] = [(key, extras[key]) for key, _label in EXTRA_PAY_FIELDS]
+    # 群組小計（摺疊時顯示）
+    s["allowance_subtotal"] = comp["meal_allowance"] + comp["transport_allowance"]
+    s["addition_subtotal"] = (
+        comp["management_allowance"]
+        + comp["tech_management_allowance"]
+        + comp["salary_addition"]
+    )
     s["dependents"] = deps
     return s
 

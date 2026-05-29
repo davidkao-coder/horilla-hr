@@ -149,9 +149,9 @@ out: {{ c.check_out|default:'—' }}
                     <th class="emp-name" rowspan="2">員工</th>
                     <th rowspan="2" style="background:#dbe7ff;">全薪<br><small>(2026 公式)</small></th>
                     <th rowspan="2">本薪</th>
-                    <th colspan="2" style="background:#e8f5e9;">津貼項目</th>
-                    <th colspan="3" style="background:#e8f5e9;">加給項目</th>
-                    <th colspan="8" style="background:#fff3e0;">其他（每月變動）</th>
+                    <th class="grp-hdr" data-group="allow" data-cols="2" colspan="2" style="background:#e8f5e9; cursor:pointer;" title="點擊摺疊/展開"><span class="grp-caret">▾</span> 津貼項目</th>
+                    <th class="grp-hdr" data-group="add" data-cols="3" colspan="3" style="background:#e8f5e9; cursor:pointer;" title="點擊摺疊/展開"><span class="grp-caret">▾</span> 加給項目</th>
+                    <th class="grp-hdr" data-group="extra" data-cols="8" colspan="8" style="background:#fff3e0; cursor:pointer;" title="點擊摺疊/展開"><span class="grp-caret">▾</span> 其他（每月變動）</th>
                     <th rowspan="2" style="background:#fff3e0;">其他<br>合計</th>
                     <th rowspan="2">健保<br>眷屬</th>
                     <th rowspan="2">日薪<br><small>(÷{{ payroll_base_days }})</small></th>
@@ -163,19 +163,19 @@ out: {{ c.check_out|default:'—' }}
                     <th rowspan="2">實領</th>
                 </tr>
                 <tr>
-                    <th style="background:#e8f5e9;">伙食津貼</th>
-                    <th style="background:#e8f5e9;">交通津貼</th>
-                    <th style="background:#e8f5e9;">管理加給</th>
-                    <th style="background:#e8f5e9;">技術管理加給</th>
-                    <th style="background:#e8f5e9;">薪資加給</th>
-                    <th style="background:#fff3e0;">加班費</th>
-                    <th style="background:#fff3e0;">特休未休</th>
-                    <th style="background:#fff3e0;">生日禮金</th>
-                    <th style="background:#fff3e0;">端午禮金</th>
-                    <th style="background:#fff3e0;">中秋禮金</th>
-                    <th style="background:#fff3e0;">給付代墊<br>公司費用</th>
-                    <th style="background:#fff3e0;">全勤<br>獎勵金</th>
-                    <th style="background:#fff3e0;">行政<br>助理費</th>
+                    <th class="grp-allow" style="background:#e8f5e9;">伙食津貼</th>
+                    <th class="grp-allow" style="background:#e8f5e9;">交通津貼</th>
+                    <th class="grp-add" style="background:#e8f5e9;">管理加給</th>
+                    <th class="grp-add" style="background:#e8f5e9;">技術管理加給</th>
+                    <th class="grp-add" style="background:#e8f5e9;">薪資加給</th>
+                    <th class="grp-extra" style="background:#fff3e0;">加班費</th>
+                    <th class="grp-extra" style="background:#fff3e0;">特休未休</th>
+                    <th class="grp-extra" style="background:#fff3e0;">生日禮金</th>
+                    <th class="grp-extra" style="background:#fff3e0;">端午禮金</th>
+                    <th class="grp-extra" style="background:#fff3e0;">中秋禮金</th>
+                    <th class="grp-extra" style="background:#fff3e0;">給付代墊<br>公司費用</th>
+                    <th class="grp-extra" style="background:#fff3e0;">全勤<br>獎勵金</th>
+                    <th class="grp-extra" style="background:#fff3e0;">行政<br>助理費</th>
                 </tr>
             </thead>
             <tbody>
@@ -183,17 +183,36 @@ out: {{ c.check_out|default:'—' }}
                 <tr data-emp="{{ row.employee.id }}">
                     <td class="emp-name"><strong>{{ row.employee }}</strong></td>
                     <td class="sal-gross" style="background:#f0f6ff; font-weight:700;">{{ row.salary.gross }}</td>
-                    {% for key, comp in row.salary.components_pairs %}
+                    {% comment %}本薪（不可摺疊）{% endcomment %}
                     <td>
                         {% if is_hr %}
-                            <input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="{{ key }}"
-                                value="{{ comp }}" min="0" step="500"
+                            <input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="base_salary"
+                                value="{{ row.salary.components.base_salary }}" min="0" step="500"
                                 style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
-                        {% else %}{{ comp }}{% endif %}
+                        {% else %}{{ row.salary.components.base_salary }}{% endif %}
                     </td>
-                    {% endfor %}
+                    {% comment %}津貼項目（伙食 / 交通）{% endcomment %}
+                    <td class="grp-allow">
+                        {% if is_hr %}<input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="meal_allowance" value="{{ row.salary.components.meal_allowance }}" min="0" step="500" style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.components.meal_allowance }}{% endif %}
+                    </td>
+                    <td class="grp-allow">
+                        {% if is_hr %}<input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="transport_allowance" value="{{ row.salary.components.transport_allowance }}" min="0" step="500" style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.components.transport_allowance }}{% endif %}
+                    </td>
+                    <td class="grp-allow-sum" style="display:none; background:#e8f5e9; font-weight:600;">{{ row.salary.allowance_subtotal }}</td>
+                    {% comment %}加給項目（管理 / 技術管理 / 薪資）{% endcomment %}
+                    <td class="grp-add">
+                        {% if is_hr %}<input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="management_allowance" value="{{ row.salary.components.management_allowance }}" min="0" step="500" style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.components.management_allowance }}{% endif %}
+                    </td>
+                    <td class="grp-add">
+                        {% if is_hr %}<input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="tech_management_allowance" value="{{ row.salary.components.tech_management_allowance }}" min="0" step="500" style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.components.tech_management_allowance }}{% endif %}
+                    </td>
+                    <td class="grp-add">
+                        {% if is_hr %}<input type="number" class="comp-input" data-emp="{{ row.employee.id }}" data-field="salary_addition" value="{{ row.salary.components.salary_addition }}" min="0" step="500" style="width:78px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.components.salary_addition }}{% endif %}
+                    </td>
+                    <td class="grp-add-sum" style="display:none; background:#e8f5e9; font-weight:600;">{{ row.salary.addition_subtotal }}</td>
+                    {% comment %}其他（每月變動）{% endcomment %}
                     {% for key, val in row.salary.extras_pairs %}
-                    <td style="background:#fffaf3;">
+                    <td class="grp-extra" style="background:#fffaf3;">
                         {% if is_hr %}
                             <input type="number" class="extra-input" data-emp="{{ row.employee.id }}" data-field="{{ key }}"
                                 value="{{ val }}" step="100"
@@ -201,6 +220,7 @@ out: {{ c.check_out|default:'—' }}
                         {% else %}{{ val }}{% endif %}
                     </td>
                     {% endfor %}
+                    <td class="grp-extra-sum" style="display:none; background:#fff3e0; font-weight:600; color:#b26a00;">{{ row.salary.extra_total }}</td>
                     <td class="sal-extra" style="background:#fff3e0; font-weight:600; color:#b26a00;">+{{ row.salary.extra_total }}</td>
                     <td title="{% trans '加保眷屬數在員工工作資訊維護' %}">{{ row.salary.dependents }}</td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
@@ -226,6 +246,37 @@ out: {{ c.check_out|default:'—' }}
             </tbody>
         </table>
     </div>
+
+    <script>
+    // 薪資表欄位群組摺疊（津貼 / 加給 / 其他）
+    (function () {
+        function toggleGroup(group) {
+            const hdr = document.querySelector(`.grp-hdr[data-group="${group}"]`);
+            if (!hdr) return;
+            const cols = parseInt(hdr.dataset.cols, 10);
+            const collapsed = hdr.classList.toggle('grp-collapsed');
+            // 明細欄（th + td）
+            document.querySelectorAll(`.grp-${group}`).forEach(el => {
+                el.style.display = collapsed ? 'none' : '';
+            });
+            // 摺疊時顯示小計欄
+            document.querySelectorAll(`.grp-${group}-sum`).forEach(el => {
+                el.style.display = collapsed ? 'table-cell' : 'none';
+            });
+            // 群組表頭：摺疊 → 占 1 欄並跨兩列；展開 → 還原 colspan
+            if (collapsed) {
+                hdr.colSpan = 1; hdr.rowSpan = 2;
+            } else {
+                hdr.colSpan = cols; hdr.rowSpan = 1;
+            }
+            const caret = hdr.querySelector('.grp-caret');
+            if (caret) caret.textContent = collapsed ? '▸' : '▾';
+        }
+        document.querySelectorAll('.grp-hdr').forEach(h => {
+            h.addEventListener('click', () => toggleGroup(h.dataset.group));
+        });
+    })();
+    </script>
 
     {% if is_hr %}
     <script>
@@ -260,6 +311,11 @@ out: {{ c.check_out|default:'—' }}
                     if (!d.ok) throw new Error('update failed');
                     tr.querySelector('.sal-gross').textContent = d.gross;
                     tr.querySelector('.sal-extra').textContent = '+' + d.extra_total;
+                    // 群組小計（摺疊時顯示）同步
+                    const setSum = (cls, v) => { const c = tr.querySelector(cls); if (c) c.textContent = v; };
+                    setSum('.grp-allow-sum', d.allowance_subtotal);
+                    setSum('.grp-add-sum', d.addition_subtotal);
+                    setSum('.grp-extra-sum', d.extra_total);
                     tr.querySelector('.sal-daily').textContent = d.daily;
                     tr.querySelector('.sal-labor').textContent = '-' + d.labor;
                     tr.querySelector('.sal-health').textContent = '-' + d.health;
