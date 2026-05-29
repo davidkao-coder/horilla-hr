@@ -194,3 +194,4 @@
   - **Phase 2**: 新 model `ApprovalWorkflow(job_position, request_type)` + `ApprovalStep(workflow, order, approver_type, approver_role|approver_employee)`（migration `think4u.0003`）；approver_type 五選：直屬主管 / 部門主管 / 指定角色 / 指定員工 / HR。
   - **Phase 3**: `/think4u/approval-workflow/` 管理頁（superuser-only）；每個 (職位 × 請假|加班) 一張卡片，動態加 / 刪 / 改關卡、整批儲存；配置 sidebar 加「審核關卡管理」入口。
   - **Phase 4（未做）**: 整合到 WP-04 加班 + 請假審核流程（取代寫死的 direct manager → HR），後續另做。
+- 2026-05-29 修「換頁第一下卡 loading、點兩下才秒回」：root cause = `entrypoint.sh` 的 gunicorn 沒給 `--workers/--threads`，預設只有 **1 個 sync worker**，所有請求序列化；背景輪詢（reload-messages / 通知）佔住唯一 worker 時，使用者點換頁的請求只能在 socket backlog 等待，等 worker 空出才回應（感覺第一下要 loading、再點一下剛好 worker 空了就秒回）。修法：改用 `--worker-class gthread --workers 2 --threads 4 --timeout 120`（可用 GUNICORN_WORKERS/THREADS/TIMEOUT env 覆寫），2×4=8 併發、記憶體僅 ~2 份（避開先前 OOM）。dev 與 prod 共用此 entrypoint.sh，皆生效。驗證：4 個並行 authenticated 請求 341ms ≈ 單次 379ms（修前序列化會 ~4×）。
