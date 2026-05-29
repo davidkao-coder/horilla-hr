@@ -41,6 +41,25 @@ def day_detail(request, emp_id: int, ymd: str):
     lv_mins = leave_minutes_on_date(emp, the_date)
     ev = evaluate(first_in, last_out, leave_minutes=lv_mins)
 
+    # 週末 / 國定假日且當天沒打卡也沒請假 → 視為休息日（不算缺勤 / 工時不足）
+    from think4u.attendance_rules import AttendanceEvaluation, is_workday
+    from think4u.attendance_compute import _holiday_dates
+
+    holiday_name = _holiday_dates(the_date, the_date).get(the_date)
+    is_rest = (not is_workday(the_date)) or holiday_name is not None
+    if is_rest and not punches and lv_mins == 0:
+        ev = AttendanceEvaluation(
+            status="rest",
+            status_label=holiday_name or "休息日",
+            work_minutes=0,
+            late_minutes=0,
+            early_minutes=0,
+            short_minutes=0,
+            is_complete=True,
+            has_check_in=False,
+            has_check_out=False,
+        )
+
     leaves = list(
         LeaveRequest.objects.filter(
             employee_id=emp, start_date__lte=the_date, end_date__gte=the_date

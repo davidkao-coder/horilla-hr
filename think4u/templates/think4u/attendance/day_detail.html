@@ -35,7 +35,7 @@
     <section class="card">
         <h3>📊 摘要</h3>
         <div class="info-grid">
-            <div class="lbl">最早上班</div><div>{{ ev.has_check_in|yesno:"" }}{{ punches.0.clock_in|time:"H:i:s"|default:"—" }}</div>
+            <div class="lbl">最早上班</div><div>{{ punches.0.clock_in|time:"H:i:s"|default:"—" }}</div>
             <div class="lbl">最晚下班</div>
             <div>
                 {% for p in punches reversed %}
