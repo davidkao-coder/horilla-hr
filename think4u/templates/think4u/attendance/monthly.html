@@ -132,10 +132,12 @@ out: {{ c.check_out|default:'—' }}
                 <tr>
                     <th class="emp-name">員工</th>
                     <th>月薪</th>
-                    <th>日薪(÷{{ payroll_base_days }})</th>
+                    <th>日薪<br><small>(÷{{ payroll_base_days }})</small></th>
                     <th>勞保自付</th>
                     <th>健保自付</th>
+                    <th style="min-width:200px;">請假明細<br><small>(假別 時數 → 扣薪)</small></th>
                     <th>請假扣薪</th>
+                    <th style="min-width:230px;">計算式</th>
                     <th>實領</th>
                 </tr>
             </thead>
@@ -153,16 +155,24 @@ out: {{ c.check_out|default:'—' }}
                         {% endif %}
                     </td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
-                    <td style="color:#c0392b;">-{{ row.salary.labor }}</td>
-                    <td style="color:#c0392b;">-{{ row.salary.health }}</td>
-                    <td class="sal-leave" style="color:#c0392b;"
-                        title="{% for b in row.salary.leave_breakdown %}{{ b.type }} {{ b.hours }}h → -{{ b.amount }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+                    <td class="sal-labor" style="color:#c0392b;">-{{ row.salary.labor }}</td>
+                    <td class="sal-health" style="color:#c0392b;">-{{ row.salary.health }}</td>
+                    <td class="sal-detail" style="text-align:left; font-size:12px;">
+                        {% for b in row.salary.leave_breakdown %}
+                            <div>{{ b.type }} <strong>{{ b.hours }}h</strong>（{{ b.days }}天 {{ b.ratio_label }}）
+                                → <span style="color:{% if b.amount %}#c0392b{% else %}#999{% endif %};">-{{ b.amount }}</span></div>
+                        {% empty %}<span style="color:#999;">—</span>{% endfor %}
+                    </td>
+                    <td class="sal-leave" style="color:#c0392b; font-weight:600;">
                         {% if row.salary.leave_ded %}-{{ row.salary.leave_ded }}{% else %}0{% endif %}
+                    </td>
+                    <td class="sal-formula" style="font-size:12px; color:#555; white-space:nowrap;">
+                        {{ row.salary.gross }} −{{ row.salary.labor }} −{{ row.salary.health }} −{{ row.salary.leave_ded }} = <strong style="color:#2e7d32;">{{ row.salary.net }}</strong>
                     </td>
                     <td class="sal-net" style="font-weight:700; color:#2e7d32;">{{ row.salary.net }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="7" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
+                <tr><td colspan="9" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -187,10 +197,22 @@ out: {{ c.check_out|default:'—' }}
                         if (!d.ok) { alert('更新失敗'); return; }
                         const tr = document.querySelector(`tr[data-emp="${emp}"]`);
                         tr.querySelector('.sal-daily').textContent = d.daily;
-                        tr.querySelectorAll('td')[3].textContent = '-' + d.labor;
-                        tr.querySelectorAll('td')[4].textContent = '-' + d.health;
+                        tr.querySelector('.sal-labor').textContent = '-' + d.labor;
+                        tr.querySelector('.sal-health').textContent = '-' + d.health;
                         tr.querySelector('.sal-leave').textContent = d.leave_ded ? ('-' + d.leave_ded) : '0';
                         tr.querySelector('.sal-net').textContent = d.net;
+                        // 重建請假明細
+                        const detail = tr.querySelector('.sal-detail');
+                        if (d.leave_breakdown && d.leave_breakdown.length) {
+                            detail.innerHTML = d.leave_breakdown.map(b =>
+                                `<div>${b.type} <strong>${b.hours}h</strong>（${b.days}天 ${b.ratio_label}）→ <span style="color:${b.amount ? '#c0392b' : '#999'};">-${b.amount}</span></div>`
+                            ).join('');
+                        } else {
+                            detail.innerHTML = '<span style="color:#999;">—</span>';
+                        }
+                        // 重建計算式
+                        tr.querySelector('.sal-formula').innerHTML =
+                            `${d.gross} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
                     })
                     .catch(() => alert('更新失敗'));
             });

@@ -99,20 +99,28 @@ def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
     daily = salary / PAYROLL_BASE_DAYS
     total = 0.0
     breakdown = []
+    # 含所有假別（即使全薪不扣也列出，扣薪 0），方便表格顯示時數/扣薪明細
     for name, hours in (leave_hours_by_type or {}).items():
         if not hours:
             continue
         ratio = LEAVE_PAY_RATIO.get(name, 1.0)  # 未知假別預設全薪不扣
-        if ratio >= 1.0:
-            continue
         days = float(hours) / 8.0
         amount = (1.0 - ratio) * daily * days
         total += amount
+        # 給薪比例 → 中文標籤
+        if ratio >= 1.0:
+            ratio_label = "不扣"
+        elif ratio <= 0.0:
+            ratio_label = "全扣"
+        else:
+            ratio_label = "半扣"
         breakdown.append(
             {
                 "type": name,
                 "hours": round(float(hours), 1),
+                "days": round(days, 2),
                 "ratio": ratio,
+                "ratio_label": ratio_label,
                 "amount": round(amount),
             }
         )
