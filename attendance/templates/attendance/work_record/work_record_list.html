@@ -17,40 +17,7 @@
             ></ion-icon>
             {% trans "Export" %}
         </button>
-
-        <div class="oh-dropdown" x-data="{ open: false }">
-            <button
-                class="oh-btn ml-2"
-                @click="open = !open"
-                onclick="event.preventDefault()"
-            >
-                <ion-icon name="filter" class="mr-1"></ion-icon>
-                {% trans "Filter" %}
-                <div id="filterCount"></div>
-            </button>
-
-            <div
-                class="oh-dropdown__menu oh-dropdown__filter p-4"
-                x-show="open"
-                @click.outside="open = false"
-                style="display: none"
-            >
-                <form
-                    hx-get="{% url 'work-records-change-month' %}?{{pd}}"
-                    hx-target="#workRecordTable"
-                >
-                    {% include 'employee_filters.html' %}
-                    <div class="oh-dropdown__filter-footer">
-                        <button
-                            class="oh-btn oh-btn--secondary oh-btn--small w-100 filterButton"
-                            id="#employeeFilter"
-                        >
-                            {% trans "Filter" %}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+        {% comment %}Think4U: 工作紀錄頁篩選器移除（只保留月份切換 + 匯出）{% endcomment %}
     </div>
 
     {# Think4U: 改 label / 拿掉「出席半天」+「衝突」#}

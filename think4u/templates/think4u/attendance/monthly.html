@@ -119,12 +119,75 @@ out: {{ c.check_out|default:'—' }}
         </table>
     </div>
 
-    <div style="margin-top:1rem; padding:1rem; background:#fffde7; border-left:4px solid #fbc02d; border-radius:4px; font-size:13px;">
-        <strong>💰 計薪基準</strong>
-        ：{{ year }}/{{ month }} 共 <strong>{{ payroll_base_days }} 天</strong> × 每日 8 小時 =
-        <strong>{{ payroll_base_hours }} 小時</strong>
-        <br>
-        <small style="color:#888;">薪資計算以「該月總天數 × 8 小時」為基準（含假日）。</small>
+    <h2 style="margin-top:2rem; font-size:18px;">💰 {{ year }}/{{ month }} 薪資試算</h2>
+    <p style="color:#888; font-size:12px; margin-bottom:8px;">
+        計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 月薪 ÷ {{ payroll_base_days }}）。
+        實領 = 月薪 − 勞保自付 − 健保自付（2025 級距；勞保上限 45,800，健保本人）。
+        勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}月薪可直接點欄位修改。{% endif %}
+    </p>
+    <div class="att-matrix-wrapper">
+        <table class="att-matrix" style="min-width:auto;">
+            <thead>
+                <tr>
+                    <th class="emp-name">員工</th>
+                    <th>月薪</th>
+                    <th>日薪(÷{{ payroll_base_days }})</th>
+                    <th>勞保自付</th>
+                    <th>健保自付</th>
+                    <th>實領</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr data-emp="{{ row.employee.id }}">
+                    <td class="emp-name"><strong>{{ row.employee }}</strong></td>
+                    <td>
+                        {% if is_hr %}
+                            NT$ <input type="number" class="salary-input" data-emp="{{ row.employee.id }}"
+                                value="{{ row.salary.gross }}" min="0" step="1000"
+                                style="width:90px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                        {% else %}
+                            NT$ <span class="sal-gross">{{ row.salary.gross }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="sal-daily">{{ row.salary.daily }}</td>
+                    <td style="color:#c0392b;">-{{ row.salary.labor }}</td>
+                    <td style="color:#c0392b;">-{{ row.salary.health }}</td>
+                    <td class="sal-net" style="font-weight:700; color:#2e7d32;">{{ row.salary.net }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
+
+    {% if is_hr %}
+    <script>
+    (function () {
+        const url = "{% url 'think4u-salary-update' %}";
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+            || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+        document.querySelectorAll('.salary-input').forEach(function (inp) {
+            inp.addEventListener('change', function () {
+                const emp = this.dataset.emp;
+                const body = new URLSearchParams({employee_id: emp, monthly_salary: this.value});
+                fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
+                    .then(r => r.json())
+                    .then(d => {
+                        if (!d.ok) { alert('更新失敗'); return; }
+                        const tr = document.querySelector(`tr[data-emp="${emp}"]`);
+                        tr.querySelector('.sal-daily').textContent = d.daily;
+                        tr.querySelectorAll('td')[3].textContent = '-' + d.labor;
+                        tr.querySelectorAll('td')[4].textContent = '-' + d.health;
+                        tr.querySelector('.sal-net').textContent = d.net;
+                    })
+                    .catch(() => alert('更新失敗'));
+            });
+        });
+    })();
+    </script>
+    {% csrf_token %}
+    {% endif %}
 </div>
 {% endblock %}

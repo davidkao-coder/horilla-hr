@@ -688,3 +688,38 @@ class LeaveAllocation(models.Model):
         from datetime import date as _d
         on = on or _d.today()
         return self.start_date <= on <= self.end_date
+
+
+# ============================================================================
+# 員工月薪（用於月度出勤統計即時試算薪資 — 扣勞健保）
+# ----------------------------------------------------------------------------
+# 預設每位員工 50,000；HR 可在月度統計頁即時編輯。
+# 勞健保計算邏輯見 think4u/payroll_rules.py（2025 級距表）。
+# ============================================================================
+class EmployeeSalary(models.Model):
+    employee = models.OneToOneField(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="t4u_salary",
+        verbose_name=_("員工"),
+    )
+    monthly_salary = models.PositiveIntegerField(
+        default=50000, verbose_name=_("月薪（NT$）")
+    )
+    dependents = models.PositiveSmallIntegerField(
+        default=0, verbose_name=_("健保眷屬人數")
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("員工月薪")
+        verbose_name_plural = _("員工月薪")
+
+    def __str__(self):
+        return f"{self.employee} | {self.monthly_salary}"
+
+
+def get_monthly_salary(employee) -> int:
+    """取員工月薪（無紀錄則預設 50000）"""
+    row = EmployeeSalary.objects.filter(employee=employee).first()
+    return row.monthly_salary if row else 50000

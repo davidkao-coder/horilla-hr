@@ -68,6 +68,11 @@ urlpatterns = [
         monthly_attendance_views.monthly_attendance,
         name="think4u-attendance-monthly",
     ),
+    path(
+        "attendance/salary/update/",
+        monthly_attendance_views.update_salary,
+        name="think4u-salary-update",
+    ),
     # 某員工某天打卡明細
     path(
         "attendance/day/<int:emp_id>/<str:ymd>/",

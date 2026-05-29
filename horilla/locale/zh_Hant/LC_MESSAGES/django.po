@@ -444,7 +444,7 @@ msgid "Group By"
 msgstr "分組依據"
 
 msgid "Field"
-msgstr "領域"
+msgstr "欄位"
 
 msgid "Asset Details"
 msgstr "資產詳情"

@@ -10,15 +10,18 @@ from collections import defaultdict
 from datetime import date, datetime
 
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from attendance.models import AttendanceActivity
 from base.models import Holidays
 from employee.models import Employee, EmployeeWorkInformation
 from leave.models import LeaveRequest, LeaveType
 from think4u.attendance_rules import evaluate, format_minutes, is_workday
-from think4u.models import get_hidden_in_reports_employees
+from think4u.models import EmployeeSalary, get_hidden_in_reports_employees
+from think4u.payroll_rules import compute_salary
 
 
 def _is_hr(user) -> bool:
@@ -108,6 +111,12 @@ def monthly_attendance(request):
         scope_qs = scope_qs.exclude(id__in=hidden_ids)
     employees = list(scope_qs.order_by("employee_first_name"))
     emp_ids = [e.id for e in employees]
+
+    # Think4U: 預取每位員工月薪（無紀錄預設 50000）
+    salary_map = {
+        s.employee_id: s
+        for s in EmployeeSalary.objects.filter(employee_id__in=emp_ids)
+    }
 
     # 一次撈該月所有 AttendanceActivity
     activities = AttendanceActivity.objects.filter(
@@ -244,12 +253,17 @@ def monthly_attendance(request):
                 },
                 # 該員工該月各假別總時數 e.g. {"事假": 4.5, "病假": 8.0}
                 "leave_by_type": dict(leaves_by_emp_type.get(emp.id, {})),
+                # 即時試算薪資（月薪 - 勞健保），月薪預設 50000
+                "salary": compute_salary(
+                    salary_map[emp.id].monthly_salary if emp.id in salary_map else 50000,
+                    salary_map[emp.id].dependents if emp.id in salary_map else 0,
+                ),
             }
         )
 
-    # 計薪基準（依用戶定義：單月總天數 × 8h）
-    payroll_base_days = last_day
-    payroll_base_hours = last_day * 8
+    # 計薪基準：30 天（台灣慣例，日薪 = 月薪 / 30）
+    payroll_base_days = 30
+    payroll_base_hours = 30 * 8
 
     # 上 / 下個月導航
     if month == 1:
@@ -279,3 +293,26 @@ def monthly_attendance(request):
             "holiday_dates": holiday_dates,
         },
     )
+
+
+@login_required
+@require_POST
+def update_salary(request):
+    """HR 即時更新員工月薪 → 回傳重算後的勞健保 / 實領（JSON）"""
+    if not _is_hr(request.user):
+        return JsonResponse({"ok": False, "error": "no_permission"}, status=403)
+    try:
+        emp_id = int(request.POST.get("employee_id"))
+        salary = max(0, int(request.POST.get("monthly_salary")))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "error": "bad_input"}, status=400)
+
+    from employee.models import Employee
+
+    if not Employee.objects.filter(id=emp_id).exists():
+        return JsonResponse({"ok": False, "error": "no_employee"}, status=404)
+
+    row, _ = EmployeeSalary.objects.get_or_create(employee_id=emp_id)
+    row.monthly_salary = salary
+    row.save(update_fields=["monthly_salary", "updated_at"])
+    return JsonResponse({"ok": True, **compute_salary(salary, row.dependents)})

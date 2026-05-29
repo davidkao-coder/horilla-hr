@@ -610,21 +610,13 @@ class AttendanceActivityReGroup:
     Class to keep the field name for group by option
     """
 
+    # Think4U: 分組依據只保留與表格欄位對齊的選項（員工 / 出勤日期 / 上班日期 / 下班日期）
     fields = [
         ("", "Select"),
         ("employee_id", "Employee"),
         ("attendance_date", "Attendance Date"),
         ("clock_in_date", "In Date"),
         ("clock_out_date", "Out Date"),
-        ("shift_day", "Shift Day"),
-        ("employee_id__country", "Country"),
-        ("employee_id__employee_work_info__reporting_manager_id", "Reporting Manager"),
-        ("employee_id__employee_work_info__shift_id", "Shift"),
-        ("employee_id__employee_work_info__work_type_id", "Work Type"),
-        ("employee_id__employee_work_info__department_id", "Department"),
-        ("employee_id__employee_work_info__job_position_id", "Job Position"),
-        ("employee_id__employee_work_info__employee_type_id", "Employment Type"),
-        ("employee_id__employee_work_info__company_id", "Company"),
     ]
 
 

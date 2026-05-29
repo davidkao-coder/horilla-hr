@@ -778,6 +778,13 @@ def attendance_activity_view(request):
     )
     attendance_activities = attendance_activities | self_attendance_activities
     attendance_activities = attendance_activities.distinct()
+    # Think4U: 排除「不顯示在報表」的角色成員（高管等）
+    from think4u.models import get_hidden_in_reports_employees
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    if hidden_ids:
+        attendance_activities = attendance_activities.exclude(
+            employee_id__in=hidden_ids
+        )
     attendance_activities = attendance_activities.order_by("-pk")
     activity_ids = json.dumps(
         [instance.id for instance in paginator_qry(attendance_activities, None)]
@@ -1115,35 +1122,71 @@ def on_time_view(request):
 @install_required
 def late_come_early_out_view(request):
     """
-    This method render template to view all late come early out entries
+    Think4U 重寫：遲到 / 早退紀錄改由 AttendanceActivity（打卡明細）即時計算，
+    與「工作紀錄」「打卡明細」「月度出勤統計」同一份資料來源，確保一致。
+
+    原 Horilla 版本讀 AttendanceLateComeEarlyOut 表，但該表只在 Horilla 的
+    Attendance 被驗證時才寫入；Think4U 匯入與 GPS 打卡只寫 AttendanceActivity，
+    那張表是空的 → 頁面資料與其他頁對不上。
+
+    支援 ?start=YYYY-MM-DD&end=YYYY-MM-DD，預設為本月。
     """
-    filter_obj = LateComeEarlyOutFilter(request.GET)
-    if filter_obj.qs.exists():
-        template = "attendance/late_come_early_out/reports.html"
-    else:
-        template = "attendance/late_come_early_out/reports_empty.html"
-    self_reports = filter_obj.qs.filter(employee_id__employee_user_id=request.user)
-    reports = filtersubordinates(
-        request, filter_obj.qs, "attendance.view_attendancelatecomeearlyout"
+    import calendar as _calendar
+    from datetime import date as _date
+
+    from think4u.attendance_compute import daily_evaluations
+    from think4u.models import get_hidden_in_reports_employees
+    from employee.models import Employee
+
+    today = _date.today()
+    try:
+        start = _date.fromisoformat(request.GET.get("start"))
+    except (TypeError, ValueError):
+        start = today.replace(day=1)
+    try:
+        end = _date.fromisoformat(request.GET.get("end"))
+    except (TypeError, ValueError):
+        last_day = _calendar.monthrange(start.year, start.month)[1]
+        end = start.replace(day=last_day)
+
+    # 範圍員工：全公司在職，扣掉「不顯示在報表」角色（高管）
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    employees = (
+        Employee.objects.filter(is_active=True)
+        .exclude(id__in=hidden_ids)
+        .select_related("employee_work_info__department_id")
+        .order_by("employee_first_name")
     )
 
-    reports = reports | self_reports
-    reports = reports.distinct()
-    late_in_early_out_ids = json.dumps(
-        [instance.id for instance in paginator_qry(reports, None)]
-    )
-    previous_data = request.GET.urlencode()
-    data_dict = parse_qs(previous_data)
-    get_key_instances(AttendanceLateComeEarlyOut, data_dict)
+    evals = daily_evaluations(employees, start, end)
+    rows = [
+        {
+            "employee": e["employee"],
+            "date": e["date"],
+            "type": e["evaluation"].status,
+            "type_label": e["evaluation"].status_label,
+            "late_minutes": e["evaluation"].late_minutes,
+            "early_minutes": e["evaluation"].early_minutes,
+            "check_in": e["check_in"],
+            "check_out": e["check_out"],
+        }
+        for e in evals
+        if e["evaluation"].late_minutes > 0 or e["evaluation"].early_minutes > 0
+    ]
+    rows.sort(key=lambda r: (r["date"], r["employee"].employee_first_name), reverse=True)
+
+    late_count = sum(1 for r in rows if r["late_minutes"] > 0)
+    early_count = sum(1 for r in rows if r["early_minutes"] > 0)
+
     return render(
         request,
-        template,
+        "attendance/late_come_early_out/think4u_reports.html",
         {
-            "data": paginator_qry(reports, request.GET.get("page")),
-            "f": filter_obj,
-            "gp_fields": LateComeEarlyOutReGroup.fields,
-            "filter_dict": data_dict,
-            "late_in_early_out_ids": late_in_early_out_ids,
+            "rows": rows,
+            "start": start,
+            "end": end,
+            "late_count": late_count,
+            "early_count": early_count,
         },
     )
 
@@ -2363,82 +2406,135 @@ def work_records_change_month(request):
 @login_required
 @permission_required("attendance.view_workrecords")
 def work_record_export(request):
+    """
+    Think4U：匯出「每人每天的打卡明細」。
+    一列 = 一位員工的一個工作日：員工 / 部門 / 日期 / 星期 / 上班 / 下班 / 工時 / 狀態 / 遲到(分) / 早退(分) / 請假時數。
+    資料來源 = AttendanceActivity（與打卡明細 / 月度統計一致），週末與國定假日不列。
+    """
+    from collections import defaultdict as _dd
+
+    from leave.models import LeaveRequest
+    from think4u.attendance_rules import evaluate, format_minutes, is_workday
+    from think4u.attendance_compute import _holiday_dates
+    from think4u.models import get_hidden_in_reports_employees
+
     try:
         month = int(request.GET.get("month") or date.today().month)
         year = int(request.GET.get("year") or date.today().year)
     except ValueError:
         return HttpResponseBadRequest("Invalid month or year parameter.")
 
-    employees = EmployeeFilter(request.GET).qs
-    records = WorkRecords.objects.filter(date__month=month, date__year=year)
     num_days = calendar.monthrange(year, month)[1]
-    all_date_objects = [date(year, month, day) for day in range(1, num_days + 1)]
-    leave_dates = set(monthly_leave_days(month, year))
+    month_start = date(year, month, 1)
+    month_end = date(year, month, num_days)
 
-    record_lookup = defaultdict(lambda: "ABS")
-    for record in records:
-        if record.date <= date.today():
-            record_key = (record.employee_id, record.date)
-            record_lookup[record_key] = record.work_record_type
+    # 員工：套用篩選（若有） + 排除「不顯示在報表」角色
+    employees = EmployeeFilter(request.GET).qs.filter(is_active=True)
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    if hidden_ids:
+        employees = employees.exclude(id__in=hidden_ids)
+    employees = employees.select_related("employee_work_info__department_id").order_by(
+        "employee_first_name"
+    )
+    emp_ids = [e.id for e in employees]
 
-    date_format = request.user.employee_get.get_date_format()
-    format_string = HORILLA_DATE_FORMATS.get(date_format)
-    formatted_dates = [day.strftime(format_string) for day in all_date_objects]
+    # 打卡活動 → (emp, date) 最早上班 / 最晚下班
+    by_emp_date = _dd(lambda: {"in": None, "out": None})
+    for a in AttendanceActivity.objects.filter(
+        employee_id__in=emp_ids,
+        attendance_date__gte=month_start,
+        attendance_date__lte=month_end,
+    ):
+        key = (a.employee_id_id, a.attendance_date)
+        if a.clock_in and (by_emp_date[key]["in"] is None or a.clock_in < by_emp_date[key]["in"]):
+            by_emp_date[key]["in"] = a.clock_in
+        if a.clock_out and (by_emp_date[key]["out"] is None or a.clock_out > by_emp_date[key]["out"]):
+            by_emp_date[key]["out"] = a.clock_out
+
+    # 請假 → 每日分鐘 + 每日假別名
+    leave_minutes = _dd(int)
+    leave_names = _dd(list)
+    for r in LeaveRequest.objects.filter(
+        employee_id__in=emp_ids,
+        start_date__lte=month_end,
+        end_date__gte=month_start,
+        status="approved",
+    ).select_related("leave_type_id"):
+        span = (r.end_date - r.start_date).days + 1
+        if span <= 0:
+            span = 1
+        daily_min = int(min(float(r.requested_days or 0) / span, 1.0) * 480)
+        cur = max(r.start_date, month_start)
+        last = min(r.end_date, month_end)
+        while cur <= last:
+            k = (r.employee_id_id, cur)
+            leave_minutes[k] = min(leave_minutes[k] + daily_min, 480)
+            if r.leave_type_id and r.leave_type_id.name not in leave_names[k]:
+                leave_names[k].append(r.leave_type_id.name)
+            cur = cur.fromordinal(cur.toordinal() + 1)
+
+    holidays = _holiday_dates(month_start, month_end)
+    weekday_zh = ["一", "二", "三", "四", "五", "六", "日"]
+
     data_rows = []
+    for emp in employees:
+        for day_num in range(1, num_days + 1):
+            d = date(year, month, day_num)
+            if not is_workday(d) or d in holidays:
+                continue
+            data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
+            lv = leave_minutes.get((emp.id, d), 0)
+            ev = evaluate(data["in"], data["out"], leave_minutes=lv)
+            data_rows.append(
+                {
+                    "員工": emp.get_full_name(),
+                    "部門": (
+                        emp.employee_work_info.department_id.department
+                        if getattr(emp, "employee_work_info", None)
+                        and emp.employee_work_info.department_id
+                        else ""
+                    ),
+                    "日期": d.strftime("%Y-%m-%d"),
+                    "星期": weekday_zh[d.weekday()],
+                    "上班": data["in"].strftime("%H:%M") if data["in"] else "",
+                    "下班": data["out"].strftime("%H:%M") if data["out"] else "",
+                    "工時": format_minutes(ev.work_minutes),
+                    "狀態": ev.status_label,
+                    "遲到(分)": ev.late_minutes or "",
+                    "早退(分)": ev.early_minutes or "",
+                    "請假時數": round(lv / 60, 1) if lv else "",
+                    "假別": "、".join(leave_names.get((emp.id, d), [])),
+                }
+            )
 
-    for employee in employees:
-        row_data = {"Employee": employee}
-        for day, formatted_day in zip(all_date_objects, formatted_dates):
-            if not day in leave_dates and day < date.today():
-                row_data[formatted_day] = record_lookup.get((employee, day), "DFT")
-            else:
-                data = record_lookup.get((employee, day), "")
-                row_data[formatted_day] = data if data != "DFT" else ""
-        data_rows.append(row_data)
-
-    columns = ["Employee"] + formatted_dates
+    columns = [
+        "員工", "部門", "日期", "星期", "上班", "下班", "工時",
+        "狀態", "遲到(分)", "早退(分)", "請假時數", "假別",
+    ]
     df = pd.DataFrame(data_rows, columns=columns)
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Sheet1")
+        df.to_excel(writer, index=False, sheet_name="打卡明細")
         workbook = writer.book
-        worksheet = writer.sheets["Sheet1"]
-
-        formats = {
-            "ABS": workbook.add_format(
-                {"bg_color": "#808080", "font_color": "#ffffff"}
-            ),
-            "FDP": workbook.add_format(
-                {"bg_color": "#38c338", "font_color": "#ffffff"}
-            ),
-            "HDP": workbook.add_format(
-                {"bg_color": "#dfdf52", "font_color": "#000000"}
-            ),
-            "CONF": workbook.add_format(
-                {"bg_color": "#ed4c4c", "font_color": "#ffffff"}
-            ),
-            "DFT": workbook.add_format(
-                {"bg_color": "#a8b1ff", "font_color": "#ffffff"}
-            ),
-        }
-
-        for row_idx, row in enumerate(df.itertuples(index=False), start=1):
-            for col_idx, cell_value in enumerate(row[1:], start=1):
-                if cell_value in formats:
-                    worksheet.write(row_idx, col_idx, cell_value, formats[cell_value])
-
+        worksheet = writer.sheets["打卡明細"]
+        header_fmt = workbook.add_format(
+            {"bold": True, "bg_color": "#4a5dc7", "font_color": "#ffffff", "border": 1}
+        )
         for col_idx, col in enumerate(df.columns):
-            max_len = max(df[col].astype(str).map(len).max(), len(col))
+            worksheet.write(0, col_idx, col, header_fmt)
+            series = df[col].astype(str)
+            max_len = max([len(col)] + [len(v) for v in series]) + 2
             worksheet.set_column(col_idx, col_idx, max_len)
 
     output.seek(0)
-
     response = HttpResponse(
         output.read(),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    response["Content-Disposition"] = 'attachment; filename="work_record_export.xlsx"'
+    response["Content-Disposition"] = (
+        f'attachment; filename="clock_detail_{year}{month:02d}.xlsx"'
+    )
     return response
 
 

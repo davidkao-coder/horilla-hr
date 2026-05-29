@@ -21,12 +21,13 @@ SUBMENUS = [
         "vis_key": "attendance.dashboard",
         "accessibility": "attendance.sidebar.dashboard_accessibility",
     },
-    {
-        "menu": _("Attendances"),
-        "redirect": reverse("attendance-view"),
-        "vis_key": "attendance.list",
-        "accessibility": "attendance.sidebar.attendances_accessibility",
-    },
+    # Think4U: 「出勤人數」(Attendances / attendance-view) 與「打卡明細」「工作紀錄」重複，移除
+    # {
+    #     "menu": _("Attendances"),
+    #     "redirect": reverse("attendance-view"),
+    #     "vis_key": "attendance.list",
+    #     "accessibility": "attendance.sidebar.attendances_accessibility",
+    # },
     # Think4U: 補打卡申請已在 /portal/?tab=clock，後台拿掉
     # Think4U: 工時帳戶 (Hour Account) 未使用，從 sidebar 移除
     # {
@@ -53,11 +54,12 @@ SUBMENUS = [
         "accessibility": "attendance.sidebar.tracking_accessibility",
     },
     # Think4U: 我的出勤已在 /portal/?tab=attendance，後台拿掉
-    {
-        "menu": _("Excel 匯出"),
-        "redirect": reverse("think4u-attendance-export"),
-        "vis_key": "attendance.export",
-    },
+    # Think4U: 獨立「Excel 匯出」頁移除，匯出功能改由「工作紀錄」頁的匯出按鈕（每日打卡明細）提供
+    # {
+    #     "menu": _("Excel 匯出"),
+    #     "redirect": reverse("think4u-attendance-export"),
+    #     "vis_key": "attendance.export",
+    # },
     {
         "menu": _("月度出勤統計"),
         "redirect": reverse("think4u-attendance-monthly"),
