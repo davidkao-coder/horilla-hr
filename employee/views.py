@@ -1556,6 +1556,8 @@ def employee_view_update(request, obj_id, **kwargs):
                     instance.tags.set(request.POST.getlist("tags"))
                     # Think4U WP-X.5: 同步 Auth Group
                     work_form.sync_groups(employee)
+                    # Think4U: 儲存薪資組成到 EmployeeSalary
+                    work_form.save_salary(employee)
                     notify.send(
                         request.user.employee_get,
                         recipient=instance.employee_id.employee_user_id,
@@ -2382,6 +2384,11 @@ def employee_work_info_view_create(request, obj_id):
         work_info = work_form.save(commit=False)
         work_info.employee_id = employee
         work_info.save()
+        # Think4U: 同步角色 + 薪資組成
+        if hasattr(work_form, "sync_groups"):
+            work_form.sync_groups(employee)
+        if hasattr(work_form, "save_salary"):
+            work_form.save_salary(employee)
         messages.success(request, _("Created work information"))
     return render(
         request,
@@ -2411,6 +2418,11 @@ def employee_work_info_view_update(request, obj_id):
     )
     if work_form.is_valid():
         work_form.save()
+        # Think4U: 同步角色 + 薪資組成
+        if hasattr(work_form, "sync_groups"):
+            work_form.sync_groups(work_information.employee_id)
+        if hasattr(work_form, "save_salary"):
+            work_form.save_salary(work_information.employee_id)
         messages.success(request, _("Work Information Updated Successfully"))
     return render(
         request,

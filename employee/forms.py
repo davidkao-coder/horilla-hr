@@ -357,7 +357,84 @@ class EmployeeForm(ModelForm):
         return badge_id
 
 
-class EmployeeWorkInformationForm(ModelForm):
+def _salary_field(label):
+    return forms.IntegerField(
+        required=False,
+        min_value=0,
+        label=label,
+        widget=forms.NumberInput(
+            attrs={"class": "oh-input w-100", "step": "500", "min": "0"}
+        ),
+    )
+
+
+class _SalaryComponentsMixin:
+    """Think4U: 薪資組成（本薪 + 津貼 + 加給）+ 健保眷屬，存到 think4u.EmployeeSalary。
+    供 EmployeeWorkInformationForm / EmployeeWorkInformationUpdateForm 共用。
+
+    注意：純 mixin 的 class-level Field 不會被 ModelForm metaclass 收集，
+    因此改在 __init__ 時以 _setup_salary_fields() 動態注入欄位。
+    （非 model 欄位；在 view 中 work_info 存檔後呼叫 save_salary(employee)）"""
+
+    _T4U_SALARY_DEFS = [
+        ("base_salary", _("本薪")),
+        ("meal_allowance", _("伙食津貼")),
+        ("transport_allowance", _("交通津貼")),
+        ("management_allowance", _("管理加給")),
+        ("tech_management_allowance", _("技術管理加給")),
+        ("salary_addition", _("薪資加給")),
+    ]
+    _T4U_SALARY_FIELDS = [k for k, _l in _T4U_SALARY_DEFS]
+
+    def _setup_salary_fields(self):
+        """動態加入薪資組成欄位 + 帶入該員工 EmployeeSalary 初始值"""
+        for key, label in self._T4U_SALARY_DEFS:
+            self.fields[key] = _salary_field(label)
+        self.fields["dependents"] = forms.IntegerField(
+            required=False,
+            min_value=0,
+            max_value=3,
+            label=_("健保眷屬人數"),
+            widget=forms.NumberInput(
+                attrs={"class": "oh-input w-100", "min": "0", "max": "3"}
+            ),
+        )
+        emp = getattr(self.instance, "employee_id", None) if self.instance else None
+        if not emp:
+            self.fields["base_salary"].initial = 50000
+            return
+        from think4u.models import EmployeeSalary
+
+        sal = EmployeeSalary.objects.filter(employee=emp).first()
+        if sal:
+            for f in self._T4U_SALARY_FIELDS:
+                self.fields[f].initial = getattr(sal, f, 0)
+            self.fields["dependents"].initial = sal.dependents
+        else:
+            self.fields["base_salary"].initial = 50000
+
+    # 舊名相容
+    def _load_salary_initials(self):
+        self._setup_salary_fields()
+
+    def save_salary(self, employee):
+        """把薪資組成欄位存到 think4u.EmployeeSalary"""
+        if not employee:
+            return
+        from think4u.models import EmployeeSalary
+
+        sal, _ = EmployeeSalary.objects.get_or_create(employee=employee)
+        for f in self._T4U_SALARY_FIELDS:
+            val = self.cleaned_data.get(f)
+            if val is not None:
+                setattr(sal, f, max(0, int(val)))
+        dep = self.cleaned_data.get("dependents")
+        if dep is not None:
+            sal.dependents = max(0, min(int(dep), 3))
+        sal.save()
+
+
+class EmployeeWorkInformationForm(_SalaryComponentsMixin, ModelForm):
     """
     Form for EmployeeWorkInformation model
     """
@@ -416,6 +493,9 @@ class EmployeeWorkInformationForm(ModelForm):
                 self.fields[f].widget.attrs["class"] = "oh-select oh-select-2"
                 self.fields[f].empty_label = _("— 請選擇 —")
 
+        # Think4U: 帶入薪資組成初始值
+        self._load_salary_initials()
+
     def sync_groups(self, employee):
         """Think4U: 把單選 role 寫回對應 User.groups（取代多選 sync）
         若未指定 role 但職位有 default_role，自動帶入"""
@@ -444,9 +524,10 @@ class EmployeeWorkInformationForm(ModelForm):
         return render_to_string("employee/create_form/personal_info_as_p.html", context)
 
 
-class EmployeeWorkInformationUpdateForm(ModelForm):
+class EmployeeWorkInformationUpdateForm(_SalaryComponentsMixin, ModelForm):
     """
     Form for EmployeeWorkInformation model — Think4U 簡化版
+    含薪資組成（本薪 / 津貼 / 加給）+ 健保眷屬，存到 think4u.EmployeeSalary
     """
 
     role = forms.ModelChoiceField(
@@ -481,6 +562,8 @@ class EmployeeWorkInformationUpdateForm(ModelForm):
                 first = emp.employee_user_id.groups.first()
                 if first:
                     self.fields["role"].initial = first.pk
+        # Think4U: 帶入薪資組成初始值
+        self._load_salary_initials()
 
     def sync_groups(self, employee):
         """Think4U: 同 EmployeeWorkInformationForm；未選 role 時 fallback 到職位的 default_role"""
