@@ -43,6 +43,32 @@ def _holiday_dates(start: date, end: date) -> dict:
     return result
 
 
+def leave_hours_by_type(emp_id, start: date, end: date, statuses=("approved",)) -> dict:
+    """回傳某員工在 start~end 區間內各假別的總時數（多日攤分、單日上限 8h）。
+    {假別名稱: 時數}
+    """
+    result = defaultdict(float)
+    for r in LeaveRequest.objects.filter(
+        employee_id=emp_id,
+        start_date__lte=end,
+        end_date__gte=start,
+        status__in=list(statuses),
+    ).select_related("leave_type_id"):
+        span = (r.end_date - r.start_date).days + 1
+        if span <= 0:
+            span = 1
+        daily_days = min(float(r.requested_days or 0) / span, 1.0)
+        # 落在區間內的天數
+        cur = max(r.start_date, start)
+        last = min(r.end_date, end)
+        n = (last - cur).days + 1
+        if n <= 0:
+            continue
+        name = r.leave_type_id.name if r.leave_type_id else "其他"
+        result[name] += daily_days * 8.0 * n
+    return dict(result)
+
+
 def daily_evaluations(employees, start: date, end: date, statuses=("approved",)):
     """
     回傳 list[dict]：每位員工每個「工作日且有出勤活動或請假」的評估。

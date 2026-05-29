@@ -122,7 +122,8 @@ out: {{ c.check_out|default:'—' }}
     <h2 style="margin-top:2rem; font-size:18px;">💰 {{ year }}/{{ month }} 薪資試算</h2>
     <p style="color:#888; font-size:12px; margin-bottom:8px;">
         計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 月薪 ÷ {{ payroll_base_days }}）。
-        實領 = 月薪 − 勞保自付 − 健保自付（2025 級距；勞保上限 45,800，健保本人）。
+        實領 = 月薪 − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800，健保本人）。
+        請假扣薪：<strong>事假全扣</strong>、<strong>病假 / 生理假半扣</strong>、特休 / 公假 / 婚假 / 喪假 / 產假 / 補休等不扣。
         勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}月薪可直接點欄位修改。{% endif %}
     </p>
     <div class="att-matrix-wrapper">
@@ -134,6 +135,7 @@ out: {{ c.check_out|default:'—' }}
                     <th>日薪(÷{{ payroll_base_days }})</th>
                     <th>勞保自付</th>
                     <th>健保自付</th>
+                    <th>請假扣薪</th>
                     <th>實領</th>
                 </tr>
             </thead>
@@ -153,10 +155,14 @@ out: {{ c.check_out|default:'—' }}
                     <td class="sal-daily">{{ row.salary.daily }}</td>
                     <td style="color:#c0392b;">-{{ row.salary.labor }}</td>
                     <td style="color:#c0392b;">-{{ row.salary.health }}</td>
+                    <td class="sal-leave" style="color:#c0392b;"
+                        title="{% for b in row.salary.leave_breakdown %}{{ b.type }} {{ b.hours }}h → -{{ b.amount }}{% if not forloop.last %}&#10;{% endif %}{% endfor %}">
+                        {% if row.salary.leave_ded %}-{{ row.salary.leave_ded }}{% else %}0{% endif %}
+                    </td>
                     <td class="sal-net" style="font-weight:700; color:#2e7d32;">{{ row.salary.net }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="6" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
+                <tr><td colspan="7" style="text-align:center; padding:1rem; color:#999;">無資料</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -171,7 +177,10 @@ out: {{ c.check_out|default:'—' }}
         document.querySelectorAll('.salary-input').forEach(function (inp) {
             inp.addEventListener('change', function () {
                 const emp = this.dataset.emp;
-                const body = new URLSearchParams({employee_id: emp, monthly_salary: this.value});
+                const body = new URLSearchParams({
+                    employee_id: emp, monthly_salary: this.value,
+                    year: "{{ year }}", month: "{{ month }}"
+                });
                 fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
                     .then(r => r.json())
                     .then(d => {
@@ -180,6 +189,7 @@ out: {{ c.check_out|default:'—' }}
                         tr.querySelector('.sal-daily').textContent = d.daily;
                         tr.querySelectorAll('td')[3].textContent = '-' + d.labor;
                         tr.querySelectorAll('td')[4].textContent = '-' + d.health;
+                        tr.querySelector('.sal-leave').textContent = d.leave_ded ? ('-' + d.leave_ded) : '0';
                         tr.querySelector('.sal-net').textContent = d.net;
                     })
                     .catch(() => alert('更新失敗'));

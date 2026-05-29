@@ -25,6 +25,31 @@ HEALTH_EMPLOYEE_SHARE = 0.30  # 受僱者自付 30%
 
 PAYROLL_BASE_DAYS = 30        # 計薪基準 30 天
 
+# 各假別「雇主給薪比例」(pay_ratio)：1.0 全薪 / 0.5 半薪 / 0.0 無薪
+# 扣薪額 = (1 - pay_ratio) × 日薪 × 請假天數
+#   依勞基法 / 勞工請假規則 / 性平法：
+#   - 事假           無薪 (0.0)        勞工請假規則第7條
+#   - 病假(普通傷病)  半薪 (0.5)        勞工請假規則第4條
+#   - 生理假          半薪 (0.5)        性平法第14條
+#   - 特休/公假/婚假/喪假/產假/產檢假/陪產假/公傷病假/補休  全薪 (1.0)
+# 未列出的假別預設全薪（不扣），避免誤扣。
+LEAVE_PAY_RATIO = {
+    "特休假": 1.0,
+    "事假": 0.0,
+    "病假": 0.5,
+    "生理假": 0.5,
+    "婚假": 1.0,
+    "公傷病假": 1.0,
+    "喪假（父母/配偶）": 1.0,
+    "喪假（祖父母/子女/配偶父母）": 1.0,
+    "喪假（曾祖父母/兄弟姊妹/配偶祖父母）": 1.0,
+    "產假": 1.0,
+    "產檢假": 1.0,
+    "陪產假": 1.0,
+    "公假": 1.0,
+    "補休": 1.0,
+}
+
 # 勞保投保薪資分級表（2025 全時，月投保薪資，上限 45,800）
 LABOR_GRADES = [
     28590, 30300, 31800, 33300, 34800, 36300,
@@ -64,20 +89,57 @@ def health_insurance_employee(salary: float, dependents: int = 0) -> int:
     return round(per_person * (1 + deps))
 
 
-def compute_salary(salary: float, dependents: int = 0) -> dict:
+def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
+    """
+    依各假別給薪比例計算「請假扣薪」。
+      扣薪 = Σ (1 - pay_ratio) × 日薪 × (該假別時數 / 8)
+    leave_hours_by_type: {假別名稱: 該月時數}
+    回傳 {"total": 扣薪總額, "breakdown": [{type, hours, ratio, amount}, ...]}
+    """
+    daily = salary / PAYROLL_BASE_DAYS
+    total = 0.0
+    breakdown = []
+    for name, hours in (leave_hours_by_type or {}).items():
+        if not hours:
+            continue
+        ratio = LEAVE_PAY_RATIO.get(name, 1.0)  # 未知假別預設全薪不扣
+        if ratio >= 1.0:
+            continue
+        days = float(hours) / 8.0
+        amount = (1.0 - ratio) * daily * days
+        total += amount
+        breakdown.append(
+            {
+                "type": name,
+                "hours": round(float(hours), 1),
+                "ratio": ratio,
+                "amount": round(amount),
+            }
+        )
+    return {"total": round(total), "breakdown": breakdown}
+
+
+def compute_salary(
+    salary: float, dependents: int = 0, leave_hours_by_type: dict = None
+) -> dict:
     """
     回傳薪資明細：
-      gross / labor / health / net / daily（日薪 = gross / 30）
+      gross / labor / health / leave_ded / net / daily（日薪 = gross / 30）
+      net = gross − 勞保 − 健保 − 請假扣薪
     """
     gross = int(round(salary))
     labor = labor_insurance_employee(gross)
     health = health_insurance_employee(gross, dependents)
-    net = gross - labor - health
+    ld = leave_deduction(gross, leave_hours_by_type)
+    leave_ded = ld["total"]
+    net = gross - labor - health - leave_ded
     daily = round(gross / PAYROLL_BASE_DAYS)
     return {
         "gross": gross,
         "labor": labor,
         "health": health,
+        "leave_ded": leave_ded,
+        "leave_breakdown": ld["breakdown"],
         "net": net,
         "daily": daily,
         "labor_grade": _grade(gross, LABOR_GRADES),

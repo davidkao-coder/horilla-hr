@@ -253,10 +253,12 @@ def monthly_attendance(request):
                 },
                 # 該員工該月各假別總時數 e.g. {"事假": 4.5, "病假": 8.0}
                 "leave_by_type": dict(leaves_by_emp_type.get(emp.id, {})),
-                # 即時試算薪資（月薪 - 勞健保），月薪預設 50000
+                # 即時試算薪資（月薪 − 勞健保 − 請假扣薪），月薪預設 50000
+                # 請假扣薪：事假全扣、病假/生理假半扣、特休等不扣
                 "salary": compute_salary(
                     salary_map[emp.id].monthly_salary if emp.id in salary_map else 50000,
                     salary_map[emp.id].dependents if emp.id in salary_map else 0,
+                    leave_hours_by_type=dict(leaves_by_emp_type.get(emp.id, {})),
                 ),
             }
         )
@@ -298,7 +300,7 @@ def monthly_attendance(request):
 @login_required
 @require_POST
 def update_salary(request):
-    """HR 即時更新員工月薪 → 回傳重算後的勞健保 / 實領（JSON）"""
+    """HR 即時更新員工月薪 → 回傳重算後的勞健保 / 請假扣薪 / 實領（JSON）"""
     if not _is_hr(request.user):
         return JsonResponse({"ok": False, "error": "no_permission"}, status=403)
     try:
@@ -307,7 +309,11 @@ def update_salary(request):
     except (TypeError, ValueError):
         return JsonResponse({"ok": False, "error": "bad_input"}, status=400)
 
+    import calendar as _calendar
+    from datetime import date as _date
+
     from employee.models import Employee
+    from think4u.attendance_compute import leave_hours_by_type
 
     if not Employee.objects.filter(id=emp_id).exists():
         return JsonResponse({"ok": False, "error": "no_employee"}, status=404)
@@ -315,4 +321,17 @@ def update_salary(request):
     row, _ = EmployeeSalary.objects.get_or_create(employee_id=emp_id)
     row.monthly_salary = salary
     row.save(update_fields=["monthly_salary", "updated_at"])
-    return JsonResponse({"ok": True, **compute_salary(salary, row.dependents)})
+
+    # 用所在年月重算請假扣薪（讓即時更新與表格一致）
+    today = timezone.localdate()
+    try:
+        year = int(request.POST.get("year", today.year))
+        month = int(request.POST.get("month", today.month))
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
+    last_day = _calendar.monthrange(year, month)[1]
+    lh = leave_hours_by_type(emp_id, _date(year, month, 1), _date(year, month, last_day))
+
+    return JsonResponse(
+        {"ok": True, **compute_salary(salary, row.dependents, leave_hours_by_type=lh)}
+    )
