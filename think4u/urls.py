@@ -73,6 +73,11 @@ urlpatterns = [
         monthly_attendance_views.update_salary,
         name="think4u-salary-update",
     ),
+    path(
+        "attendance/salary/export/",
+        monthly_attendance_views.export_salary,
+        name="think4u-salary-export",
+    ),
     # 某員工某天打卡明細
     path(
         "attendance/day/<int:emp_id>/<str:ymd>/",

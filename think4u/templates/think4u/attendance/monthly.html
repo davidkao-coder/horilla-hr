@@ -119,7 +119,12 @@ out: {{ c.check_out|default:'—' }}
         </table>
     </div>
 
-    <h2 style="margin-top:2rem; font-size:18px;">💰 {{ year }}/{{ month }} 薪資試算</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2rem;">
+        <h2 style="font-size:18px; margin:0;">💰 {{ year }}/{{ month }} 薪資試算</h2>
+        <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-salary-export' %}?year={{ year }}&month={{ month }}">
+            <ion-icon name="download-outline" class="mr-1"></ion-icon>{% trans "匯出 Excel" %}
+        </a>
+    </div>
     <p style="color:#888; font-size:12px; margin-bottom:8px;">
         計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 月薪 ÷ {{ payroll_base_days }}）。
         實領 = 月薪 − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800，健保本人）。
@@ -127,7 +132,7 @@ out: {{ c.check_out|default:'—' }}
         勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}月薪可直接點欄位修改。{% endif %}
     </p>
     <div class="att-matrix-wrapper">
-        <table class="att-matrix" style="min-width:auto;">
+        <table class="att-matrix" style="width:100%; min-width:100%; table-layout:auto;">
             <thead>
                 <tr>
                     <th class="emp-name">員工</th>

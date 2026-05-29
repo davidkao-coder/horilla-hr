@@ -335,3 +335,97 @@ def update_salary(request):
     return JsonResponse(
         {"ok": True, **compute_salary(salary, row.dependents, leave_hours_by_type=lh)}
     )
+
+
+@login_required
+def export_salary(request):
+    """匯出 {year}/{month} 薪資試算成 Excel（與月度頁同一份計算）"""
+    import calendar as _calendar
+    import io
+    from datetime import date as _date
+
+    import pandas as pd
+    from django.http import HttpResponse
+
+    from think4u.attendance_compute import leave_hours_by_type
+    from think4u.payroll_rules import PAYROLL_BASE_DAYS
+
+    today = timezone.localdate()
+    try:
+        year = int(request.GET.get("year", today.year))
+        month = int(request.GET.get("month", today.month))
+    except (TypeError, ValueError):
+        year, month = today.year, today.month
+    last_day = _calendar.monthrange(year, month)[1]
+    m_start, m_end = _date(year, month, 1), _date(year, month, last_day)
+
+    # 員工範圍（與月度頁一致：scope + 排除不顯示在報表角色）
+    scope_qs = _scope_employees(request.user)
+    hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
+    me = getattr(request.user, "employee_get", None)
+    is_personal = me and scope_qs.count() == 1 and scope_qs.filter(pk=me.pk).exists()
+    if not is_personal:
+        scope_qs = scope_qs.exclude(id__in=hidden_ids)
+    employees = list(
+        scope_qs.select_related("employee_work_info__department_id").order_by(
+            "employee_first_name"
+        )
+    )
+    emp_ids = [e.id for e in employees]
+    salary_map = {
+        s.employee_id: s for s in EmployeeSalary.objects.filter(employee_id__in=emp_ids)
+    }
+
+    rows = []
+    for emp in employees:
+        gross = salary_map[emp.id].monthly_salary if emp.id in salary_map else 50000
+        deps = salary_map[emp.id].dependents if emp.id in salary_map else 0
+        lh = leave_hours_by_type(emp.id, m_start, m_end)
+        s = compute_salary(gross, deps, leave_hours_by_type=lh)
+        detail = "；".join(
+            f"{b['type']} {b['hours']}h({b['ratio_label']} -{b['amount']})"
+            for b in s["leave_breakdown"]
+        )
+        rows.append(
+            {
+                "員工": emp.get_full_name(),
+                "部門": (
+                    emp.employee_work_info.department_id.department
+                    if getattr(emp, "employee_work_info", None)
+                    and emp.employee_work_info.department_id
+                    else ""
+                ),
+                "月薪": s["gross"],
+                f"日薪(÷{PAYROLL_BASE_DAYS})": s["daily"],
+                "勞保自付": -s["labor"],
+                "健保自付": -s["health"],
+                "請假明細": detail,
+                "請假扣薪": -s["leave_ded"],
+                "計算式": f"{s['gross']} -{s['labor']} -{s['health']} -{s['leave_ded']} = {s['net']}",
+                "實領": s["net"],
+            }
+        )
+
+    columns = [
+        "員工", "部門", "月薪", f"日薪(÷{PAYROLL_BASE_DAYS})", "勞保自付",
+        "健保自付", "請假明細", "請假扣薪", "計算式", "實領",
+    ]
+    df = pd.DataFrame(rows, columns=columns)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="薪資試算")
+        wb, ws = writer.book, writer.sheets["薪資試算"]
+        header_fmt = wb.add_format(
+            {"bold": True, "bg_color": "#4a5dc7", "font_color": "#ffffff", "border": 1}
+        )
+        for ci, col in enumerate(df.columns):
+            ws.write(0, ci, col, header_fmt)
+            series = df[col].astype(str)
+            ws.set_column(ci, ci, max([len(col)] + [len(v) for v in series]) + 2)
+    output.seek(0)
+    resp = HttpResponse(
+        output.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="salary_{year}{month:02d}.xlsx"'
+    return resp
