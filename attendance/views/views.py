@@ -1135,6 +1135,7 @@ def late_come_early_out_view(request):
     from datetime import date as _date
 
     from think4u.attendance_compute import daily_evaluations
+    from think4u.attendance_rules import format_minutes
     from think4u.models import get_hidden_in_reports_employees
     from employee.models import Employee
 
@@ -1148,6 +1149,8 @@ def late_come_early_out_view(request):
     except (TypeError, ValueError):
         last_day = _calendar.monthrange(start.year, start.month)[1]
         end = start.replace(day=last_day)
+    # 不列未來日期（避免把今天之後的工作日當成缺勤）
+    end_eff = min(end, today)
 
     # 範圍員工：全公司在職，扣掉「不顯示在報表」角色（高管）
     hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
@@ -1158,23 +1161,32 @@ def late_come_early_out_view(request):
         .order_by("employee_first_name")
     )
 
-    evals = daily_evaluations(employees, start, end)
-    rows = [
-        {
+    # skip_empty=False → 連「完全沒打卡也沒請假」的工作日也評估（= 缺勤）
+    evals = daily_evaluations(employees, start, end_eff, skip_empty=False)
+    # 異常 = 非「正常」也非「整天請假」：涵蓋 缺勤 / 工時不足 / 遲到 / 早退
+    # （evaluate 已保證 工時+請假 ≥ 8h 時為 on_time，故工時不足即 effective < 8h）
+    NORMAL = {"on_time", "on_leave"}
+    rows = []
+    for e in evals:
+        ev = e["evaluation"]
+        if ev.status in NORMAL:
+            continue
+        rows.append({
             "employee": e["employee"],
             "date": e["date"],
-            "type": e["evaluation"].status,
-            "type_label": e["evaluation"].status_label,
-            "late_minutes": e["evaluation"].late_minutes,
-            "early_minutes": e["evaluation"].early_minutes,
+            "type": ev.status,
+            "type_label": ev.status_label,
+            "late_minutes": ev.late_minutes,
+            "early_minutes": ev.early_minutes,
+            "short_minutes": ev.short_minutes,
+            "work_label": format_minutes(ev.work_minutes),
             "check_in": e["check_in"],
             "check_out": e["check_out"],
-        }
-        for e in evals
-        if e["evaluation"].late_minutes > 0 or e["evaluation"].early_minutes > 0
-    ]
+        })
     rows.sort(key=lambda r: (r["date"], r["employee"].employee_first_name), reverse=True)
 
+    absent_count = sum(1 for r in rows if r["type"] == "absent")
+    short_count = sum(1 for r in rows if r["type"] == "incomplete")
     late_count = sum(1 for r in rows if r["late_minutes"] > 0)
     early_count = sum(1 for r in rows if r["early_minutes"] > 0)
 
@@ -1185,6 +1197,8 @@ def late_come_early_out_view(request):
             "rows": rows,
             "start": start,
             "end": end,
+            "absent_count": absent_count,
+            "short_count": short_count,
             "late_count": late_count,
             "early_count": early_count,
         },

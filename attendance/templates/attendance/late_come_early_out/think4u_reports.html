@@ -19,11 +19,16 @@
                 <input type="date" name="end" value="{{ end|date:'Y-m-d' }}" class="oh-input" style="width:170px;">
             </div>
             <button type="submit" class="oh-btn oh-btn--secondary">{% trans "查詢" %}</button>
-            <div class="ms-auto d-flex align-items-center" style="gap:16px;">
+            <div class="ms-auto d-flex align-items-center" style="gap:12px; flex-wrap:wrap;">
+                <span class="oh-badge oh-badge--danger">{% trans "缺勤" %} {{ absent_count }}</span>
+                <span class="oh-badge oh-badge--secondary">{% trans "工時不足" %} {{ short_count }}</span>
                 <span class="oh-badge oh-badge--warning">{% trans "遲到" %} {{ late_count }}</span>
                 <span class="oh-badge oh-badge--info">{% trans "早退" %} {{ early_count }}</span>
             </div>
         </form>
+        <p style="color:#999; font-size:12px; margin:8px 0 0;">
+            {% trans "列出每個工作日（不含週末/國定假日、不含未來日期）中：缺勤（該出勤未出勤）、工時不足（實際工時＋請假時數 < 8 小時）、遲到、早退。整天請假與正常出勤不列入。" %}
+        </p>
     </div>
 
     <div class="oh-card p-0" style="overflow-x:auto;">
@@ -35,9 +40,11 @@
                     <th style="padding:10px; text-align:center;">{% trans "出勤日期" %}</th>
                     <th style="padding:10px; text-align:center;">{% trans "上班" %}</th>
                     <th style="padding:10px; text-align:center;">{% trans "下班" %}</th>
+                    <th style="padding:10px; text-align:center;">{% trans "工時" %}</th>
                     <th style="padding:10px; text-align:center;">{% trans "狀態" %}</th>
                     <th style="padding:10px; text-align:center;">{% trans "遲到(分)" %}</th>
                     <th style="padding:10px; text-align:center;">{% trans "早退(分)" %}</th>
+                    <th style="padding:10px; text-align:center;">{% trans "工時不足(分)" %}</th>
                 </tr>
             </thead>
             <tbody>
@@ -50,14 +57,16 @@
                     <td style="padding:10px; text-align:center;">{{ r.date|date:'Y-m-d' }}</td>
                     <td style="padding:10px; text-align:center;">{{ r.check_in|default:'—' }}</td>
                     <td style="padding:10px; text-align:center;">{{ r.check_out|default:'—' }}</td>
+                    <td style="padding:10px; text-align:center;">{{ r.work_label }}</td>
                     <td style="padding:10px; text-align:center;">
-                        <span class="oh-badge {% if r.type == 'late_and_early' %}oh-badge--danger{% elif r.type == 'late' %}oh-badge--warning{% else %}oh-badge--info{% endif %}">{{ r.type_label }}</span>
+                        <span class="oh-badge {% if r.type == 'absent' %}oh-badge--danger{% elif r.type == 'late_and_early' %}oh-badge--danger{% elif r.type == 'late' %}oh-badge--warning{% elif r.type == 'incomplete' %}oh-badge--secondary{% else %}oh-badge--info{% endif %}">{{ r.type_label }}</span>
                     </td>
                     <td style="padding:10px; text-align:center; color:{% if r.late_minutes %}#c0392b{% else %}#bbb{% endif %};">{{ r.late_minutes }}</td>
                     <td style="padding:10px; text-align:center; color:{% if r.early_minutes %}#c0392b{% else %}#bbb{% endif %};">{{ r.early_minutes }}</td>
+                    <td style="padding:10px; text-align:center; color:{% if r.short_minutes %}#c0392b{% else %}#bbb{% endif %};">{{ r.short_minutes }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" style="padding:30px; text-align:center; color:#999;">{% trans "此區間沒有出勤異常紀錄" %}</td></tr>
+                <tr><td colspan="10" style="padding:30px; text-align:center; color:#999;">{% trans "此區間沒有出勤異常紀錄" %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

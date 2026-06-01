@@ -69,7 +69,9 @@ def leave_hours_by_type(emp_id, start: date, end: date, statuses=("approved",)) 
     return dict(result)
 
 
-def daily_evaluations(employees, start: date, end: date, statuses=("approved",)):
+def daily_evaluations(
+    employees, start: date, end: date, statuses=("approved",), skip_empty=True
+):
     """
     回傳 list[dict]：每位員工每個「工作日且有出勤活動或請假」的評估。
       {employee, date, evaluation, check_in, check_out}
@@ -129,8 +131,9 @@ def daily_evaluations(employees, start: date, end: date, statuses=("approved",))
                 continue
             data = by_emp_date.get((emp.id, d))
             lv = leave_minutes.get((emp.id, d), 0)
-            # 該日完全沒打卡也沒請假 → 略過（缺勤交由月度頁處理，遲到早退頁不列）
-            if not data and not lv:
+            # skip_empty=True：完全沒打卡也沒請假就略過
+            # skip_empty=False：保留（評估為缺勤），供「出勤異常紀錄」列出該出勤未出勤
+            if skip_empty and not data and not lv:
                 continue
             ci = data["in"] if data else None
             co = data["out"] if data else None
