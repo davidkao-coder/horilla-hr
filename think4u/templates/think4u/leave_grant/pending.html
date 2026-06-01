@@ -3,7 +3,7 @@
 {% block content %}
 <div class="oh-wrapper">
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1 class="fw-bold">{% trans "給假申請審核" %}</h1>
+        <h1 class="oh-main__titlebar-title fw-bold">{% trans "給假申請審核" %}</h1>
         <a class="oh-btn oh-btn--secondary oh-btn--small" href="?{% if not show_all %}all=1{% endif %}">
             {% if show_all %}{% trans "只看待審" %}{% else %}{% trans "看全部歷史" %}{% endif %}
         </a>

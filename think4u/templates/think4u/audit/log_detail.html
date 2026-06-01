@@ -17,7 +17,7 @@
 </style>
 <div class="oh-wrapper">
     <p><a href="{% url 'think4u-audit-log' %}">← 返回稽核紀錄</a></p>
-    <h1 class="fw-bold">稽核紀錄詳細 #{{ log.id }}</h1>
+    <h1 class="oh-main__titlebar-title fw-bold">稽核紀錄詳細 #{{ log.id }}</h1>
 
     <div class="detail-card">
         <div class="detail-row"><div class="label">時間</div><div>{{ log.timestamp|date:"Y-m-d H:i:s.u" }}</div></div>
