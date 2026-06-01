@@ -52,8 +52,10 @@ def _safe_send(subject: str, body: str, to: list[str]):
 
 @login_required
 def manager_overtime_list(request):
+    from think4u.manager_utils import is_manager
+
     user = request.user
-    if not (is_reportingmanager(user) or _is_hr(user)):
+    if not (is_manager(user) or _is_hr(user)):
         return HttpResponseForbidden("僅主管可查看")
     emp = getattr(user, "employee_get", None)
     if _is_hr(user):
@@ -69,8 +71,10 @@ def manager_overtime_list(request):
 
 @login_required
 def manager_overtime_create(request):
+    from think4u.manager_utils import is_manager
+
     user = request.user
-    if not (is_reportingmanager(user) or _is_hr(user)):
+    if not (is_manager(user) or _is_hr(user)):
         return HttpResponseForbidden("僅主管可建立加班指派")
     if request.method == "POST":
         form = OvertimeAssignmentForm(request.POST)
