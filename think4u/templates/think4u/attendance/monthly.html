@@ -122,12 +122,7 @@ out: {{ c.check_out|default:'—' }}
     <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2rem;">
         <h2 style="font-size:18px; margin:0;">💰 {{ year }}/{{ month }} 薪資試算</h2>
         <div style="display:flex; align-items:center; gap:10px;">
-            {% if is_hr %}
-            <span id="salSaveStatus" style="font-size:13px; color:#888;"></span>
-            <button type="button" id="salSaveBtn" class="oh-btn oh-btn--secondary" disabled>
-                <ion-icon name="save-outline" class="mr-1"></ion-icon>{% trans "儲存" %}
-            </button>
-            {% endif %}
+            {% if is_hr %}<span id="salSaveStatus" style="font-size:13px; color:#888;"></span>{% endif %}
             <a class="oh-btn oh-btn--secondary" href="{% url 'think4u-salary-export' %}?year={{ year }}&month={{ month }}">
                 <ion-icon name="download-outline" class="mr-1"></ion-icon>{% trans "匯出 Excel" %}
             </a>
@@ -140,7 +135,7 @@ out: {{ c.check_out|default:'—' }}
         「其他」逐月填入、不計入勞健保投保薪資。
         健保自付依<strong>眷屬人數</strong>計（本人 + 眷屬，眷屬上限 3）。
         請假扣薪：<strong>事假全扣</strong>、<strong>病假 / 生理假半扣</strong>，特休 / 公假 / 婚假 / 喪假 / 產假 / 補休等不扣。
-        勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}<strong>修改欄位後，按右上「儲存」才會寫入。</strong>{% endif %}
+        勞退 6% 由雇主負擔，不扣薪。{% if is_hr %}<strong>修改欄位後自動儲存。</strong>{% endif %}
     </p>
     <div class="att-matrix-wrapper">
         <table class="att-matrix sal-table" style="width:100%; min-width:100%; table-layout:auto;">
@@ -284,14 +279,16 @@ out: {{ c.check_out|default:'—' }}
         const url = "{% url 'think4u-salary-update' %}";
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
             || document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
-        const saveBtn = document.getElementById('salSaveBtn');
         const status = document.getElementById('salSaveStatus');
-        const dirty = new Set();
 
         function num(el) { return el ? (parseInt(el.value, 10) || 0) : 0; }
 
-        // 即時（前端）重算純加總欄位：全薪 / 其他合計 / 群組小計
-        // 勞健保 / 請假扣薪 / 實領 仍需後端重算（按儲存後更新）
+        function setStatus(text, color) {
+            if (!status) return;
+            status.textContent = text; status.style.color = color;
+        }
+
+        // 即時（前端）重算純加總欄位：全薪 / 其他合計 / 群組小計（勞健保/實領由後端回傳）
         function recomputeSums(tr) {
             const fld = (f) => tr.querySelector(`[data-field="${f}"]`);
             const allow = num(fld('meal_allowance')) + num(fld('transport_allowance'));
@@ -305,15 +302,6 @@ out: {{ c.check_out|default:'—' }}
             set('.grp-allow-sum', allow);
             set('.grp-add-sum', add);
             set('.grp-extra-sum', extra);
-        }
-
-        function markDirty(emp) {
-            dirty.add(String(emp));
-            const tr = document.querySelector(`tr[data-emp="${emp}"]`);
-            if (tr) { tr.style.background = '#fffbea'; recomputeSums(tr); }
-            saveBtn.disabled = false;
-            status.textContent = '有未儲存的修改（按儲存後重算勞健保 / 實領）';
-            status.style.color = '#b26a00';
         }
 
         // 送出單一 row → 回傳 Promise，並更新該列重算結果
@@ -352,32 +340,30 @@ out: {{ c.check_out|default:'—' }}
                 });
         }
 
-        // 欄位修改 → 僅標記未儲存，不立即寫入
+        // 自動儲存（debounce 600ms）：避免連打數字時送出多次
+        const timers = {};
+        function autoSave(emp) {
+            setStatus('儲存中…', '#888');
+            clearTimeout(timers[emp]);
+            timers[emp] = setTimeout(() => {
+                saveRow(emp)
+                    .then(() => {
+                        setStatus('✓ 已儲存', '#2e7d32');
+                        setTimeout(() => { if (status && status.textContent === '✓ 已儲存') status.textContent = ''; }, 2500);
+                    })
+                    .catch(() => setStatus('儲存失敗，請重試', '#c0392b'));
+            }, 600);
+        }
+
+        // 打字時即時重算加總；停止輸入 / 離開欄位後自動儲存
         document.querySelectorAll('.comp-input, .extra-input, .dep-input').forEach(function (inp) {
-            inp.addEventListener('input', function () { markDirty(this.dataset.emp); });
-        });
-
-        // 按「儲存」→ 一次寫入所有未儲存的列
-        saveBtn.addEventListener('click', function () {
-            if (!dirty.size) return;
-            saveBtn.disabled = true;
-            status.textContent = '儲存中…'; status.style.color = '#888';
-            const ids = Array.from(dirty);
-            Promise.all(ids.map(saveRow))
-                .then(() => {
-                    dirty.clear();
-                    status.textContent = '✓ 已儲存'; status.style.color = '#2e7d32';
-                    setTimeout(() => { status.textContent = ''; }, 3000);
-                })
-                .catch(() => {
-                    status.textContent = '儲存失敗，請重試'; status.style.color = '#c0392b';
-                    saveBtn.disabled = false;
-                });
-        });
-
-        // 離開頁面前提醒未儲存
-        window.addEventListener('beforeunload', function (e) {
-            if (dirty.size) { e.preventDefault(); e.returnValue = ''; }
+            inp.addEventListener('input', function () {
+                const tr = document.querySelector(`tr[data-emp="${this.dataset.emp}"]`);
+                if (tr) recomputeSums(tr);
+                setStatus('修改中…', '#b26a00');
+                autoSave(this.dataset.emp);
+            });
+            inp.addEventListener('change', function () { autoSave(this.dataset.emp); });
         });
     })();
     </script>
