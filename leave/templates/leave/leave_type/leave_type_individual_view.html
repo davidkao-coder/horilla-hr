@@ -56,7 +56,7 @@
                     <span class="oh-timeoff-modal__stat-title">{% trans "Total Days" %}</span>
                     <span class="oh-timeoff-modal__stat-count">
                         {% if leave_type.limit_leave %}
-                            {{leave_type.count}}
+                            {{leave_type.total_days}}
                         {% else %}
                             {% trans "No Limit" %}
                         {% endif %}
