@@ -16,6 +16,15 @@ class OvertimeAssignmentForm(forms.ModelForm):
             "reason": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 套用 Horilla 樣式：select → oh-select，其餘 input/textarea → oh-input
+        for name, field in self.fields.items():
+            w = field.widget
+            base = "oh-select w-100" if isinstance(w, forms.Select) else "oh-input w-100"
+            existing = w.attrs.get("class", "")
+            w.attrs["class"] = (existing + " " + base).strip()
+
     def clean(self):
         cleaned = super().clean()
         start = cleaned.get("start_time")
