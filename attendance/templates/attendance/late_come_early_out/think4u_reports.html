@@ -4,7 +4,7 @@
 <div class="oh-wrapper">
     <div class="oh-titlebar-container mb-3">
         <div class="oh-titlebar">
-            <h1 class="oh-titlebar__title fw-bold">{% trans "遲到 / 早退紀錄" %}</h1>
+            <h1 class="oh-titlebar__title fw-bold">{% trans "出勤異常紀錄" %}</h1>
         </div>
     </div>
 
@@ -57,7 +57,7 @@
                     <td style="padding:10px; text-align:center; color:{% if r.early_minutes %}#c0392b{% else %}#bbb{% endif %};">{{ r.early_minutes }}</td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" style="padding:30px; text-align:center; color:#999;">{% trans "此區間沒有遲到 / 早退紀錄" %}</td></tr>
+                <tr><td colspan="8" style="padding:30px; text-align:center; color:#999;">{% trans "此區間沒有出勤異常紀錄" %}</td></tr>
                 {% endfor %}
             </tbody>
         </table>

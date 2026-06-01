@@ -1005,7 +1005,7 @@ msgid "Attendance Activities"
 msgstr "打卡明細"
 
 msgid "Late Come Early Out"
-msgstr "遲到早退"
+msgstr "出勤異常紀錄"
 
 msgid "My Attendances"
 msgstr "我的出勤記錄"
