@@ -112,7 +112,11 @@ DAYS = [
 
 TIME_PERIOD = [("day", _("Day")), ("month", _("Month")), ("year", _("Year"))]
 
-PAYMENT = [("paid", _("Paid")), ("unpaid", _("Unpaid"))]
+PAYMENT = [
+    ("paid", _("Paid")),
+    ("half_paid", _("半薪")),
+    ("unpaid", _("Unpaid")),
+]
 
 CARRYFORWARD_TYPE = [
     ("no carryforward", _("No Carry Forward")),

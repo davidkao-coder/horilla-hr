@@ -85,11 +85,11 @@ LEAVE_TYPES = [
     # 事假（不給薪，年 14 日）
     {"name": "事假", "total_days": 14, "is_paid": False, "exclude_holiday": True, "exclude_company_leave": True, "color": "#a0a0a0"},
     # 病假（半薪，未住院年 30 日）
-    {"name": "病假", "total_days": 30, "is_paid": True, "exclude_holiday": True, "exclude_company_leave": True, "color": "#fb6d3a"},
+    {"name": "病假", "total_days": 30, "is_paid": True, "payment": "half_paid", "exclude_holiday": True, "exclude_company_leave": True, "color": "#fb6d3a"},
     # 公傷病假（全薪）
     {"name": "公傷病假", "total_days": 365, "is_paid": True, "exclude_holiday": True, "exclude_company_leave": True, "color": "#dc3545"},
-    # 生理假（性平法 §14：每月 1 日，全年 12 日）
-    {"name": "生理假", "total_days": 12, "is_paid": True, "exclude_holiday": True, "exclude_company_leave": True, "color": "#ff66b3"},
+    # 生理假（性平法 §14：每月 1 日，全年 12 日，半薪）
+    {"name": "生理假", "total_days": 12, "is_paid": True, "payment": "half_paid", "exclude_holiday": True, "exclude_company_leave": True, "color": "#ff66b3"},
     # 婚假（8 日連續含例假，3 個月內請完）
     {"name": "婚假", "total_days": 8, "is_paid": True, "exclude_holiday": False, "exclude_company_leave": False, "color": "#e83e8c"},
     # 喪假三檔（勞工請假規則 §3）
@@ -256,7 +256,7 @@ class Command(BaseCommand):
                 name=lt["name"],
                 defaults={
                     "color": lt["color"],
-                    "payment": "paid" if lt["is_paid"] else "unpaid",
+                    "payment": lt.get("payment") or ("paid" if lt["is_paid"] else "unpaid"),
                     "total_days": lt["total_days"],
                     "exclude_holiday": "yes" if lt["exclude_holiday"] else "no",
                     "exclude_company_leave": "yes" if lt["exclude_company_leave"] else "no",
