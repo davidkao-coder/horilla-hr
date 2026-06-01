@@ -2,7 +2,11 @@
 {% load i18n %}
 {% block content %}
 <div class="oh-wrapper oh-wrapper--small">
-    <h1 class="oh-main__titlebar-title fw-bold">{% trans "HR 第二層審核專區" %}</h1>
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">{% trans "HR 第二層審核專區" %}</h1>
+        </div>
+    </section>
 
     <h2 style="margin-top:1rem;">📅 {% trans "待 HR 核准的請假" %} ({{ leave_pending|length }})</h2>
     <section class="oh-card" style="padding:1rem; overflow-x:auto;">

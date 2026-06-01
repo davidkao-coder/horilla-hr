@@ -2,7 +2,11 @@
 {% load i18n %}
 {% block content %}
 <div class="oh-wrapper oh-wrapper--small">
-    <h1 class="oh-main__titlebar-title fw-bold">{% trans "主管審核專區" %}（{{ scope }}）</h1>
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">{% trans "主管審核專區" %}（{{ scope }}）</h1>
+        </div>
+    </section>
     <p style="color:#666;">{% trans "下屬員工" %}：{{ subs_count }} 位</p>
 
     <h2 style="margin-top:1rem;">📅 {% trans "待審核請假" %} ({{ leave_pending|length }})</h2>
