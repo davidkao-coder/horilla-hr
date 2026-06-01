@@ -2,7 +2,11 @@
 {% load i18n %}
 {% block content %}
 <div class="oh-wrapper">
-    <h1 class="oh-main__titlebar-title fw-bold">{% trans "待我審核 — 補打卡申請" %}</h1>
+    <section class="oh-main__topbar">
+        <div class="oh-main__titlebar">
+            <h1 class="oh-main__titlebar-title fw-bold mb-0">{% trans "待我審核 — 補打卡申請" %}</h1>
+        </div>
+    </section>
     {% if messages %}{% for m in messages %}<div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>{% endfor %}{% endif %}
 
     {% for item in items %}
