@@ -5413,17 +5413,22 @@ def employee_leave_overview(request):
 
     rows = []
     for av in available_qs:
-        used = used_map.get((av.employee_id_id, av.leave_type_id_id), 0)
+        used = round(used_map.get((av.employee_id_id, av.leave_type_id_id), 0) or 0, 1)
+        remaining = round(float(av.available_days or 0), 1)
+        # 已分配 = 剩餘 + 今年已休（讓三欄可對帳：已分配 − 已休 = 剩餘）
+        # 不直接用 Horilla total_leave_days，因其 = available + carryforward，
+        # 而特休的 available_days 已含結轉，會重複計算（73.1 之謎）。
+        allocated = round(remaining + used, 1)
         start_period = av.assigned_date or year_start
         end_period = av.expired_date or year_end
         rows.append(
             {
                 "employee": av.employee_id,
                 "leave_type": av.leave_type_id,
-                "total_days": av.total_leave_days,
+                "total_days": allocated,
                 "carryforward": av.carryforward_days,
-                "used_this_year": round(used, 1),
-                "available": av.available_days,
+                "used_this_year": used,
+                "available": remaining,
                 "period_start": start_period,
                 "period_end": end_period,
             }
