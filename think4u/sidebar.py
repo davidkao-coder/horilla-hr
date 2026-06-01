@@ -48,9 +48,10 @@ SUBMENUS = [
 
 
 def manager_accessibility(request, submenu, user_perms, *args, **kwargs):
-    from base.templatetags.basefilters import is_reportingmanager
+    # Think4U：直屬主管 或 部門主管（Department.manager）皆可進審核專區
+    from think4u.manager_utils import is_manager
 
-    return is_reportingmanager(request.user) or request.user.is_superuser or _is_hr(request.user)
+    return is_manager(request.user) or request.user.is_superuser or _is_hr(request.user)
 
 
 def hr_accessibility(request, submenu, user_perms, *args, **kwargs):

@@ -21,21 +21,20 @@ def _is_hr(user):
 @login_required
 def manager_dashboard(request):
     """主管綜合審核：自己部門員工的請假 + 加班"""
+    from think4u.manager_utils import is_manager, managed_employees
+
     user = request.user
-    if not (is_reportingmanager(user) or _is_hr(user)):
+    if not (is_manager(user) or _is_hr(user)):
         return HttpResponseForbidden("僅主管可查看")
     emp = getattr(user, "employee_get", None)
     # Think4U: 排除「不顯示在報表」的角色成員
     hidden_ids = list(get_hidden_in_reports_employees().values_list("id", flat=True))
-    # 取直屬下屬
+    # 取下屬（直屬主管 ∪ 部門主管所管部門含子部門）
     if _is_hr(user):
         my_subs = Employee.objects.filter(is_active=True).exclude(id__in=hidden_ids)
         scope = "全公司"
     else:
-        my_subs = Employee.objects.filter(
-            employee_work_info__reporting_manager_id=emp,
-            is_active=True,
-        ).exclude(id__in=hidden_ids)
+        my_subs = managed_employees(user).exclude(id__in=hidden_ids)
         scope = "自部門"
 
     leave_pending = LeaveRequest.objects.filter(
