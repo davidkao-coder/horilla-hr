@@ -288,12 +288,31 @@ out: {{ c.check_out|default:'—' }}
         const status = document.getElementById('salSaveStatus');
         const dirty = new Set();
 
+        function num(el) { return el ? (parseInt(el.value, 10) || 0) : 0; }
+
+        // 即時（前端）重算純加總欄位：全薪 / 其他合計 / 群組小計
+        // 勞健保 / 請假扣薪 / 實領 仍需後端重算（按儲存後更新）
+        function recomputeSums(tr) {
+            const fld = (f) => tr.querySelector(`[data-field="${f}"]`);
+            const allow = num(fld('meal_allowance')) + num(fld('transport_allowance'));
+            const add = num(fld('management_allowance')) + num(fld('tech_management_allowance')) + num(fld('salary_addition'));
+            const gross = num(fld('base_salary')) + allow + add;
+            let extra = 0;
+            tr.querySelectorAll('.extra-input').forEach(i => extra += (parseInt(i.value, 10) || 0));
+            const set = (sel, v) => { const c = tr.querySelector(sel); if (c) c.textContent = v; };
+            set('.sal-gross', gross);
+            set('.sal-extra', '+' + extra);
+            set('.grp-allow-sum', allow);
+            set('.grp-add-sum', add);
+            set('.grp-extra-sum', extra);
+        }
+
         function markDirty(emp) {
             dirty.add(String(emp));
             const tr = document.querySelector(`tr[data-emp="${emp}"]`);
-            if (tr) tr.style.background = '#fffbea';
+            if (tr) { tr.style.background = '#fffbea'; recomputeSums(tr); }
             saveBtn.disabled = false;
-            status.textContent = '有未儲存的修改';
+            status.textContent = '有未儲存的修改（按儲存後重算勞健保 / 實領）';
             status.style.color = '#b26a00';
         }
 
