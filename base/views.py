@@ -979,24 +979,15 @@ def employee_workinfo_complete(request):
 
     employees_with_pending = []
 
-    # List of field names to focus on
+    # Think4U: 只檢查實際在用的工作資訊欄位（其餘欄位已精簡，不計完整度）
     fields_to_focus = [
         "job_position_id",
         "department_id",
-        "work_type_id",
         "employee_type_id",
-        "job_role_id",
-        "reporting_manager_id",
-        "company_id",
-        "location",
         "email",
-        "mobile",
-        "shift_id",
         "date_joining",
-        "contract_end_date",
-        "basic_salary",
-        "salary_hour",
     ]
+    total_fields = len(fields_to_focus)
     search = request.GET.get("search", "")
     employees_workinfos = filtersubordinates(
         request,
@@ -1012,9 +1003,9 @@ def employee_workinfo_complete(request):
             for field_name in fields_to_focus
             if getattr(employee, field_name) is not None
         )
-        if completed_field_count < 15:
+        if completed_field_count < total_fields:
             # Create a dictionary with employee information and pending field count
-            percent = f"{((completed_field_count / 15) * 100):.1f}"
+            percent = f"{((completed_field_count / total_fields) * 100):.1f}"
             employee_info = {
                 "employee": employee,
                 "completed_field_count": percent,
