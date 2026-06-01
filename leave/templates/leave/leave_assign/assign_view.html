@@ -170,7 +170,8 @@
     <div class="oh-checkpoint-badge mb-2" id="selectedLeaves" data-ids="[]" data-clicked="" style="display: none">
         {% trans "Selected Leaves" %}
     </div>
-    <div class="oh-checkpoint-badge text-success mb-2" id="selectAllLeaves" style="cursor: pointer">
+    {% comment %}Think4U: 隱藏「選擇所有葉子」按鈕{% endcomment %}
+    <div class="oh-checkpoint-badge text-success mb-2" id="selectAllLeaves" style="cursor: pointer; display: none;">
         {% trans "Select All Leaves" %}
     </div>
     <div class="oh-checkpoint-badge text-secondary mb-2" id="unselectAllLeaves" style="cursor: pointer; display: none">
