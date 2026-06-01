@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Think4U HRMS — 從備份還原（會覆蓋現有資料！）
 # 用法：
-#   bash scripts/restore.sh ./backups/2026-05-28_143025
+#   bash scripts/restore.sh ../backup/2026-05-28_143025
 #
 # 會做的事：
 #   1. 確認你真的要還原（要打 yes）
@@ -16,7 +16,7 @@ if [ $# -lt 1 ]; then
   echo "用法：bash scripts/restore.sh <備份資料夾>"
   echo ""
   echo "可用的備份："
-  ls -1dt ./backups/*/ 2>/dev/null | head -10 || echo "  （無）"
+  ls -1dt ../backup/*/ ./backups/*/ 2>/dev/null | head -10 || echo "  （無）"
   exit 1
 fi
 

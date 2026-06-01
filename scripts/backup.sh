@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Think4U HRMS — 一鍵備份（dev / prod 通用）
 # 用法：
-#   bash scripts/backup.sh             # 備份到 ./backups/<時間戳>/
+#   bash scripts/backup.sh             # 備份到專案外層 ../backup/<時間戳>/
 #   bash scripts/backup.sh /d/some/dir # 備份到指定資料夾
 #
 # 內容：
@@ -15,7 +15,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TS=$(date +%Y-%m-%d_%H%M%S)
-ROOT="${1:-./backups}"
+# 預設備份到專案外層（D:\3.develop\98.hrms_Horilla\backup），不放在 repo 內
+ROOT="${1:-../backup}"
 OUT="$ROOT/$TS"
 mkdir -p "$OUT"
 
