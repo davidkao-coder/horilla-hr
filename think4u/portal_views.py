@@ -499,6 +499,37 @@ def portal_leave_submit(request):
         messages.error(request, "日期格式錯誤或結束日早於起始日")
         return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
+    # 單日 + 有填起訖時間 → 依「工作時數」計（午休 12:30~13:30 不計），1 天 = 8h
+    start_time = request.POST.get("start_time")
+    end_time = request.POST.get("end_time")
+    time_note = ""
+    if days == 1 and start_time and end_time:
+        from datetime import time as _time
+        from think4u.attendance_rules import (
+            allowed_off_time,
+            format_minutes,
+            leave_work_minutes,
+        )
+        try:
+            st = _time.fromisoformat(start_time)
+            et = _time.fromisoformat(end_time)
+        except ValueError:
+            st = et = None
+        if st and et and et > st:
+            work_min = leave_work_minutes(st, et)
+            if work_min <= 0:
+                messages.error(request, "請假時段沒有有效工作時數")
+                return redirect(f"{reverse('think4u-portal')}?tab=leave")
+            days = round((work_min / 480.0) * 16) / 16.0  # 對齊 0.5h = 0.0625 天
+            off = allowed_off_time(st)
+            time_note = (
+                f"（{start_time}~{end_time}，工作時數 {format_minutes(work_min)}"
+                f"，可下班 {off.strftime('%H:%M')}）"
+            )
+        else:
+            messages.error(request, "結束時間需晚於開始時間")
+            return redirect(f"{reverse('think4u-portal')}?tab=leave")
+
     # 生理假規則：每月最多 1 天
     if lt.name == "生理假":
         if days > 1:
@@ -527,11 +558,12 @@ def portal_leave_submit(request):
         start_date=d_start,
         end_date=d_end,
         requested_days=days,
-        description=description,
+        description=(description + (" " + time_note if time_note else "")).strip(),
         attachment=attachment,
         status="requested",
     )
-    messages.success(request, f"已送出請假申請（{lt.name}，共 {days} 天）")
+    hours_txt = f"{round(days * 8, 2):g} 小時" if time_note else f"{days:g} 天"
+    messages.success(request, f"已送出請假申請（{lt.name}，{hours_txt}）")
     return redirect(f"{reverse('think4u-portal')}?tab=leave")
 
 

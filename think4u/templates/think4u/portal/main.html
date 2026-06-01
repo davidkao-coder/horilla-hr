@@ -333,12 +333,27 @@
                 <div class="form-grid-2">
                     <div class="form-row">
                         <label>{% trans "開始日期" %}<span class="required">*</span></label>
-                        <input type="date" name="start_date" value="{{ prefill_date }}" required>
+                        <input type="date" name="start_date" id="lvStartDate" value="{{ prefill_date }}" required>
                     </div>
                     <div class="form-row">
                         <label>{% trans "結束日期" %}</label>
-                        <input type="date" name="end_date" value="{{ prefill_date }}">
+                        <input type="date" name="end_date" id="lvEndDate" value="{{ prefill_date }}">
                     </div>
+                </div>
+                <div class="form-grid-2">
+                    <div class="form-row">
+                        <label>{% trans "開始時間" %}</label>
+                        <input type="time" name="start_time" id="lvStartTime">
+                    </div>
+                    <div class="form-row">
+                        <label>{% trans "結束時間" %}</label>
+                        <input type="time" name="end_time" id="lvEndTime">
+                    </div>
+                </div>
+                <div id="lvCalcBox" style="display:none; margin-bottom:10px; padding:10px 12px; background:#eef4ff; border-radius:8px; font-size:13px; color:#1a3a6b;">
+                    {% trans "請假時數" %}：<strong id="lvHours">—</strong> {% trans "小時" %}
+                    <span style="margin-left:12px;">{% trans "可下班時間" %}：<strong id="lvOff">—</strong></span>
+                    <div style="font-size:11px; color:#5a7; margin-top:4px;">{% trans "（僅計工作時數，午休 12:30~13:30 不計；單日填時間才會試算）" %}</div>
                 </div>
                 <div class="form-row">
                     <label>{% trans "請假事由" %}<span class="required">*</span></label>
@@ -350,6 +365,31 @@
                 </div>
                 <button class="btn btn-primary btn-block">📤 送出請假申請</button>
             </form>
+            <script>
+            (function () {
+                const sd=document.getElementById('lvStartDate'), ed=document.getElementById('lvEndDate');
+                const st=document.getElementById('lvStartTime'), et=document.getElementById('lvEndTime');
+                const box=document.getElementById('lvCalcBox'), hEl=document.getElementById('lvHours'), oEl=document.getElementById('lvOff');
+                if(!st) return;
+                const toMin=v=>{ if(!v) return null; const [h,m]=v.split(':').map(Number); return h*60+m; };
+                const fmt=m=>String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+                function calc(){
+                    const a=toMin(st.value), b=toMin(et.value);
+                    // 只在單日（起訖日相同或結束日空）且有填起訖時間時試算
+                    const sameDay = !ed.value || ed.value===sd.value;
+                    if(a===null||b===null||b<=a||!sameDay){ box.style.display='none'; return; }
+                    // 午休 12:30~13:30 重疊
+                    const L1=12*60+30, L2=13*60+30;
+                    const overlap=Math.max(0, Math.min(b,L2)-Math.max(a,L1));
+                    const work=Math.max(0,(b-a)-overlap);
+                    const hours=(work/60);
+                    hEl.textContent=(Math.round(hours*100)/100);
+                    oEl.textContent=fmt(a+9*60);  // 可下班 = 開始 + 9h
+                    box.style.display='block';
+                }
+                [st,et,sd,ed].forEach(el=>{el.addEventListener('change',calc); el.addEventListener('input',calc);});
+            })();
+            </script>
             {% endif %}
         </div>
 

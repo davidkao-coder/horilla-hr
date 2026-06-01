@@ -200,6 +200,34 @@ def is_workday(d: date) -> bool:
     return d.weekday() < 5
 
 
+def leave_work_minutes(start_t: Optional[time], end_t: Optional[time]) -> int:
+    """
+    請假時段的「工作時數」（分鐘）= (end - start) − 與午休(12:30~13:30)的重疊。
+    與一般打卡的 _lunch_deduction 不同：請假只要時段覆蓋午休區間就扣該重疊，
+    不看總時長（依公司請假時數規則）。
+    例：10:00~15:00 = 300 − 60 = 240(4h)；10:00~14:00 = 240 − 60 = 180(3h)；
+        9:30~12:00 = 150(2.5h，未到午休)；9:30~14:00 = 270 − 60 = 210(3.5h)。
+    """
+    if not start_t or not end_t:
+        return 0
+    raw = _minutes_between(start_t, end_t)
+    if raw <= 0:
+        return 0
+    s = start_t.hour * 60 + start_t.minute
+    e = end_t.hour * 60 + end_t.minute
+    lunch_overlap = max(0, min(e, 13 * 60 + 30) - max(s, 12 * 60 + 30))
+    return max(0, raw - lunch_overlap)
+
+
+def allowed_off_time(start_t: Optional[time]) -> Optional[time]:
+    """可下班時間 = 開始時間 + 9 小時（8h 工作 + 1h 午休）。"""
+    if not start_t:
+        return None
+    total = start_t.hour * 60 + start_t.minute + 9 * 60
+    total %= 24 * 60
+    return time(total // 60, total % 60)
+
+
 def leave_minutes_on_date(employee, the_date: date) -> int:
     """
     計算某員工某日的請假時數（分鐘）。
