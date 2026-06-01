@@ -1379,7 +1379,7 @@ msgid "Date range"
 msgstr "日期範圍"
 
 msgid "Offline Employees"
-msgstr "離線員工"
+msgstr "未出勤員工"
 
 msgid "Hours Chart"
 msgstr "工時圖表"

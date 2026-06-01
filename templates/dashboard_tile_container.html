@@ -295,7 +295,7 @@
         </div>
     {% endif %}
 {% endif %}
-{% if not 'shift_request_approve' in charts %}
+{% if False %}{# Think4U: 移除「待審核的班別調整」卡片 #}
     {% if perms.base.change_shiftrequest or request.user|is_reportingmanager %}
         <div class="col-12 col-sm-12 col-md-12 col-lg-6 oh-card-dashboard--moveable dashboardChart"
             id="shiftRequestApprove">
@@ -316,7 +316,7 @@
         </div>
     {% endif %}
 {% endif %}
-{% if not 'work_type_request_approve' in charts %}
+{% if False %}{# Think4U: 移除「待審核的工作型態調整」卡片 #}
     {% if perms.base.change_worktyperequest or request.user|is_reportingmanager %}
         <div class="col-12 col-sm-12 col-md-12 col-lg-6 oh-card-dashboard--moveable dashboardChart"
             id="WorkTypeRequestApprove">
@@ -362,7 +362,7 @@
     {% endif %}
 {% endif %}
 {% if "attendance"|app_installed %}
-    {% if not 'attendance_validate' in charts %}
+    {% if False %}{# Think4U: 移除「出勤驗證」卡片 #}
         {% if perms.attendance.change_attendance or request.user|is_reportingmanager %}
         <div class="col-12 col-sm-12 col-md-12 col-lg-6 oh-card-dashboard--moveable dashboardChart" id="AttendanceValidate">
             <div class="oh-card-dashboard oh-card-dashboard--no-scale oh-card-dashboard--transparent" style="height:425px">

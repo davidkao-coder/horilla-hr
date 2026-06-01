@@ -138,16 +138,7 @@
                     </a>
                 </div>
                 {% endif %}
-                <div class="col-12 col-md-6 col-lg-3 mb-3">
-                    <a href="{% url 'notifications:all' %}" style="text-decoration:none;">
-                        <div class="oh-card-dashboard tile" style="background:#fff3cd;">
-                            <div class="oh-card-dashboard__header"><span class="oh-card-dashboard__title">{% trans "Reminders" %}</span></div>
-                            <div class="oh-card-dashboard__body" style="display:flex;align-items:center;justify-content:center;height:90px;">
-                                <ion-icon name="notifications-outline" style="font-size:48px;color:#f57c00;"></ion-icon>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                {% comment %}Think4U: 移除「提醒」卡片{% endcomment %}
                 {% if "leave"|app_installed %}
                 <div class="col-12 col-md-6 col-lg-3 mb-3">
                     <a href="{% url 'user-request-view' %}" style="text-decoration:none;">
