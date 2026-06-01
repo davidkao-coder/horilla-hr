@@ -1485,10 +1485,10 @@ msgid "Add Allowed IPs"
 msgstr "新增允許的 IP"
 
 msgid "Export Late Come Early Out"
-msgstr "出口遲到早出"
+msgstr "匯出出勤異常紀錄"
 
 msgid "Late Come/Early Out"
-msgstr "遲到/早退"
+msgstr "出勤異常"
 
 msgid "Penalties"
 msgstr "處罰"
@@ -4073,7 +4073,7 @@ msgid "attendance-activity-view"
 msgstr "出勤活動視圖"
 
 msgid "late-come-early-out-view"
-msgstr "遲到早退的觀點"
+msgstr "出勤異常紀錄"
 
 msgid "view-my-attendance"
 msgstr "查看我的出勤"
