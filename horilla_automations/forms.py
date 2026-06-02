@@ -45,7 +45,7 @@ class AutomationForm(ModelForm):
                 filter_template_path="employee_filters.html",
                 instance=self.instance,
             ),
-            label="Also Sent to",
+            label=_("Also Sent to"),
             help_text=_("The employees selected here will receive the email as Cc."),
         )
 
@@ -61,12 +61,14 @@ class AutomationForm(ModelForm):
         self.fields["mail_to"] = forms.MultipleChoiceField(
             choices=mail_to,
             initial=self.data.get("mail_to"),
+            label=_("Mail to/Notify to"),
             widget=forms.SelectMultiple(attrs={"class": "oh-select oh-select-2 w-100"}),
         )
 
         # --- Field: mail_details ---
         self.fields["mail_details"] = forms.ChoiceField(
             choices=mail_details_choice,
+            label=_("Mail Details"),
             help_text=_(
                 "Fill mail template details (receiver/instance, `self` will be the person who triggers the automation)"
             ),
@@ -76,7 +78,7 @@ class AutomationForm(ModelForm):
         }
 
         # --- Field: model ---
-        self.fields["model"].choices = [("", "Select model")] + sorted(
+        self.fields["model"].choices = [("", _("Select model"))] + sorted(
             set(MODEL_CHOICES)
         )
         self.fields["model"].widget.attrs["onchange"] = "getToMail($(this))"

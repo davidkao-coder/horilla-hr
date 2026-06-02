@@ -14584,3 +14584,79 @@ msgstr "可用區間"
 
 msgid "No leave allocation records."
 msgstr "尚未有配假紀錄。"
+
+# Think4U: 郵件自動化（horilla_automations）中文化
+msgid "Automations"
+msgstr "郵件自動化"
+
+msgid "New Automation"
+msgstr "新增郵件自動化"
+
+msgid "Model"
+msgstr "資料模型"
+
+msgid "Trigger"
+msgstr "觸發時機"
+
+msgid "Delivery Channel"
+msgstr "發送方式"
+
+msgid "Email Mapping"
+msgstr "收件對應"
+
+msgid "Detailed View"
+msgstr "詳細資料"
+
+msgid "Mail To"
+msgstr "收件人"
+
+msgid "Mail Cc"
+msgstr "副本收件人"
+
+msgid "On Create"
+msgstr "建立時"
+
+msgid "On Update"
+msgstr "更新時"
+
+msgid "On Delete"
+msgstr "刪除時"
+
+msgid "Send as Email"
+msgstr "以 Email 發送"
+
+msgid "Send as Notification"
+msgstr "以站內通知發送"
+
+msgid "Send as Email and Notification"
+msgstr "同時以 Email 與站內通知發送"
+
+msgid "Mail to/Notify to"
+msgstr "收件人／通知對象"
+
+msgid "Mail Details"
+msgstr "郵件對象設定"
+
+msgid "Mail Template"
+msgstr "郵件範本"
+
+msgid "Template Attachments"
+msgstr "範本附件"
+
+msgid "Trigger Condition"
+msgstr "觸發條件"
+
+msgid "Also Send to"
+msgstr "副本也寄給"
+
+msgid "Also Sent to"
+msgstr "副本也寄給"
+
+msgid "Choose Delivery Channel"
+msgstr "選擇發送方式"
+
+msgid "Select model"
+msgstr "選擇資料模型"
+
+msgid "Fill mail template details(reciever/instance, `self` will be the person who trigger the automation), `As template` option will sent instead of the mail template"
+msgstr "設定郵件對象（收件者／資料物件，`self` 代表觸發此自動化的人）；選「As template」時將以該對象代替郵件範本發送"

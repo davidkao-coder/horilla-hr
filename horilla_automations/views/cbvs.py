@@ -148,7 +148,7 @@ class AutomationListView(views.HorillaListView):
 
     actions = [
         {
-            "action": "Edit",
+            "action": _trans("Edit"),
             "icon": "create-outline",
             "attrs": """
                 class="oh-btn oh-btn--light-bkg w-100"
@@ -159,24 +159,24 @@ class AutomationListView(views.HorillaListView):
             """,
         },
         {
-            "action": "Delete",
+            "action": _trans("Delete"),
             "icon": "trash-outline",
             "attrs": """
             class="oh-btn oh-btn--light-bkg w-100 tex-danger"
             onclick="
                 event.stopPropagation();
-                confirm('Do you want to delete the automation?','{delete_url}')
+                confirm('確定要刪除這個郵件自動化嗎？','{delete_url}')
             "
             """,
         },
     ]
     header_attrs = {"action": "style='width:100px;'"}
     columns = [
-        ("Title", "title"),
-        ("Model", "model"),
-        ("Trigger", "trigger_display"),
-        ("Delivery Channel", "get_delivery_channel_display"),
-        ("Email Mapping", "get_mail_to_display"),
+        (_trans("Title"), "title"),
+        (_trans("Model"), "model"),
+        (_trans("Trigger"), "trigger_display"),
+        (_trans("Delivery Channel"), "get_delivery_channel_display"),
+        (_trans("Email Mapping"), "get_mail_to_display"),
     ]
 
 
@@ -190,22 +190,22 @@ class AutomationDetailedView(views.HorillaDetailedView):
     """
 
     model = models.MailAutomation
-    title = "Detailed View"
+    title = _trans("Detailed View")
     header = {
         "title": "title",
         "subtitle": "title",
         "avatar": "get_avatar",
     }
     body = [
-        ("Model", "model"),
-        ("Mail Templates", "mail_template"),
-        ("Mail To", "get_mail_to_display"),
-        ("Mail Cc", "get_mail_cc_display"),
-        ("Trigger", "trigger_display"),
+        (_trans("Model"), "model"),
+        (_trans("Mail Templates"), "mail_template"),
+        (_trans("Mail To"), "get_mail_to_display"),
+        (_trans("Mail Cc"), "get_mail_cc_display"),
+        (_trans("Trigger"), "trigger_display"),
     ]
     actions = [
         {
-            "action": "Edit",
+            "action": _trans("Edit"),
             "icon": "create-outline",
             "attrs": """
             hx-get="{edit_url}?instance_ids={ordered_ids}"
@@ -216,12 +216,12 @@ class AutomationDetailedView(views.HorillaDetailedView):
             """,
         },
         {
-            "action": "Delete",
+            "action": _trans("Delete"),
             "icon": "trash-outline",
             "attrs": """
             class="oh-btn oh-btn--danger w-50"
             onclick="
-                confirm('Do you want to delete the automation?','{delete_url}')
+                confirm('確定要刪除這個郵件自動化嗎？','{delete_url}')
             "
             """,
         },

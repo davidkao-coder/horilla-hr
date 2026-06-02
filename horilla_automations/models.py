@@ -27,32 +27,46 @@ class MailAutomation(HorillaModel):
     """
 
     choices = [
-        ("on_create", "On Create"),
-        ("on_update", "On Update"),
-        ("on_delete", "On Delete"),
+        ("on_create", _trans("On Create")),
+        ("on_update", _trans("On Update")),
+        ("on_delete", _trans("On Delete")),
     ]
     SEND_OPTIONS = [
-        ("email", "Send as Email"),
-        ("notification", "Send as Notification"),
-        ("both", "Send as Email and Notification"),
+        ("email", _trans("Send as Email")),
+        ("notification", _trans("Send as Notification")),
+        ("both", _trans("Send as Email and Notification")),
     ]
 
-    title = models.CharField(max_length=256, unique=True)
+    title = models.CharField(
+        max_length=256, unique=True, verbose_name=_trans("Title")
+    )
     method_title = models.CharField(max_length=100, editable=False)
-    model = models.CharField(max_length=100, choices=MODEL_CHOICES, null=False)
-    mail_to = models.TextField(verbose_name="Mail to/Notify to")
+    model = models.CharField(
+        max_length=100,
+        choices=MODEL_CHOICES,
+        null=False,
+        verbose_name=_trans("Model"),
+    )
+    mail_to = models.TextField(verbose_name=_trans("Mail to/Notify to"))
     mail_details = models.CharField(
         max_length=250,
+        verbose_name=_trans("Mail Details"),
         help_text=_trans(
             "Fill mail template details(reciever/instance, `self` will be the person who trigger the automation), `As template` option will sent instead of the mail template"
         ),
     )
     mail_detail_choice = models.TextField(default="", editable=False)
-    trigger = models.CharField(max_length=10, choices=choices)
+    trigger = models.CharField(
+        max_length=10, choices=choices, verbose_name=_trans("Trigger")
+    )
     # udpate the on_update logic to if and only if when
     # changes in the previous and current value
     mail_template = models.ForeignKey(
-        HorillaMailTemplate, on_delete=models.CASCADE, null=True, blank=True
+        HorillaMailTemplate,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_trans("Mail Template"),
     )
     also_sent_to = models.ManyToManyField(
         Employee,
@@ -69,11 +83,12 @@ class MailAutomation(HorillaModel):
         HorillaMailTemplate,
         related_name="template_attachment",
         blank=True,
+        verbose_name=_trans("Template Attachments"),
     )
     condition_html = models.TextField(null=True, editable=False)
     condition_querystring = models.TextField(null=True, editable=False)
 
-    condition = models.TextField()
+    condition = models.TextField(verbose_name=_trans("Trigger Condition"))
 
     xss_exempt_fields = [
         "condition_html",
