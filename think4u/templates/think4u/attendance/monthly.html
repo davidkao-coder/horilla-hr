@@ -142,7 +142,9 @@ out: {{ c.check_out|default:'—' }}
             <thead>
                 <tr>
                     <th class="emp-name" rowspan="2">員工</th>
-                    <th rowspan="2" style="background:#dbe7ff;">全薪<br><small>(2026 公式)</small></th>
+                    <th rowspan="2">計薪<br>方式</th>
+                    <th rowspan="2">時薪<br><small>(時薪制)</small></th>
+                    <th rowspan="2" style="background:#dbe7ff;">全薪 / 工時薪資<br><small>(月薪=2026公式；時薪=工時×時薪)</small></th>
                     <th rowspan="2">本薪</th>
                     <th class="grp-hdr" data-group="allow" data-cols="2" colspan="2" style="background:#e8f5e9; cursor:pointer;" title="點擊摺疊/展開"><span class="grp-caret">▾</span> 津貼項目</th>
                     <th class="grp-hdr" data-group="add" data-cols="3" colspan="3" style="background:#e8f5e9; cursor:pointer;" title="點擊摺疊/展開"><span class="grp-caret">▾</span> 加給項目</th>
@@ -175,9 +177,30 @@ out: {{ c.check_out|default:'—' }}
             </thead>
             <tbody>
                 {% for row in rows %}
-                <tr data-emp="{{ row.employee.id }}">
+                <tr data-emp="{{ row.employee.id }}" data-paytype="{{ row.salary.pay_type }}">
                     <td class="emp-name"><strong>{{ row.employee }}</strong></td>
-                    <td class="sal-gross" style="background:#f0f6ff; font-weight:700;">{{ row.salary.gross }}</td>
+                    <td>
+                        {% if is_hr %}
+                        <select class="paytype-input" data-emp="{{ row.employee.id }}"
+                                style="padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="monthly" {% if row.salary.pay_type != 'hourly' %}selected{% endif %}>月薪制</option>
+                            <option value="hourly" {% if row.salary.pay_type == 'hourly' %}selected{% endif %}>時薪制</option>
+                        </select>
+                        {% else %}{% if row.salary.pay_type == 'hourly' %}時薪制{% else %}月薪制{% endif %}{% endif %}
+                    </td>
+                    <td>
+                        {% if is_hr %}
+                        <input type="number" class="rate-input" data-emp="{{ row.employee.id }}" data-field="hourly_rate"
+                               value="{{ row.salary.hourly_rate }}" min="0" step="10"
+                               style="width:70px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                        {% else %}{{ row.salary.hourly_rate }}{% endif %}
+                    </td>
+                    <td class="sal-gross" style="background:#f0f6ff; font-weight:700;">
+                        <span class="sal-gross-val">{{ row.salary.gross }}</span>
+                        <div class="sal-hours-hint" style="font-size:11px; color:#888; {% if row.salary.pay_type != 'hourly' %}display:none;{% endif %}">
+                            工時 <span class="sal-worked-hours">{{ row.salary.worked_hours }}</span>h
+                        </div>
+                    </td>
                     {% comment %}本薪（不可摺疊）{% endcomment %}
                     <td>
                         {% if is_hr %}
@@ -290,18 +313,33 @@ out: {{ c.check_out|default:'—' }}
 
         // 即時（前端）重算純加總欄位：全薪 / 其他合計 / 群組小計（勞健保/實領由後端回傳）
         function recomputeSums(tr) {
+            const set = (sel, v) => { const c = tr.querySelector(sel); if (c) c.textContent = v; };
+            let extra = 0;
+            tr.querySelectorAll('.extra-input').forEach(i => extra += (parseInt(i.value, 10) || 0));
+            set('.sal-extra', '+' + extra);
+            set('.grp-extra-sum', extra);
+            // 時薪制：全薪(=工時薪資)由後端算，前端不重算組成
+            if (tr.dataset.paytype === 'hourly') return;
             const fld = (f) => tr.querySelector(`[data-field="${f}"]`);
             const allow = num(fld('meal_allowance')) + num(fld('transport_allowance'));
             const add = num(fld('management_allowance')) + num(fld('tech_management_allowance')) + num(fld('salary_addition'));
             const gross = num(fld('base_salary')) + allow + add;
-            let extra = 0;
-            tr.querySelectorAll('.extra-input').forEach(i => extra += (parseInt(i.value, 10) || 0));
-            const set = (sel, v) => { const c = tr.querySelector(sel); if (c) c.textContent = v; };
-            set('.sal-gross', gross);
-            set('.sal-extra', '+' + extra);
+            set('.sal-gross-val', gross);
             set('.grp-allow-sum', allow);
             set('.grp-add-sum', add);
-            set('.grp-extra-sum', extra);
+        }
+
+        // 切換時薪/月薪的 UI：時薪制時，月薪組成欄位停用＋顯示工時提示
+        function applyPayTypeUI(tr, pt) {
+            tr.dataset.paytype = pt;
+            const hourly = (pt === 'hourly');
+            tr.querySelectorAll('.comp-input').forEach(i => {
+                i.disabled = hourly;
+                i.style.opacity = hourly ? 0.4 : 1;
+                i.title = hourly ? '時薪制不使用月薪組成' : '';
+            });
+            const hint = tr.querySelector('.sal-hours-hint');
+            if (hint) hint.style.display = hourly ? '' : 'none';
         }
 
         // 送出單一 row → 回傳 Promise，並更新該列重算結果
@@ -312,11 +350,19 @@ out: {{ c.check_out|default:'—' }}
             tr.querySelectorAll('.extra-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             const dep = tr.querySelector('.dep-input');
             if (dep) body.append('dependents', dep.value || 0);
+            const ptSel = tr.querySelector('.paytype-input');
+            if (ptSel) body.append('pay_type', ptSel.value);
+            const rate = tr.querySelector('.rate-input');
+            if (rate) body.append('hourly_rate', rate.value || 0);
             return fetch(url, {method: 'POST', headers: {'X-CSRFToken': csrftoken}, body})
                 .then(r => r.json())
                 .then(d => {
                     if (!d.ok) throw new Error('update failed');
-                    tr.querySelector('.sal-gross').textContent = d.gross;
+                    const gv = tr.querySelector('.sal-gross-val');
+                    if (gv) gv.textContent = d.gross;
+                    const wh = tr.querySelector('.sal-worked-hours');
+                    if (wh && d.worked_hours != null) wh.textContent = d.worked_hours;
+                    applyPayTypeUI(tr, d.pay_type || 'monthly');
                     tr.querySelector('.sal-extra').textContent = '+' + d.extra_total;
                     // 群組小計（摺疊時顯示）同步
                     const setSum = (cls, v) => { const c = tr.querySelector(cls); if (c) c.textContent = v; };
@@ -334,8 +380,13 @@ out: {{ c.check_out|default:'—' }}
                             `<div>${b.type} <strong>${b.hours}h</strong>（${b.days}天 ${b.ratio_label}）→ <span style="color:${b.amount ? '#c0392b' : '#999'};">-${b.amount}</span></div>`
                         ).join('');
                     } else { detail.innerHTML = '<span style="color:#999;">—</span>'; }
-                    tr.querySelector('.sal-formula').innerHTML =
-                        `${d.gross} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                    if (d.pay_type === 'hourly') {
+                        tr.querySelector('.sal-formula').innerHTML =
+                            `工時薪資 ${d.gross}（${d.worked_hours}h×${d.hourly_rate}）+${d.extra_total} −${d.labor} −${d.health} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                    } else {
+                        tr.querySelector('.sal-formula').innerHTML =
+                            `${d.gross} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                    }
                     tr.style.background = '';
                 });
         }
@@ -356,7 +407,7 @@ out: {{ c.check_out|default:'—' }}
         }
 
         // 打字時即時重算加總；停止輸入 / 離開欄位後自動儲存
-        document.querySelectorAll('.comp-input, .extra-input, .dep-input').forEach(function (inp) {
+        document.querySelectorAll('.comp-input, .extra-input, .dep-input, .rate-input').forEach(function (inp) {
             inp.addEventListener('input', function () {
                 const tr = document.querySelector(`tr[data-emp="${this.dataset.emp}"]`);
                 if (tr) recomputeSums(tr);
@@ -364,6 +415,21 @@ out: {{ c.check_out|default:'—' }}
                 autoSave(this.dataset.emp);
             });
             inp.addEventListener('change', function () { autoSave(this.dataset.emp); });
+        });
+
+        // 計薪方式切換：立即切 UI + 自動儲存（後端依工時重算）
+        document.querySelectorAll('.paytype-input').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                const tr = document.querySelector(`tr[data-emp="${this.dataset.emp}"]`);
+                if (tr) applyPayTypeUI(tr, this.value);
+                setStatus('修改中…', '#b26a00');
+                autoSave(this.dataset.emp);
+            });
+        });
+
+        // 載入時：時薪制列套用停用樣式
+        document.querySelectorAll('tr[data-emp]').forEach(function (tr) {
+            applyPayTypeUI(tr, tr.dataset.paytype || 'monthly');
         });
     })();
     </script>

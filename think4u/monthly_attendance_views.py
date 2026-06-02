@@ -53,16 +53,29 @@ def _extras_of(extra_row):
     }
 
 
-def _build_salary(sal_row, leave_hours, extra_row=None):
-    """組合薪資明細：組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 其他加項 + 實領"""
+def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0):
+    """組合薪資明細：組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 其他加項 + 實領。
+    時薪制（pay_type='hourly'）改以「實際工時 × 時薪」計算。"""
     comp = _components_of(sal_row)
     gross = sum(comp.values())
     deps = int(getattr(sal_row, "dependents", 0) or 0) if sal_row else 0
     extras = _extras_of(extra_row)
     extra_total = sum(extras.values())
-    s = compute_salary(
-        gross, deps, leave_hours_by_type=leave_hours, extra_total=extra_total
-    )
+    pay_type = getattr(sal_row, "pay_type", "monthly") if sal_row else "monthly"
+    if pay_type == "hourly":
+        from think4u.payroll_rules import compute_hourly_salary
+
+        rate = int(getattr(sal_row, "hourly_rate", 0) or 0) if sal_row else 0
+        s = compute_hourly_salary(
+            rate, worked_minutes, dependents=deps, extra_total=extra_total
+        )
+    else:
+        s = compute_salary(
+            gross, deps, leave_hours_by_type=leave_hours, extra_total=extra_total
+        )
+    s["pay_type"] = pay_type
+    s["hourly_rate"] = int(getattr(sal_row, "hourly_rate", 0) or 0) if sal_row else 0
+    s["worked_hours"] = round(float(worked_minutes or 0) / 60.0, 2)
     s["components"] = comp
     s["components_pairs"] = [
         (key, comp[key]) for key, _label, _grp in SALARY_COMPONENT_FIELDS
@@ -322,6 +335,7 @@ def monthly_attendance(request):
                     salary_map.get(emp.id),
                     dict(leaves_by_emp_type.get(emp.id, {})),
                     extra_map.get(emp.id),
+                    worked_minutes=sum_work,
                 ),
             }
         )
@@ -382,6 +396,16 @@ def update_salary(request):
 
     row, _ = EmployeeSalary.objects.get_or_create(employee_id=emp_id)
     update_fields = ["updated_at"]
+    # 計薪方式 / 時薪
+    if request.POST.get("pay_type") in ("monthly", "hourly"):
+        row.pay_type = request.POST["pay_type"]
+        update_fields.append("pay_type")
+    if "hourly_rate" in request.POST:
+        try:
+            row.hourly_rate = max(0, int(request.POST.get("hourly_rate") or 0))
+            update_fields.append("hourly_rate")
+        except (TypeError, ValueError):
+            pass
     # 各薪資組成欄位（標準月薪 → EmployeeSalary）
     for key, _label, _grp in SALARY_COMPONENT_FIELDS:
         if key in request.POST:
@@ -430,8 +454,17 @@ def update_salary(request):
 
     last_day = _calendar.monthrange(year, month)[1]
     lh = leave_hours_by_type(emp_id, _date(year, month, 1), _date(year, month, last_day))
+    wm = 0
+    if row.pay_type == "hourly":
+        from think4u.attendance_compute import worked_minutes_for
 
-    return JsonResponse({"ok": True, **_build_salary(row, lh, extra_row)})
+        wm = worked_minutes_for(
+            emp_id, _date(year, month, 1), _date(year, month, last_day)
+        )
+
+    return JsonResponse(
+        {"ok": True, **_build_salary(row, lh, extra_row, worked_minutes=wm)}
+    )
 
 
 @login_required
@@ -482,10 +515,18 @@ def export_salary(request):
     comp_labels = [(k, lbl) for k, lbl, _g in SALARY_COMPONENT_FIELDS]
     extra_labels = list(EXTRA_PAY_FIELDS)
 
+    from think4u.attendance_compute import worked_minutes_for
+
     rows = []
     for emp in employees:
         lh = leave_hours_by_type(emp.id, m_start, m_end)
-        s = _build_salary(salary_map.get(emp.id), lh, extra_map.get(emp.id))
+        sal_row = salary_map.get(emp.id)
+        wm = (
+            worked_minutes_for(emp.id, m_start, m_end)
+            if sal_row and getattr(sal_row, "pay_type", "monthly") == "hourly"
+            else 0
+        )
+        s = _build_salary(sal_row, lh, extra_map.get(emp.id), worked_minutes=wm)
         detail = "；".join(
             f"{b['type']} {b['hours']}h({b['ratio_label']} -{b['amount']})"
             for b in s["leave_breakdown"]
@@ -499,9 +540,12 @@ def export_salary(request):
                 else ""
             ),
         }
+        row["計薪方式"] = "時薪制" if s.get("pay_type") == "hourly" else "月薪制"
+        row["時薪"] = s.get("hourly_rate", 0)
+        row["工時(h)"] = s.get("worked_hours", 0)
         for key, lbl in comp_labels:
             row[lbl] = s["components"][key]
-        row["全薪"] = s["gross"]
+        row["全薪/工時薪資"] = s["gross"]
         for key, lbl in extra_labels:
             row[lbl] = s["extras"][key]
         row["其他合計"] = s["extra_total"]

@@ -69,6 +69,23 @@ def leave_hours_by_type(emp_id, start: date, end: date, statuses=("approved",)) 
     return dict(result)
 
 
+def worked_minutes_for(emp_id, start: date, end: date) -> int:
+    """某員工在 start~end 區間的實際工作分鐘總和（時薪制計薪用）。
+    僅計入工作日且有打卡的評估工時（請假不算工時）。"""
+    from employee.models import Employee
+
+    emp = Employee.objects.filter(id=emp_id).first()
+    if not emp:
+        return 0
+    total = 0
+    for row in daily_evaluations([emp], start, end, skip_empty=True):
+        ev = row["evaluation"]
+        # 只算有實際打卡的工時（請假不計薪）
+        if row.get("check_in"):
+            total += getattr(ev, "work_minutes", 0) or 0
+    return total
+
+
 def daily_evaluations(
     employees, start: date, end: date, statuses=("approved",), skip_empty=True
 ):

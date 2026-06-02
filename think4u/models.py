@@ -707,6 +707,19 @@ class EmployeeSalary(models.Model):
     monthly_salary = models.PositiveIntegerField(
         default=50000, verbose_name=_("月薪（NT$，舊）")
     )
+    # 計薪方式：月薪制 / 時薪制
+    PAY_TYPE_CHOICES = [
+        ("monthly", _("月薪制")),
+        ("hourly", _("時薪制")),
+    ]
+    pay_type = models.CharField(
+        max_length=10,
+        choices=PAY_TYPE_CHOICES,
+        default="monthly",
+        verbose_name=_("計薪方式"),
+    )
+    # 時薪（時薪制專用，NT$/小時）
+    hourly_rate = models.PositiveIntegerField(default=0, verbose_name=_("時薪"))
     # 薪資組成（2026 公司規則）
     base_salary = models.PositiveIntegerField(default=50000, verbose_name=_("本薪"))
     # 津貼項目
