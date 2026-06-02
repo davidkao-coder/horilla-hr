@@ -146,3 +146,91 @@ def workflow_save(request):
 
     messages.success(request, f"已儲存 {position} / {rtype} 的審核流程（{len(parsed_steps)} 關）")
     return redirect("think4u-approval-workflow")
+
+
+@user_passes_test(_superuser, login_url="/login/")
+def workflow_save_all(request):
+    """
+    POST：一次儲存頁面上所有卡片（職位 × 請假/加班）的審核流程。
+    欄位（card_count 張卡片，每張一個獨立 index c）：
+        card_count=<N>
+        card_<c>_position=<job_position_id>
+        card_<c>_request_type=<leave|overtime>
+        card_<c>_step_count=<K>
+        card_<c>_step_<i>_type / _role / _employee
+    沒有任何關卡的卡片 → 該 (職位×類型) 的 workflow 會被刪除（回到預設）。
+    """
+    if request.method != "POST":
+        return redirect("think4u-approval-workflow")
+
+    card_count = int(request.POST.get("card_count") or 0)
+    saved = 0
+    cleared = 0
+    errors = []
+
+    with transaction.atomic():
+        for c in range(card_count):
+            pos_id = request.POST.get(f"card_{c}_position")
+            rtype = request.POST.get(f"card_{c}_request_type")
+            if not pos_id or rtype not in ("leave", "overtime"):
+                continue
+            position = JobPosition.objects.filter(pk=pos_id).first()
+            if not position:
+                continue
+
+            step_count = int(request.POST.get(f"card_{c}_step_count") or 0)
+            parsed_steps = []
+            card_err = False
+            for i in range(1, step_count + 1):
+                atype = (request.POST.get(f"card_{c}_step_{i}_type") or "").strip()
+                if not atype:
+                    continue
+                role_id = request.POST.get(f"card_{c}_step_{i}_role") or None
+                emp_id = request.POST.get(f"card_{c}_step_{i}_employee") or None
+                if atype == "role" and not role_id:
+                    errors.append(f"{position} / {rtype} 第 {i} 關「指定角色」未選角色")
+                    card_err = True
+                    break
+                if atype == "employee" and not emp_id:
+                    errors.append(f"{position} / {rtype} 第 {i} 關「指定員工」未選員工")
+                    card_err = True
+                    break
+                parsed_steps.append(
+                    {
+                        "type": atype,
+                        "role_id": int(role_id) if role_id and atype == "role" else None,
+                        "employee_id": int(emp_id) if emp_id and atype == "employee" else None,
+                    }
+                )
+            if card_err:
+                continue
+
+            if not parsed_steps:
+                # 沒關卡 → 刪掉（回到預設流程），但只有原本存在才算 cleared
+                deleted, _ = ApprovalWorkflow.objects.filter(
+                    job_position=position, request_type=rtype
+                ).delete()
+                if deleted:
+                    cleared += 1
+                continue
+
+            wf, _ = ApprovalWorkflow.objects.get_or_create(
+                job_position=position, request_type=rtype
+            )
+            wf.steps.all().delete()
+            for idx, s in enumerate(parsed_steps, start=1):
+                ApprovalStep.objects.create(
+                    workflow=wf,
+                    order=idx,
+                    approver_type=s["type"],
+                    approver_role_id=s["role_id"],
+                    approver_employee_id=s["employee_id"],
+                )
+            saved += 1
+
+    if errors:
+        messages.error(request, "部分流程未儲存：" + "；".join(errors))
+    messages.success(
+        request, f"已全部儲存：{saved} 條已設定、{cleared} 條回到預設"
+    )
+    return redirect("think4u-approval-workflow")

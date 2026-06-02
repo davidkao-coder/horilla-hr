@@ -2,21 +2,47 @@
 {% load i18n %}
 {% block content %}
 <style>
-    .wf-card { padding:1rem; margin-bottom:1rem; border:1px solid #eee; border-radius:6px; background:#fff; }
-    .wf-card h4 { margin:0 0 .5rem; font-size:1rem; }
-    .wf-card .meta { color:#888; font-size:.85rem; margin-bottom:.5rem; }
-    .wf-steps { display:flex; flex-direction:column; gap:.5rem; }
-    .wf-step-row { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; padding:.4rem; border:1px dashed #ddd; border-radius:4px; background:#fafafa; }
-    .wf-step-row .order-badge { background:#444; color:#fff; padding:.1rem .5rem; border-radius:10px; font-size:.8rem; min-width:24px; text-align:center; }
-    .wf-actions { display:flex; gap:.4rem; margin-top:.7rem; }
-    .wf-actions .oh-btn { font-size:.85rem; }
+    .wf-grid {
+        display:grid;
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+        gap:1rem;
+        margin-top:1rem;
+    }
+    @media (max-width:1200px){ .wf-grid { grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    @media (max-width:820px){ .wf-grid { grid-template-columns:1fr; } }
+
+    .wf-card {
+        display:flex; flex-direction:column;
+        padding:.9rem 1rem; border:1px solid #e6e6e6; border-radius:8px;
+        background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04);
+    }
+    .wf-card .wf-pos { font-size:.78rem; color:#888; margin-bottom:.15rem; }
+    .wf-card h4 { margin:0 0 .15rem; font-size:.98rem; display:flex; align-items:center; gap:.35rem; }
+    .wf-card .meta { color:#999; font-size:.78rem; margin-bottom:.6rem; }
+    .wf-steps { display:flex; flex-direction:column; gap:.4rem; flex:1; }
+    .wf-step-row {
+        display:flex; gap:.3rem; flex-wrap:wrap; align-items:center;
+        padding:.35rem; border:1px dashed #ddd; border-radius:5px; background:#fafafa;
+    }
+    .wf-step-row .order-badge { background:#444; color:#fff; padding:.05rem .45rem; border-radius:10px; font-size:.72rem; min-width:22px; text-align:center; }
+    .wf-step-row .oh-select { font-size:.8rem; padding:.2rem .35rem; flex:1; min-width:90px; }
+    .wf-actions { display:flex; gap:.4rem; margin-top:.6rem; }
     .role-sel, .emp-sel { display:none; }
     .role-sel.active, .emp-sel.active { display:inline-block; }
+
+    .wf-savebar {
+        position:sticky; top:0; z-index:20;
+        display:flex; align-items:center; justify-content:space-between;
+        gap:1rem; padding:.7rem 1rem; margin-bottom:.5rem;
+        background:#fff; border:1px solid #e6e6e6; border-radius:8px;
+        box-shadow:0 2px 6px rgba(0,0,0,.06);
+    }
+    .wf-savebar .hint { color:#888; font-size:.82rem; }
 </style>
 
 <div class="oh-wrapper">
     <h1 class="oh-main__titlebar-title fw-bold">{% trans "審核關卡管理" %}</h1>
-    <p style="color:#666;">
+    <p style="color:#666; margin-bottom:.3rem;">
         {% trans "針對每個職位 × 申請類型（請假 / 加班），設定該員工的審核流程關卡。關卡會依序傳遞，全部通過才生效。" %}
     </p>
 
@@ -24,50 +50,53 @@
         <div class="oh-alert oh-alert--{{ m.tags }}">{{ m }}</div>
     {% endfor %}{% endif %}
 
-    {% regroup rows by position as grouped %}
-    {% for group in grouped %}
-    <section class="oh-card" style="padding:1rem; margin-top:1rem;">
-        <h3 style="margin-top:0;">
-            {{ group.grouper.department_id.department }} — {{ group.grouper.job_position }}
-        </h3>
-        {% if group.grouper.default_role %}
-            <div style="color:#888; font-size:.85rem;">預設角色：{{ group.grouper.default_role.name }}</div>
-        {% endif %}
+    <form method="post" action="{% url 'think4u-approval-workflow-save-all' %}" id="wf-all-form">
+        {% csrf_token %}
+        <input type="hidden" name="card_count" value="{{ rows|length }}">
 
-        {% for row in group.list %}
-        <div class="wf-card" data-form-id="wf-{{ row.position.id }}-{{ row.request_type }}">
-            <h4>
-                <ion-icon name="{% if row.request_type == 'leave' %}calendar-outline{% else %}time-outline{% endif %}"></ion-icon>
-                {{ row.request_type_label }}
-            </h4>
-            <div class="meta">
-                {% if row.steps %}{{ row.steps|length }} {% trans "關" %}{% else %}{% trans "尚未設定 — 將走預設（直屬主管 → HR）" %}{% endif %}
-            </div>
+        <div class="wf-savebar">
+            <span class="hint">{% trans "修改任意卡片後，點右側「全部儲存」一次存檔。沒有任何關卡的卡片會回到預設（直屬主管 → HR）。" %}</span>
+            <button type="submit" class="oh-btn oh-btn--success">
+                <ion-icon name="save-outline"></ion-icon> {% trans "全部儲存" %}
+            </button>
+        </div>
 
-            <form method="post" action="{% url 'think4u-approval-workflow-save' %}" id="wf-{{ row.position.id }}-{{ row.request_type }}">
-                {% csrf_token %}
-                <input type="hidden" name="position" value="{{ row.position.id }}">
-                <input type="hidden" name="request_type" value="{{ row.request_type }}">
-                <input type="hidden" name="step_count" class="step-count-input" value="{{ row.steps|length|default:0 }}">
+        <div class="wf-grid">
+            {% for row in rows %}
+            <div class="wf-card" data-card="{{ forloop.counter0 }}">
+                <input type="hidden" name="card_{{ forloop.counter0 }}_position" value="{{ row.position.id }}">
+                <input type="hidden" name="card_{{ forloop.counter0 }}_request_type" value="{{ row.request_type }}">
+                <input type="hidden" name="card_{{ forloop.counter0 }}_step_count" class="step-count-input" value="{{ row.steps|length|default:0 }}">
+
+                <div class="wf-pos">
+                    {{ row.position.department_id.department }} — {{ row.position.job_position }}
+                </div>
+                <h4>
+                    <ion-icon name="{% if row.request_type == 'leave' %}calendar-outline{% else %}time-outline{% endif %}"></ion-icon>
+                    {{ row.request_type_label }}
+                </h4>
+                <div class="meta">
+                    {% if row.steps %}{{ row.steps|length }} {% trans "關" %}{% else %}{% trans "尚未設定 — 預設（直屬主管 → HR）" %}{% endif %}
+                </div>
 
                 <div class="wf-steps">
                     {% for s in row.steps %}
                         <div class="wf-step-row" data-step="{{ forloop.counter }}">
                             <span class="order-badge">#{{ forloop.counter }}</span>
-                            <select name="step_{{ forloop.counter }}_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
+                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
                                 <option value="direct_manager" {% if s.approver_type == 'direct_manager' %}selected{% endif %}>{% trans "直屬主管" %}</option>
                                 <option value="department_head" {% if s.approver_type == 'department_head' %}selected{% endif %}>{% trans "部門主管" %}</option>
                                 <option value="role" {% if s.approver_type == 'role' %}selected{% endif %}>{% trans "指定角色" %}</option>
                                 <option value="employee" {% if s.approver_type == 'employee' %}selected{% endif %}>{% trans "指定員工" %}</option>
                                 <option value="hr" {% if s.approver_type == 'hr' %}selected{% endif %}>{% trans "HR" %}</option>
                             </select>
-                            <select name="step_{{ forloop.counter }}_role" class="oh-select role-sel {% if s.approver_type == 'role' %}active{% endif %}">
+                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_role" class="oh-select role-sel {% if s.approver_type == 'role' %}active{% endif %}">
                                 <option value="">— {% trans "選角色" %} —</option>
                                 {% for g in roles %}
                                   <option value="{{ g.id }}" {% if s.approver_role_id == g.id %}selected{% endif %}>{{ g.name }}</option>
                                 {% endfor %}
                             </select>
-                            <select name="step_{{ forloop.counter }}_employee" class="oh-select emp-sel {% if s.approver_type == 'employee' %}active{% endif %}">
+                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_employee" class="oh-select emp-sel {% if s.approver_type == 'employee' %}active{% endif %}">
                                 <option value="">— {% trans "選員工" %} —</option>
                                 {% for e in employees %}
                                   <option value="{{ e.id }}" {% if s.approver_employee_id == e.id %}selected{% endif %}>{{ e }}</option>
@@ -81,26 +110,16 @@
                 </div>
 
                 <div class="wf-actions">
-                    <button type="button" class="oh-btn oh-btn--secondary oh-btn--small" onclick="addStep(this, {{ row.position.id }}, '{{ row.request_type }}');">
+                    <button type="button" class="oh-btn oh-btn--secondary oh-btn--small" onclick="addStep(this, {{ forloop.counter0 }});">
                         <ion-icon name="add-outline"></ion-icon> {% trans "新增關卡" %}
                     </button>
-                    <button type="submit" class="oh-btn oh-btn--success oh-btn--small">
-                        <ion-icon name="save-outline"></ion-icon> {% trans "儲存此流程" %}
-                    </button>
-                    {% if row.workflow %}
-                    <button type="submit" name="delete" value="1" class="oh-btn oh-btn--danger oh-btn--small"
-                            onclick="return confirm('確定刪除此流程？刪除後將回到預設審核（直屬主管 → HR）。');">
-                        <ion-icon name="close-outline"></ion-icon> {% trans "刪除整條流程" %}
-                    </button>
-                    {% endif %}
                 </div>
-            </form>
+            </div>
+            {% empty %}
+            <p style="text-align:center; color:#999; padding:2rem; grid-column:1/-1;">{% trans "目前尚無職位，請先到「職位管理」建立。" %}</p>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </section>
-    {% empty %}
-    <p style="text-align:center; color:#999; padding:2rem;">{% trans "目前尚無職位，請先到「職位管理」建立。" %}</p>
-    {% endfor %}
+    </form>
 </div>
 
 <script>
@@ -113,45 +132,43 @@ function updateRoleEmpVisibility(sel) {
 }
 
 function removeStep(btn) {
-    var row = btn.closest('.wf-step-row');
-    var form = btn.closest('form');
-    row.remove();
-    renumberSteps(form);
+    var card = btn.closest('.wf-card');
+    btn.closest('.wf-step-row').remove();
+    renumberSteps(card);
 }
 
-function renumberSteps(form) {
-    var rows = form.querySelectorAll('.wf-step-row');
+function renumberSteps(card) {
+    var cardIdx = card.dataset.card;
+    var rows = card.querySelectorAll('.wf-step-row');
     rows.forEach(function (row, idx) {
         var n = idx + 1;
         row.dataset.step = n;
         row.querySelector('.order-badge').textContent = '#' + n;
         row.querySelectorAll('select').forEach(function (s) {
-            s.name = s.name.replace(/^step_\d+_/, 'step_' + n + '_');
+            // card_<c>_step_<i>_<suffix>
+            s.name = s.name.replace(/^card_\d+_step_\d+_/, 'card_' + cardIdx + '_step_' + n + '_');
         });
     });
-    form.querySelector('.step-count-input').value = rows.length;
+    card.querySelector('.step-count-input').value = rows.length;
 }
 
-function addStep(btn, posId, rtype) {
-    var form = btn.closest('form');
-    var stepsBox = form.querySelector('.wf-steps');
+function addStep(btn, cardIdx) {
+    var card = btn.closest('.wf-card');
+    var stepsBox = card.querySelector('.wf-steps');
     var existing = stepsBox.querySelectorAll('.wf-step-row').length;
-    var n = existing + 1;
 
-    // 從第一個 row 複製（如果有）— 不然就 build 一個空的
     var template;
     if (existing > 0) {
         template = stepsBox.querySelector('.wf-step-row').cloneNode(true);
-        // 清空選擇
         template.querySelectorAll('select').forEach(function (s) {
             s.value = s.options.length > 0 ? s.options[0].value : '';
+            s.classList.remove('active');
         });
     } else {
         template = buildEmptyStepRow();
     }
     stepsBox.appendChild(template);
-    renumberSteps(form);
-    // 重新觸發顯示判斷
+    renumberSteps(card);
     var typeSel = template.querySelector('.step-type-sel');
     if (typeSel) updateRoleEmpVisibility(typeSel);
 }
@@ -161,18 +178,18 @@ function buildEmptyStepRow() {
     row.className = 'wf-step-row';
     row.innerHTML = `
         <span class="order-badge">#1</span>
-        <select name="step_1_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
+        <select name="card_0_step_1_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
             <option value="direct_manager">直屬主管</option>
             <option value="department_head">部門主管</option>
             <option value="role">指定角色</option>
             <option value="employee">指定員工</option>
             <option value="hr">HR</option>
         </select>
-        <select name="step_1_role" class="oh-select role-sel">
+        <select name="card_0_step_1_role" class="oh-select role-sel">
             <option value="">— 選角色 —</option>
             {% for g in roles %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
         </select>
-        <select name="step_1_employee" class="oh-select emp-sel">
+        <select name="card_0_step_1_employee" class="oh-select emp-sel">
             <option value="">— 選員工 —</option>
             {% for e in employees %}<option value="{{ e.id }}">{{ e }}</option>{% endfor %}
         </select>

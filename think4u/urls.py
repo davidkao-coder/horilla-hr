@@ -36,6 +36,11 @@ urlpatterns = [
         approval_workflow_views.workflow_save,
         name="think4u-approval-workflow-save",
     ),
+    path(
+        "approval-workflow/save-all/",
+        approval_workflow_views.workflow_save_all,
+        name="think4u-approval-workflow-save-all",
+    ),
     # WP-07 雙層審核專區
     path(
         "approval/manager/",
