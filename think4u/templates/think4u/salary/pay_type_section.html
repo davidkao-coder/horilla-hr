@@ -1,0 +1,56 @@
+{% load i18n %}
+{# Think4U: 計薪方式區塊（參照健保眷屬區塊樣式）；需 context 內有 work_form #}
+<div class="t4u-paytype-section" style="margin-top:10px;">
+    <h5 style="font-weight:bold; color:#4a5dc7;">💵 {% trans "計薪方式" %}
+        <small style="color:#888; font-weight:normal;">
+            {% trans "（月薪制以薪資組成計算；時薪制改用實際工時 × 時薪）" %}
+        </small>
+    </h5>
+    <div style="background:#f8f9ff; border:1px solid #e0e6ff; border-radius:6px; padding:12px;">
+        <div class="row" style="align-items:flex-end;">
+            <div class="col-12 col-sm-6 col-md-4 mb-2">
+                <div class="oh-input-group">
+                    <label class="oh-label">{% trans "計薪方式" %}</label>
+                    {{ work_form.pay_type }}
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-4 mb-2" id="t4uHourlyRateGroup">
+                <div class="oh-input-group">
+                    <label class="oh-label">{% trans "時薪" %}
+                        <small style="color:#888;">{% trans "(時薪制專用，NT$/小時)" %}</small>
+                    </label>
+                    {{ work_form.hourly_rate }}
+                </div>
+            </div>
+        </div>
+        <small style="color:#888;">
+            {% trans "時薪制：當月實領 = 實際工時 × 時薪 + 其他加項 − 勞健保（請假不計薪）；投保薪資以工時×時薪估算。" %}
+        </small>
+    </div>
+</div>
+<script>
+    // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪
+    (function () {
+        var pt = document.getElementById('id_t4u_pay_type');
+        if (!pt) { return; }
+        var rateGrp = document.getElementById('t4uHourlyRateGroup');
+        var monthly = ['base_salary', 'meal_allowance', 'transport_allowance',
+                       'management_allowance', 'tech_management_allowance', 'salary_addition'];
+        function colOf(name) {
+            var el = document.getElementById('id_' + name);
+            return el ? el.closest('[class*="col-"]') : null;
+        }
+        function apply() {
+            var hourly = (pt.value === 'hourly');
+            if (rateGrp) rateGrp.style.display = hourly ? '' : 'none';
+            monthly.forEach(function (n) {
+                var c = colOf(n);
+                if (c) c.style.display = hourly ? 'none' : '';
+            });
+        }
+        // select2 透過 jQuery 觸發 change
+        if (window.jQuery) { jQuery(pt).on('change', apply); }
+        pt.addEventListener('change', apply);
+        apply();
+    })();
+</script>

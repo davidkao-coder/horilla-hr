@@ -66,16 +66,6 @@
             </h5>
             <div class="row">
                 <div class="col-md-4 mb-4">
-                    <label class="oh-label">{% trans "計薪方式" %}</label>
-                    {{work_form.pay_type}}
-                </div>
-                <div class="col-md-4 mb-4" id="t4uHourlyRateGroupU">
-                    <label class="oh-label">{% trans "時薪" %} <small style="color:#888;">{% trans "(時薪制專用)" %}</small></label>
-                    {{work_form.hourly_rate}}
-                </div>
-            </div>
-            <div class="row t4u-monthly-comps-u">
-                <div class="col-md-4 mb-4">
                     <label class="oh-label">{% trans "本薪" %}</label>
                     {{work_form.base_salary.errors}}{{work_form.base_salary}}
                 </div>
@@ -100,23 +90,9 @@
                     {{work_form.salary_addition.errors}}{{work_form.salary_addition}}
                 </div>
             </div>
-            <script>
-                // Think4U: 計薪方式切換（時薪制隱藏月薪組成、顯示時薪）
-                (function () {
-                    var pt = document.getElementById('id_t4u_pay_type');
-                    var rateGrp = document.getElementById('t4uHourlyRateGroupU');
-                    if (!pt) { return; }
-                    function apply() {
-                        var hourly = (pt.value === 'hourly');
-                        if (rateGrp) rateGrp.style.display = hourly ? '' : 'none';
-                        document.querySelectorAll('.t4u-monthly-comps-u').forEach(function (el) {
-                            el.style.display = hourly ? 'none' : '';
-                        });
-                    }
-                    pt.addEventListener('change', apply);
-                    apply();
-                })();
-            </script>
+            <hr>
+            {# Think4U: 計薪方式區塊（參照健保眷屬樣式）#}
+            {% include 'think4u/salary/pay_type_section.html' %}
             {# Think4U: 健保眷屬明細（加保）— HTMX 載入 #}
             {% if form.instance.pk %}
             <hr>

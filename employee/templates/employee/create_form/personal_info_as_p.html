@@ -3,7 +3,8 @@
 
 <div class="row">
     {% for field in form %}
-        {% if field.label != "Employee profile" and field.label != 'Country' and field.label != 'State' and field.label != 'Address' and field.label != 'Badge id' %}
+        {% if field.name == 'pay_type' or field.name == 'hourly_rate' %}{# Think4U: 計薪方式拉到獨立區塊渲染，這裡略過 #}
+        {% elif field.label != "Employee profile" and field.label != 'Country' and field.label != 'State' and field.label != 'Address' and field.label != 'Badge id' %}
             <div class="col-lg-6">
                 <div class="oh-input__group">
                     <label class="oh-label {% if field.field.required %}required-star{% endif %}" for="id_{{ field.name }}"
@@ -53,23 +54,4 @@
         {% endif %}
     {% endfor %}
 </div>
-
-<script>
-    // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪（僅當表單含 pay_type 時生效）
-    (function () {
-        var pt = document.getElementById('id_t4u_pay_type');
-        if (!pt) { return; }
-        var rate = document.getElementById('id_t4u_hourly_rate');
-        var monthly = ['base_salary', 'meal_allowance', 'transport_allowance',
-                       'management_allowance', 'tech_management_allowance', 'salary_addition'];
-        function col(id) { var el = document.getElementById(id); return el ? el.closest('.col-lg-6') : null; }
-        function apply() {
-            var hourly = (pt.value === 'hourly');
-            monthly.forEach(function (n) { var c = col('id_' + n); if (c) c.style.display = hourly ? 'none' : ''; });
-            var rc = rate ? rate.closest('.col-lg-6') : null;
-            if (rc) rc.style.display = hourly ? '' : 'none';
-        }
-        pt.addEventListener('change', apply);
-        apply();
-    })();
-</script>
+{# Think4U: 計薪方式區塊（pay_type/hourly_rate）由 work_details.html 在表單內另行 include 渲染 #}

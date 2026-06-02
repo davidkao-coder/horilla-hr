@@ -83,6 +83,9 @@
         {% endif %}
         {% csrf_token %}
         {{work_form.as_p}}
+        {# Think4U: 計薪方式區塊（在表單內，隨工作資訊一起儲存）#}
+        <hr class="mt-4 mb-3" />
+        {% include 'think4u/salary/pay_type_section.html' %}
         <hr class="mt-5 mb-3" />
         <div class="w-100 d-flex align-items-center justify-content-end">
           <button
