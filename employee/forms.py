@@ -389,9 +389,7 @@ class _SalaryComponentsMixin:
     def _setup_salary_fields(self):
         """動態加入薪資組成欄位 + 帶入該員工 EmployeeSalary 初始值
         （健保眷屬改用 HealthInsuranceDependent 明細維護，不在此表單）"""
-        for key, label in self._T4U_SALARY_DEFS:
-            self.fields[key] = _salary_field(label)
-        # 計薪方式 + 時薪（時薪制專用）
+        # 計薪方式 + 時薪（時薪制專用）— 置於薪資組成區塊最前面
         self.fields["pay_type"] = forms.ChoiceField(
             required=False,
             label=_("計薪方式"),
@@ -407,6 +405,8 @@ class _SalaryComponentsMixin:
                 attrs={"class": "oh-input w-100", "step": "10", "min": "0", "id": "id_t4u_hourly_rate"}
             ),
         )
+        for key, label in self._T4U_SALARY_DEFS:
+            self.fields[key] = _salary_field(label)
         emp = getattr(self.instance, "employee_id", None) if self.instance else None
         if not emp:
             self.fields["base_salary"].initial = 50000
