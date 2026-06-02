@@ -73,18 +73,28 @@
 </div>
 <script>
     // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪；月薪制相反
+    // 用 document 事件委派：select2 變更會觸發原生 change 並冒泡到 document，
+    // 不受 select2 初始化時序/重建影響。
     (function () {
-        var pt = document.getElementById('id_t4u_pay_type');
-        if (!pt) { return; }
-        var rateGrp = document.getElementById('t4uHourlyRateGroup');
-        var comps = document.getElementById('t4uMonthlyComps');
-        function apply() {
+        function applyPaySection() {
+            var pt = document.getElementById('id_t4u_pay_type');
+            if (!pt) { return; }
             var hourly = (pt.value === 'hourly');
+            var rateGrp = document.getElementById('t4uHourlyRateGroup');
+            var comps = document.getElementById('t4uMonthlyComps');
             if (rateGrp) rateGrp.style.display = hourly ? '' : 'none';
             if (comps) comps.style.display = hourly ? 'none' : '';
         }
-        if (window.jQuery) { jQuery(pt).on('change', apply); }
-        pt.addEventListener('change', apply);
-        apply();
+        window.applyPaySection = applyPaySection;
+        if (window.jQuery) {
+            jQuery(document).off('change.t4uPay').on('change.t4uPay', '#id_t4u_pay_type', applyPaySection);
+            jQuery(function () { applyPaySection(); });
+        } else {
+            document.addEventListener('change', function (e) {
+                if (e.target && e.target.id === 'id_t4u_pay_type') applyPaySection();
+            });
+            document.addEventListener('DOMContentLoaded', applyPaySection);
+        }
+        applyPaySection();
     })();
 </script>
