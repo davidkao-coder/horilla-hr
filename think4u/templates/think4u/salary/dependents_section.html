@@ -53,37 +53,47 @@
     {% endif %}
 
     {% if can_edit and employee %}
-    <div style="background:#f8f9ff; border:1px solid #e0e6ff; border-radius:6px; padding:10px; margin-top:6px;">
-        <div class="row" style="align-items:end;">
-            <div class="col-md-3 mb-2">
-                <label class="oh-label">{% trans "姓名" %}</label>
-                <input type="text" name="name" form="depAddForm" class="oh-input w-100" required>
+    <div style="background:#f8f9ff; border:1px solid #e0e6ff; border-radius:6px; padding:12px; margin-top:6px;">
+        <style>
+            .dep-add-row{display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;}
+            .dep-add-row .dep-f{display:flex; flex-direction:column; flex:1 1 150px; min-width:130px;}
+            .dep-add-row .dep-f label{font-size:12px; color:#555; margin:0 0 4px; line-height:1.2; height:16px;}
+            .dep-add-row .dep-f .oh-input,
+            .dep-add-row .dep-f .oh-select{height:38px; width:100%;}
+            .dep-add-row .dep-act{flex:0 0 auto;}
+        </style>
+        <div class="dep-add-row">
+            <div class="dep-f">
+                <label>{% trans "姓名" %}</label>
+                <input type="text" name="name" form="depAddForm" class="oh-input" required>
             </div>
-            <div class="col-md-2 mb-2">
-                <label class="oh-label">{% trans "關係" %}</label>
-                <select name="relationship" form="depAddForm" class="oh-select w-100">
+            <div class="dep-f">
+                <label>{% trans "關係" %}</label>
+                <select name="relationship" form="depAddForm" class="oh-select">
                     {% for val, label in relation_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 mb-2">
-                <label class="oh-label">{% trans "身分證字號" %}</label>
-                <input type="text" name="national_id" form="depAddForm" class="oh-input w-100">
+            <div class="dep-f">
+                <label>{% trans "身分證字號" %}</label>
+                <input type="text" name="national_id" form="depAddForm" class="oh-input">
             </div>
-            <div class="col-md-2 mb-2">
-                <label class="oh-label">{% trans "出生日期" %}</label>
-                <input type="date" name="birth_date" form="depAddForm" class="oh-input w-100">
+            <div class="dep-f">
+                <label>{% trans "出生日期" %}</label>
+                <input type="date" name="birth_date" form="depAddForm" class="oh-input">
             </div>
-            <div class="col-md-2 mb-2">
-                <label class="oh-label">{% trans "加保起日" %}</label>
-                <input type="date" name="enroll_date" form="depAddForm" class="oh-input w-100">
+            <div class="dep-f">
+                <label>{% trans "加保起日" %}</label>
+                <input type="date" name="enroll_date" form="depAddForm" class="oh-input">
+            </div>
+            <div class="dep-act">
+                <form id="depAddForm" hx-post="{% url 'think4u-dependent-add' employee.id %}"
+                      hx-target="#dependentsSection" hx-swap="outerHTML"
+                      hx-on::after-request="this.reset()">
+                    <input type="hidden" name="is_enrolled" value="on">
+                    <button type="submit" class="oh-btn oh-btn--secondary" style="height:38px;">＋ {% trans "新增眷屬" %}</button>
+                </form>
             </div>
         </div>
-        <form id="depAddForm" hx-post="{% url 'think4u-dependent-add' employee.id %}"
-              hx-target="#dependentsSection" hx-swap="outerHTML"
-              hx-on::after-request="this.reset()">
-            <input type="hidden" name="is_enrolled" value="on">
-            <button type="submit" class="oh-btn oh-btn--secondary oh-btn--small">＋ {% trans "新增眷屬" %}</button>
-        </form>
     </div>
     {% endif %}
 </div>

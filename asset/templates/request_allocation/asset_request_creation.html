@@ -44,6 +44,7 @@
                 </label>
                 {{asset_request_form.asset_category_id}}
                 {{asset_request_form.asset_category_id.errors}}
+                <small style="color:#888;">{% trans "找不到類別時，直接輸入新名稱即可建立。" %}</small>
             </div>
             <div class="oh-input__group ">
                 <label class="oh-input__label" for="{{asset_request_form.description.id_for_label}}">
@@ -60,3 +61,25 @@
         </div>
     </form>
 </div>
+
+<script>
+    // Think4U: 資產類別 autocomplete（可直接輸入新類別即時建立）
+    (function () {
+        var $sel = $('select[name="asset_category_id"]');
+        if (!$sel.length) { return; }
+        if ($sel.hasClass('select2-hidden-accessible')) {
+            try { $sel.select2('destroy'); } catch (e) {}
+        }
+        $sel.select2({
+            tags: true,
+            width: '100%',
+            placeholder: '{% trans "選擇或輸入新類別" %}',
+            dropdownParent: $sel.closest('.oh-modal__dialog-body'),
+            createTag: function (params) {
+                var term = $.trim(params.term);
+                if (term === '') { return null; }
+                return { id: term, text: term + '（{% trans "新類別" %}）', newTag: true };
+            }
+        });
+    })();
+</script>

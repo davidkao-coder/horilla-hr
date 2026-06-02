@@ -605,7 +605,17 @@ def asset_request_creation(request):
     form = AssetRequestForm(user=request.user)
     context = {"asset_request_form": form, "hx_url": hx_url, "hx_target": hx_target}
     if request.method == "POST":
-        form = AssetRequestForm(request.POST, user=request.user)
+        post = request.POST.copy()
+        # Think4U: 資產類別 autocomplete 支援「直接輸入新類別即時建立」。
+        # select2 tags 會把新輸入的值以「文字」送出（非數字 pk），這裡攔截並建立。
+        cat_val = (post.get("asset_category_id") or "").strip()
+        if cat_val and not cat_val.isdigit():
+            category, _created = AssetCategory.objects.get_or_create(
+                asset_category_name=cat_val,
+                defaults={"asset_category_description": ""},
+            )
+            post["asset_category_id"] = str(category.pk)
+        form = AssetRequestForm(post, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, _("Asset request created!"))
