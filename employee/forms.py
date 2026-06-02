@@ -395,7 +395,9 @@ class _SalaryComponentsMixin:
             label=_("計薪方式"),
             choices=[("monthly", _("月薪制")), ("hourly", _("時薪制"))],
             initial="monthly",
-            widget=forms.Select(attrs={"class": "oh-select w-100", "id": "id_t4u_pay_type"}),
+            widget=forms.Select(
+                attrs={"class": "oh-select oh-select-2 w-100", "id": "id_t4u_pay_type"}
+            ),
         )
         self.fields["hourly_rate"] = forms.IntegerField(
             required=False,
