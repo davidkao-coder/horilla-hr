@@ -8,6 +8,7 @@ import operator
 from django.core.exceptions import FieldDoesNotExist
 from django.db import models as django_models
 from django.http import QueryDict
+from django.utils.translation import gettext as _
 
 from base.templatetags.horillafilters import app_installed
 from employee.models import Employee
@@ -48,10 +49,12 @@ def generate_choices(model_path):
         model_class, Employee
     )
 
-    # Get relations to Candidate
-    candidate_fk_paths, candidate_m2m_paths = get_forward_relation_paths_separated(
-        model_class, Candidate
-    )
+    # Get relations to Candidate（招募模組已停用時略過，避免 NameError）
+    candidate_fk_paths, candidate_m2m_paths = [], []
+    if recruitment_installed:
+        candidate_fk_paths, candidate_m2m_paths = get_forward_relation_paths_separated(
+            model_class, Candidate
+        )
 
     all_fields = (
         employee_fk_paths
@@ -64,17 +67,19 @@ def generate_choices(model_path):
     mail_details_choice = []
     for field_tuple in all_fields:
         if not getattr(field_tuple[1], "exclude_from_automation", False):
+            _name = field_tuple[1].verbose_name.capitalize().replace(" id", "")
             all_mail_to_field.append(
                 (
                     f"{field_tuple[0]}__get_email",
-                    f"({field_tuple[1].model.__name__}) {field_tuple[1].verbose_name.capitalize().replace(' id','')}'s mail ",
+                    _("(%(model)s) %(name)s's mail")
+                    % {"model": field_tuple[1].model.__name__, "name": _name},
                 )
             )
             if not field_tuple[1].many_to_many:
                 mail_details_choice += [
                     (
                         f"{field_tuple[0]}__pk",
-                        f"{field_tuple[1].verbose_name.capitalize().replace(' id','')} (Template context)",
+                        _("%(name)s (Template context)") % {"name": _name},
                     ),
                 ]
                 # Adding reporting manager if the related model is Employee
@@ -83,14 +88,16 @@ def generate_choices(model_path):
                     all_mail_to_field.append(
                         (
                             f"{field_tuple[0]}__employee_work_info__reporting_manager_id__get_email",
-                            f"{field_tuple[1].verbose_name.capitalize().replace(' id','')} / Reporting Manager's mail ",
+                            _("%(name)s / Reporting Manager's mail")
+                            % {"name": _name},
                         )
                     )
                     # reporting manager template context
                     mail_details_choice.append(
                         (
                             f"{field_tuple[0]}__employee_work_info__reporting_manager_id__pk",
-                            f"{field_tuple[1].verbose_name.capitalize().replace(' id','')} / Reporting Manager (Template context) ",
+                            _("%(name)s / Reporting Manager (Template context)")
+                            % {"name": _name},
                         )
                     )
 
@@ -99,17 +106,17 @@ def generate_choices(model_path):
         all_mail_to_field.append(
             (
                 f"employee_work_info__reporting_manager_id__get_email",
-                f"Reporting Manager's mail ",
+                _("Reporting Manager's mail"),
             )
         )
-        mail_details_choice.append(("pk", "Employee"))
-    if model_class == Candidate:
-        mail_details_choice.append(("pk", "Candidate"))
+        mail_details_choice.append(("pk", _("Employee (Template context)")))
+    if recruitment_installed and model_class == Candidate:
+        mail_details_choice.append(("pk", _("Candidate (Template context)")))
 
     if model_path == "employee.models.Employee":
-        all_mail_to_field.append(("get_email", "Employee's mail"))
+        all_mail_to_field.append(("get_email", _("Employee's own mail")))
     elif model_path == "recruitment.models.Candidate":
-        all_mail_to_field.append(("get_email", "Candidate's mail"))
+        all_mail_to_field.append(("get_email", _("Candidate's own mail")))
 
     to_fields = []
     # mail_details_choice = []
@@ -246,10 +253,16 @@ def get_textfield_paths(model):
     def traverse(model, prefix=""):
         for field in model._meta.get_fields():
             if isinstance(field, django_models.TextField):
+                _label = (
+                    (prefix.capitalize() + field.name.capitalize())
+                    .replace("__", " > ")
+                    .replace("_id", "")
+                    .replace("_", " ")
+                )
                 paths.append(
                     (
                         prefix + field.name,
-                        f"{(prefix.capitalize() + field.name.capitalize()).replace('__',' > ').replace('_id','').replace('_',' ')} (As a mail template)",
+                        _("%(label)s (As a mail template)") % {"label": _label},
                     )
                 )
             elif isinstance(field, django_models.ForeignKey):

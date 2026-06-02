@@ -14660,3 +14660,34 @@ msgstr "選擇資料模型"
 
 msgid "Fill mail template details(reciever/instance, `self` will be the person who trigger the automation), `As template` option will sent instead of the mail template"
 msgstr "設定郵件對象（收件者／資料物件，`self` 代表觸發此自動化的人）；選「As template」時將以該對象代替郵件範本發送"
+
+# Think4U: 郵件自動化 收件人/郵件對象 動態選項標籤
+msgid "(%(model)s) %(name)s's mail"
+msgstr "(%(model)s) %(name)s 的信箱"
+
+msgid "%(name)s (Template context)"
+msgstr "%(name)s（範本資料來源）"
+
+msgid "%(name)s / Reporting Manager's mail"
+msgstr "%(name)s 的直屬主管信箱"
+
+msgid "%(name)s / Reporting Manager (Template context)"
+msgstr "%(name)s 的直屬主管（範本資料來源）"
+
+msgid "Reporting Manager's mail"
+msgstr "直屬主管的信箱"
+
+msgid "Employee (Template context)"
+msgstr "員工（範本資料來源）"
+
+msgid "Candidate (Template context)"
+msgstr "應徵者（範本資料來源）"
+
+msgid "Employee's own mail"
+msgstr "員工本人的信箱"
+
+msgid "Candidate's own mail"
+msgstr "應徵者本人的信箱"
+
+msgid "%(label)s (As a mail template)"
+msgstr "%(label)s（作為郵件範本內容）"
