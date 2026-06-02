@@ -1,9 +1,9 @@
 {% load i18n %}
-{# Think4U: 計薪方式區塊（參照健保眷屬區塊樣式）；需 context 內有 work_form #}
-<div class="t4u-paytype-section" style="margin-top:10px;">
-    <h5 style="font-weight:bold; color:#4a5dc7;">💵 {% trans "計薪方式" %}
+{# Think4U: 薪資 / 計薪方式區塊（參照健保眷屬區塊樣式）；需 context 內有 work_form #}
+<div class="t4u-salary-section" style="margin-top:10px;">
+    <h5 style="font-weight:bold; color:#4a5dc7;">💰 {% trans "薪資 / 計薪方式" %}
         <small style="color:#888; font-weight:normal;">
-            {% trans "（月薪制以薪資組成計算；時薪制改用實際工時 × 時薪）" %}
+            {% trans "（月薪制：全薪 = 本薪 + 津貼 + 加給；時薪制：實際工時 × 時薪）" %}
         </small>
     </h5>
     <div style="background:#f8f9ff; border:1px solid #e0e6ff; border-radius:6px; padding:12px;">
@@ -23,32 +23,66 @@
                 </div>
             </div>
         </div>
+
+        {# 月薪組成（本薪 + 津貼 + 加給）— 時薪制時隱藏 #}
+        <div id="t4uMonthlyComps">
+            <div class="row">
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "本薪" %}</label>
+                        {{ work_form.base_salary.errors }}{{ work_form.base_salary }}
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "伙食津貼" %}</label>
+                        {{ work_form.meal_allowance }}
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "交通津貼" %}</label>
+                        {{ work_form.transport_allowance }}
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "管理加給" %}</label>
+                        {{ work_form.management_allowance }}
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "技術管理加給" %}</label>
+                        {{ work_form.tech_management_allowance }}
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4 mb-2">
+                    <div class="oh-input-group">
+                        <label class="oh-label">{% trans "薪資加給" %}</label>
+                        {{ work_form.salary_addition }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <small style="color:#888;">
             {% trans "時薪制：當月實領 = 實際工時 × 時薪 + 其他加項 − 勞健保（請假不計薪）；投保薪資以工時×時薪估算。" %}
         </small>
     </div>
 </div>
 <script>
-    // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪
+    // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪；月薪制相反
     (function () {
         var pt = document.getElementById('id_t4u_pay_type');
         if (!pt) { return; }
         var rateGrp = document.getElementById('t4uHourlyRateGroup');
-        var monthly = ['base_salary', 'meal_allowance', 'transport_allowance',
-                       'management_allowance', 'tech_management_allowance', 'salary_addition'];
-        function colOf(name) {
-            var el = document.getElementById('id_' + name);
-            return el ? el.closest('[class*="col-"]') : null;
-        }
+        var comps = document.getElementById('t4uMonthlyComps');
         function apply() {
             var hourly = (pt.value === 'hourly');
             if (rateGrp) rateGrp.style.display = hourly ? '' : 'none';
-            monthly.forEach(function (n) {
-                var c = colOf(n);
-                if (c) c.style.display = hourly ? 'none' : '';
-            });
+            if (comps) comps.style.display = hourly ? 'none' : '';
         }
-        // select2 透過 jQuery 觸發 change
         if (window.jQuery) { jQuery(pt).on('change', apply); }
         pt.addEventListener('change', apply);
         apply();

@@ -52,53 +52,8 @@
             </div>
         </div>
 
-        {# Think4U: 薪資組成（本薪 + 津貼 + 加給），存到 EmployeeSalary，月度薪資試算即時帶入 #}
+        {# Think4U: 薪資 / 計薪方式區塊（本薪 + 津貼 + 加給 + 計薪方式），存到 EmployeeSalary #}
         <hr style="margin:1rem 0;">
-        <h5 style="font-weight:bold; color:#4a5dc7;">💰 {% trans "薪資組成" %}
-            <small style="color:#888; font-weight:normal;">{% trans "（全薪 = 本薪 + 津貼 + 加給；用於月度薪資試算與勞健保計算）" %}</small>
-        </h5>
-        <div class="row t4u-monthly-comps">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "本薪" %}</label>
-                    {{work_form.base_salary}}
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "伙食津貼" %}</label>
-                    {{work_form.meal_allowance}}
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "交通津貼" %}</label>
-                    {{work_form.transport_allowance}}
-                </div>
-            </div>
-        </div>
-        <div class="row t4u-monthly-comps">
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "管理加給" %}</label>
-                    {{work_form.management_allowance}}
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "技術管理加給" %}</label>
-                    {{work_form.tech_management_allowance}}
-                </div>
-            </div>
-            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
-                <div class="oh-input-group">
-                    <label class="oh-label">{% trans "薪資加給" %}</label>
-                    {{work_form.salary_addition}}
-                </div>
-            </div>
-        </div>
-        <hr style="margin:1rem 0;">
-        {# Think4U: 計薪方式區塊（參照健保眷屬樣式）#}
         {% include 'think4u/salary/pay_type_section.html' %}
         <hr style="margin:1rem 0;">
         {# Think4U: 健保眷屬明細（加保）— HTMX 載入 #}
