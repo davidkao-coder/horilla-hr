@@ -14691,3 +14691,6 @@ msgstr "應徵者本人的信箱"
 
 msgid "%(label)s (As a mail template)"
 msgstr "%(label)s（作為郵件範本內容）"
+
+msgid "Salary / pay configuration updated."
+msgstr "薪資 / 計薪方式已更新"

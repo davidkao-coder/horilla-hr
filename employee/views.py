@@ -1575,6 +1575,23 @@ def employee_view_update(request, obj_id, **kwargs):
                         employee_id=employee
                     ).first()
                 )
+            elif request.POST.get("form") == "salary":
+                # Think4U: 薪資 / 計薪方式區塊獨立儲存（只寫 EmployeeSalary）
+                instance = EmployeeWorkInformation.objects.filter(
+                    employee_id=employee
+                ).first()
+                salary_form = EmployeeWorkInformationUpdateForm(
+                    request.POST, instance=instance
+                )
+                # 薪資欄位皆 required=False，is_valid() 仍會填好 cleaned_data
+                salary_form.is_valid()
+                salary_form.save_salary(employee)
+                messages.success(request, _("Salary / pay configuration updated."))
+                work_form = EmployeeWorkInformationForm(
+                    instance=EmployeeWorkInformation.objects.filter(
+                        employee_id=employee
+                    ).first()
+                )
             elif request.POST.get("form") == "bank":
                 instance = EmployeeBankDetails.objects.filter(
                     employee_id=employee
