@@ -90,7 +90,7 @@
         <div class="oh-sticky-table__th" data-cell-index="4" data-cell-title='{% trans "Job Position" %}'>{% trans "Job Position" %}</div>
         <div class="oh-sticky-table__th" data-cell-index="5" data-cell-title='{% trans "Department" %}'>{% trans "Department" %}</div>
         <div class="oh-sticky-table__th" data-cell-index="9" data-cell-title='{% trans "部門主管" %}'>{% trans "部門主管" %}</div>
-        <div class="oh-sticky-table__th" data-cell-index="11" data-cell-title='{% trans "Work Email" %}'>{% trans "Work Email" %}</div>
+        {# Think4U: 移除「工作信箱」欄（已有 Email） #}
         <div
           class="oh-sticky-table__th {% if request.sort_option.order == '-employee_work_info__date_joining' %}arrow-up {% elif request.sort_option.order == 'employee_work_info__date_joining' %}arrow-down {% else %}arrow-up-down {% endif %}" data-cell-index="12" data-cell-title='{% trans "Date of Joining" %}'
           hx-target="#view-container"
@@ -162,12 +162,7 @@
           class="oh-sticky-table__td"
           >{% if emp.employee_work_info.department_id %}{{ emp.employee_work_info.department_id.get_effective_manager|default:"—" }}{% else %}—{% endif %}</a
         >
-        <a data-cell-index="11"
-          href="{% url 'employee-view-individual' emp.id %}"
-          style="color: inherit; text-decoration: none"
-          class="oh-sticky-table__td"
-          >{{emp.employee_work_info.email}}</a
-        >
+        {# Think4U: 移除「工作信箱」欄（已有 Email） #}
         <a data-cell-index="12"
           href="{% url 'employee-view-individual' emp.id %}"
           style="color: inherit; text-decoration: none"

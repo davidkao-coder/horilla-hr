@@ -453,6 +453,7 @@ class EmployeeWorkInformationForm(_SalaryComponentsMixin, ModelForm):
             "company_id",           # 公司（鎖定一家）
             "salary_hour",          # 時薪
             "mobile",
+            "email",                # 工作信箱（已有個人 Email 欄位，毋須重複）
         )
 
     def __init__(self, *args, disable=False, **kwargs):
@@ -540,6 +541,7 @@ class EmployeeWorkInformationUpdateForm(_SalaryComponentsMixin, ModelForm):
             "company_id",
             "salary_hour",
             "mobile",
+            "email",                # 工作信箱（已有個人 Email 欄位，毋須重複）
         )
 
     def __init__(self, *args, **kwargs):
@@ -638,7 +640,7 @@ excel_columns = [
     ("emergency_contact", trans("Emergency Contact")),
     ("emergency_contact_name", trans("Emergency Contact Name")),
     ("emergency_contact_relation", trans("Emergency Contact Relation")),
-    ("employee_work_info__email", trans("Work Email")),
+    # Think4U: 移除「工作信箱」匯出/欄位選項（已有 Email）
     ("employee_work_info__mobile", trans("Work Phone")),
     ("employee_work_info__department_id", trans("Department")),
     ("employee_work_info__job_position_id", trans("Job Position")),

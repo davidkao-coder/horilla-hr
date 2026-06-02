@@ -78,7 +78,7 @@
                       <div class="oh-sticky-table__th">{% trans "Job Position" %}</div>
                       <div class="oh-sticky-table__th">{% trans "Department" %}</div>
                       <div class="oh-sticky-table__th">{% trans "部門主管" %}</div>
-                      <div class="oh-sticky-table__th">{% trans "Work Email" %}</div>
+                      {# Think4U: 移除「工作信箱」欄（已有 Email） #}
                       <div class="oh-sticky-table__th" hx-target="#view-container" hx-get="{% url 'employee-filter-view' %}?{{pd}}&orderby=date_joining">{% trans "Date of Joining" %}</div>
                       <div class="oh-sticky-table__th oh-sticky-table__right" style="width:190px">{% trans "Actions" %}</div>
                     </div>
@@ -142,12 +142,7 @@
                         class="oh-sticky-table__td"
                         >{% if emp.employee_work_info.department_id %}{{ emp.employee_work_info.department_id.get_effective_manager|default:"—" }}{% else %}—{% endif %}</a
                       >
-                      <a
-                        href="{% url 'employee-view-individual' emp.id %}"
-                        style="color: inherit; text-decoration: none"
-                        class="oh-sticky-table__td"
-                        >{{emp.employee_work_info.email}}</a
-                      >
+                      {# Think4U: 移除「工作信箱」欄（已有 Email） #}
                       <a
                         href="{% url 'employee-view-individual' emp.id %}"
                         style="color: inherit; text-decoration: none"
