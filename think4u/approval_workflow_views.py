@@ -43,25 +43,34 @@ def workflow_list(request):
         )
     }
 
-    rows = []
+    # 一個職位 = 一張卡片，卡片內含「請假 / 加班」兩個區塊；
+    # 每個區塊有一個全域 index（card_idx），供 save-all 解析。
+    cards = []
+    card_idx = 0
+    total_blocks = 0
     for p in positions:
+        blocks = []
         for rtype, rlabel in request_types:
             wf = workflows.get((p.id, rtype))
-            rows.append(
+            blocks.append(
                 {
-                    "position": p,
+                    "idx": card_idx,
                     "request_type": rtype,
                     "request_type_label": rlabel,
                     "workflow": wf,
                     "steps": list(wf.steps.all().order_by("order")) if wf else [],
                 }
             )
+            card_idx += 1
+            total_blocks += 1
+        cards.append({"position": p, "blocks": blocks})
 
     return render(
         request,
         "think4u/approval/workflow_list.html",
         {
-            "rows": rows,
+            "cards": cards,
+            "card_count": total_blocks,
             "roles": Group.objects.all().order_by("name"),
             "employees": Employee.objects.filter(is_active=True).order_by(
                 "employee_first_name"

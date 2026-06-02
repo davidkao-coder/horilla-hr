@@ -16,17 +16,22 @@
         padding:.9rem 1rem; border:1px solid #e6e6e6; border-radius:8px;
         background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04);
     }
-    .wf-card .wf-pos { font-size:.78rem; color:#888; margin-bottom:.15rem; }
-    .wf-card h4 { margin:0 0 .15rem; font-size:.98rem; display:flex; align-items:center; gap:.35rem; }
-    .wf-card .meta { color:#999; font-size:.78rem; margin-bottom:.6rem; }
-    .wf-steps { display:flex; flex-direction:column; gap:.4rem; flex:1; }
+    .wf-card .wf-pos { font-size:.95rem; font-weight:600; color:#333; }
+    .wf-card .wf-dept { font-size:.74rem; color:#999; margin-bottom:.5rem; }
+
+    .wf-block { padding:.55rem 0; border-top:1px dashed #ececec; }
+    .wf-block:first-of-type { border-top:none; }
+    .wf-block h4 { margin:0 0 .15rem; font-size:.88rem; display:flex; align-items:center; gap:.35rem; color:#444; }
+    .wf-block .meta { color:#aaa; font-size:.74rem; margin-bottom:.45rem; }
+
+    .wf-steps { display:flex; flex-direction:column; gap:.4rem; }
     .wf-step-row {
         display:flex; gap:.3rem; flex-wrap:wrap; align-items:center;
         padding:.35rem; border:1px dashed #ddd; border-radius:5px; background:#fafafa;
     }
     .wf-step-row .order-badge { background:#444; color:#fff; padding:.05rem .45rem; border-radius:10px; font-size:.72rem; min-width:22px; text-align:center; }
-    .wf-step-row .oh-select { font-size:.8rem; padding:.2rem .35rem; flex:1; min-width:90px; }
-    .wf-actions { display:flex; gap:.4rem; margin-top:.6rem; }
+    .wf-step-row .oh-select { font-size:.8rem; padding:.2rem .35rem; flex:1; min-width:88px; }
+    .wf-actions { display:flex; gap:.4rem; margin-top:.5rem; }
     .role-sel, .emp-sel { display:none; }
     .role-sel.active, .emp-sel.active { display:inline-block; }
 
@@ -52,68 +57,72 @@
 
     <form method="post" action="{% url 'think4u-approval-workflow-save-all' %}" id="wf-all-form">
         {% csrf_token %}
-        <input type="hidden" name="card_count" value="{{ rows|length }}">
+        <input type="hidden" name="card_count" value="{{ card_count }}">
 
         <div class="wf-savebar">
-            <span class="hint">{% trans "修改任意卡片後，點右側「全部儲存」一次存檔。沒有任何關卡的卡片會回到預設（直屬主管 → HR）。" %}</span>
+            <span class="hint">{% trans "修改任意卡片後，點右側「全部儲存」一次存檔。沒有任何關卡的項目會回到預設（直屬主管 → HR）。" %}</span>
             <button type="submit" class="oh-btn oh-btn--success">
                 <ion-icon name="save-outline"></ion-icon> {% trans "全部儲存" %}
             </button>
         </div>
 
         <div class="wf-grid">
-            {% for row in rows %}
-            <div class="wf-card" data-card="{{ forloop.counter0 }}">
-                <input type="hidden" name="card_{{ forloop.counter0 }}_position" value="{{ row.position.id }}">
-                <input type="hidden" name="card_{{ forloop.counter0 }}_request_type" value="{{ row.request_type }}">
-                <input type="hidden" name="card_{{ forloop.counter0 }}_step_count" class="step-count-input" value="{{ row.steps|length|default:0 }}">
+            {% for card in cards %}
+            <div class="wf-card">
+                <div class="wf-pos">{{ card.position.job_position }}</div>
+                <div class="wf-dept">{{ card.position.department_id.department }}</div>
 
-                <div class="wf-pos">
-                    {{ row.position.department_id.department }} — {{ row.position.job_position }}
-                </div>
-                <h4>
-                    <ion-icon name="{% if row.request_type == 'leave' %}calendar-outline{% else %}time-outline{% endif %}"></ion-icon>
-                    {{ row.request_type_label }}
-                </h4>
-                <div class="meta">
-                    {% if row.steps %}{{ row.steps|length }} {% trans "關" %}{% else %}{% trans "尚未設定 — 預設（直屬主管 → HR）" %}{% endif %}
-                </div>
+                {% for b in card.blocks %}
+                <div class="wf-block" data-card="{{ b.idx }}">
+                    <input type="hidden" name="card_{{ b.idx }}_position" value="{{ card.position.id }}">
+                    <input type="hidden" name="card_{{ b.idx }}_request_type" value="{{ b.request_type }}">
+                    <input type="hidden" name="card_{{ b.idx }}_step_count" class="step-count-input" value="{{ b.steps|length|default:0 }}">
 
-                <div class="wf-steps">
-                    {% for s in row.steps %}
-                        <div class="wf-step-row" data-step="{{ forloop.counter }}">
-                            <span class="order-badge">#{{ forloop.counter }}</span>
-                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
-                                <option value="direct_manager" {% if s.approver_type == 'direct_manager' %}selected{% endif %}>{% trans "直屬主管" %}</option>
-                                <option value="department_head" {% if s.approver_type == 'department_head' %}selected{% endif %}>{% trans "部門主管" %}</option>
-                                <option value="role" {% if s.approver_type == 'role' %}selected{% endif %}>{% trans "指定角色" %}</option>
-                                <option value="employee" {% if s.approver_type == 'employee' %}selected{% endif %}>{% trans "指定員工" %}</option>
-                                <option value="hr" {% if s.approver_type == 'hr' %}selected{% endif %}>{% trans "HR" %}</option>
-                            </select>
-                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_role" class="oh-select role-sel {% if s.approver_type == 'role' %}active{% endif %}">
-                                <option value="">— {% trans "選角色" %} —</option>
-                                {% for g in roles %}
-                                  <option value="{{ g.id }}" {% if s.approver_role_id == g.id %}selected{% endif %}>{{ g.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <select name="card_{{ forloop.parentloop.counter0 }}_step_{{ forloop.counter }}_employee" class="oh-select emp-sel {% if s.approver_type == 'employee' %}active{% endif %}">
-                                <option value="">— {% trans "選員工" %} —</option>
-                                {% for e in employees %}
-                                  <option value="{{ e.id }}" {% if s.approver_employee_id == e.id %}selected{% endif %}>{{ e }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="button" class="oh-btn oh-btn--light-danger oh-btn--small" onclick="removeStep(this);">
-                                <ion-icon name="trash-outline"></ion-icon>
-                            </button>
-                        </div>
-                    {% endfor %}
-                </div>
+                    <h4>
+                        <ion-icon name="{% if b.request_type == 'leave' %}calendar-outline{% else %}time-outline{% endif %}"></ion-icon>
+                        {{ b.request_type_label }}
+                    </h4>
+                    <div class="meta">
+                        {% if b.steps %}{{ b.steps|length }} {% trans "關" %}{% else %}{% trans "尚未設定 — 預設（直屬主管 → HR）" %}{% endif %}
+                    </div>
 
-                <div class="wf-actions">
-                    <button type="button" class="oh-btn oh-btn--secondary oh-btn--small" onclick="addStep(this, {{ forloop.counter0 }});">
-                        <ion-icon name="add-outline"></ion-icon> {% trans "新增關卡" %}
-                    </button>
+                    <div class="wf-steps">
+                        {% for s in b.steps %}
+                            <div class="wf-step-row" data-step="{{ forloop.counter }}">
+                                <span class="order-badge">#{{ forloop.counter }}</span>
+                                <select name="card_{{ b.idx }}_step_{{ forloop.counter }}_type" class="oh-select step-type-sel" onchange="updateRoleEmpVisibility(this);">
+                                    <option value="direct_manager" {% if s.approver_type == 'direct_manager' %}selected{% endif %}>{% trans "直屬主管" %}</option>
+                                    <option value="department_head" {% if s.approver_type == 'department_head' %}selected{% endif %}>{% trans "部門主管" %}</option>
+                                    <option value="role" {% if s.approver_type == 'role' %}selected{% endif %}>{% trans "指定角色" %}</option>
+                                    <option value="employee" {% if s.approver_type == 'employee' %}selected{% endif %}>{% trans "指定員工" %}</option>
+                                    <option value="hr" {% if s.approver_type == 'hr' %}selected{% endif %}>{% trans "HR" %}</option>
+                                </select>
+                                <select name="card_{{ b.idx }}_step_{{ forloop.counter }}_role" class="oh-select role-sel {% if s.approver_type == 'role' %}active{% endif %}">
+                                    <option value="">— {% trans "選角色" %} —</option>
+                                    {% for g in roles %}
+                                      <option value="{{ g.id }}" {% if s.approver_role_id == g.id %}selected{% endif %}>{{ g.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <select name="card_{{ b.idx }}_step_{{ forloop.counter }}_employee" class="oh-select emp-sel {% if s.approver_type == 'employee' %}active{% endif %}">
+                                    <option value="">— {% trans "選員工" %} —</option>
+                                    {% for e in employees %}
+                                      <option value="{{ e.id }}" {% if s.approver_employee_id == e.id %}selected{% endif %}>{{ e }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="oh-btn oh-btn--light-danger oh-btn--small" onclick="removeStep(this);">
+                                    <ion-icon name="trash-outline"></ion-icon>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="wf-actions">
+                        <button type="button" class="oh-btn oh-btn--secondary oh-btn--small" onclick="addStep(this, {{ b.idx }});">
+                            <ion-icon name="add-outline"></ion-icon> {% trans "新增關卡" %}
+                        </button>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
             {% empty %}
             <p style="text-align:center; color:#999; padding:2rem; grid-column:1/-1;">{% trans "目前尚無職位，請先到「職位管理」建立。" %}</p>
@@ -132,14 +141,14 @@ function updateRoleEmpVisibility(sel) {
 }
 
 function removeStep(btn) {
-    var card = btn.closest('.wf-card');
+    var block = btn.closest('.wf-block');
     btn.closest('.wf-step-row').remove();
-    renumberSteps(card);
+    renumberSteps(block);
 }
 
-function renumberSteps(card) {
-    var cardIdx = card.dataset.card;
-    var rows = card.querySelectorAll('.wf-step-row');
+function renumberSteps(block) {
+    var cardIdx = block.dataset.card;
+    var rows = block.querySelectorAll('.wf-step-row');
     rows.forEach(function (row, idx) {
         var n = idx + 1;
         row.dataset.step = n;
@@ -149,12 +158,12 @@ function renumberSteps(card) {
             s.name = s.name.replace(/^card_\d+_step_\d+_/, 'card_' + cardIdx + '_step_' + n + '_');
         });
     });
-    card.querySelector('.step-count-input').value = rows.length;
+    block.querySelector('.step-count-input').value = rows.length;
 }
 
 function addStep(btn, cardIdx) {
-    var card = btn.closest('.wf-card');
-    var stepsBox = card.querySelector('.wf-steps');
+    var block = btn.closest('.wf-block');
+    var stepsBox = block.querySelector('.wf-steps');
     var existing = stepsBox.querySelectorAll('.wf-step-row').length;
 
     var template;
@@ -168,7 +177,7 @@ function addStep(btn, cardIdx) {
         template = buildEmptyStepRow();
     }
     stepsBox.appendChild(template);
-    renumberSteps(card);
+    renumberSteps(block);
     var typeSel = template.querySelector('.step-type-sel');
     if (typeSel) updateRoleEmpVisibility(typeSel);
 }
