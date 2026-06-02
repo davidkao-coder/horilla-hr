@@ -53,3 +53,23 @@
         {% endif %}
     {% endfor %}
 </div>
+
+<script>
+    // Think4U: 計薪方式切換 — 時薪制隱藏月薪組成、顯示時薪（僅當表單含 pay_type 時生效）
+    (function () {
+        var pt = document.getElementById('id_t4u_pay_type');
+        if (!pt) { return; }
+        var rate = document.getElementById('id_t4u_hourly_rate');
+        var monthly = ['base_salary', 'meal_allowance', 'transport_allowance',
+                       'management_allowance', 'tech_management_allowance', 'salary_addition'];
+        function col(id) { var el = document.getElementById(id); return el ? el.closest('.col-lg-6') : null; }
+        function apply() {
+            var hourly = (pt.value === 'hourly');
+            monthly.forEach(function (n) { var c = col('id_' + n); if (c) c.style.display = hourly ? 'none' : ''; });
+            var rc = rate ? rate.closest('.col-lg-6') : null;
+            if (rc) rc.style.display = hourly ? '' : 'none';
+        }
+        pt.addEventListener('change', apply);
+        apply();
+    })();
+</script>

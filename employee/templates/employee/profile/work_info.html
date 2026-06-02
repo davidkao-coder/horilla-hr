@@ -60,6 +60,20 @@
         <div class="row">
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                 <div class="oh-input-group">
+                    <label class="oh-label">{% trans "計薪方式" %}</label>
+                    {{work_form.pay_type}}
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4" id="t4uHourlyRateGroup">
+                <div class="oh-input-group">
+                    <label class="oh-label">{% trans "時薪" %} <small style="color:#888;">{% trans "(時薪制專用)" %}</small></label>
+                    {{work_form.hourly_rate}}
+                </div>
+            </div>
+        </div>
+        <div class="row t4u-monthly-comps">
+            <div class="col-12 col-sm-6 col-md-4 col-lg-4">
+                <div class="oh-input-group">
                     <label class="oh-label">{% trans "本薪" %}</label>
                     {{work_form.base_salary}}
                 </div>
@@ -77,7 +91,7 @@
                 </div>
             </div>
         </div>
-        <div class="row">
+        <div class="row t4u-monthly-comps">
             <div class="col-12 col-sm-6 col-md-4 col-lg-4">
                 <div class="oh-input-group">
                     <label class="oh-label">{% trans "管理加給" %}</label>
@@ -101,8 +115,26 @@
         {# Think4U: 健保眷屬明細（加保）— HTMX 載入 #}
         <div hx-get="{% url 'think4u-dependent-section' employee.id %}" hx-trigger="load"></div>
 
-        {% comment %}Think4U: 已拿掉 職級 / 直屬主管 / 員工標籤 / 工作地點 / 公司 / 時薪 / Role-Groups；月薪改為薪資組成{% endcomment %}
+        {% comment %}Think4U: 已拿掉 職級 / 直屬主管 / 員工標籤 / 工作地點 / 公司 / Role-Groups；月薪改為薪資組成 + 計薪方式{% endcomment %}
     </div>
+
+    <script>
+        // Think4U: 計薪方式切換 — 時薪制時隱藏月薪組成、顯示時薪；月薪制相反
+        (function () {
+            var pt = document.getElementById('id_t4u_pay_type');
+            var rateGrp = document.getElementById('t4uHourlyRateGroup');
+            if (!pt) { return; }
+            function apply() {
+                var hourly = (pt.value === 'hourly');
+                if (rateGrp) rateGrp.style.display = hourly ? '' : 'none';
+                document.querySelectorAll('.t4u-monthly-comps').forEach(function (el) {
+                    el.style.display = hourly ? 'none' : '';
+                });
+            }
+            pt.addEventListener('change', apply);
+            apply();
+        })();
+    </script>
 </div>
 
 {# Think4U: 選擇職位時自動帶出該職位的預設角色 #}

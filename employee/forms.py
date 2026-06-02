@@ -391,6 +391,22 @@ class _SalaryComponentsMixin:
         （健保眷屬改用 HealthInsuranceDependent 明細維護，不在此表單）"""
         for key, label in self._T4U_SALARY_DEFS:
             self.fields[key] = _salary_field(label)
+        # 計薪方式 + 時薪（時薪制專用）
+        self.fields["pay_type"] = forms.ChoiceField(
+            required=False,
+            label=_("計薪方式"),
+            choices=[("monthly", _("月薪制")), ("hourly", _("時薪制"))],
+            initial="monthly",
+            widget=forms.Select(attrs={"class": "oh-select w-100", "id": "id_t4u_pay_type"}),
+        )
+        self.fields["hourly_rate"] = forms.IntegerField(
+            required=False,
+            min_value=0,
+            label=_("時薪"),
+            widget=forms.NumberInput(
+                attrs={"class": "oh-input w-100", "step": "10", "min": "0", "id": "id_t4u_hourly_rate"}
+            ),
+        )
         emp = getattr(self.instance, "employee_id", None) if self.instance else None
         if not emp:
             self.fields["base_salary"].initial = 50000
@@ -401,6 +417,8 @@ class _SalaryComponentsMixin:
         if sal:
             for f in self._T4U_SALARY_FIELDS:
                 self.fields[f].initial = getattr(sal, f, 0)
+            self.fields["pay_type"].initial = sal.pay_type
+            self.fields["hourly_rate"].initial = sal.hourly_rate
         else:
             self.fields["base_salary"].initial = 50000
 
@@ -419,6 +437,12 @@ class _SalaryComponentsMixin:
             val = self.cleaned_data.get(f)
             if val is not None:
                 setattr(sal, f, max(0, int(val)))
+        pt = self.cleaned_data.get("pay_type")
+        if pt in ("monthly", "hourly"):
+            sal.pay_type = pt
+        hr = self.cleaned_data.get("hourly_rate")
+        if hr is not None:
+            sal.hourly_rate = max(0, int(hr))
         sal.save()
 
 
