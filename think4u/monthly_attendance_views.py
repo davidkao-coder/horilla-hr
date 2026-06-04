@@ -62,20 +62,26 @@ def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0):
     extras = _extras_of(extra_row)
     extra_total = sum(extras.values())
     pay_type = getattr(sal_row, "pay_type", "monthly") if sal_row else "monthly"
+    labor_ins = int(getattr(sal_row, "labor_insured_salary", 0) or 0) if sal_row else 0
+    health_ins = int(getattr(sal_row, "health_insured_salary", 0) or 0) if sal_row else 0
     if pay_type == "hourly":
         from think4u.payroll_rules import compute_hourly_salary
 
         rate = int(getattr(sal_row, "hourly_rate", 0) or 0) if sal_row else 0
         s = compute_hourly_salary(
-            rate, worked_minutes, dependents=deps, extra_total=extra_total
+            rate, worked_minutes, dependents=deps, extra_total=extra_total,
+            labor_insured=labor_ins or None, health_insured=health_ins or None,
         )
     else:
         s = compute_salary(
-            gross, deps, leave_hours_by_type=leave_hours, extra_total=extra_total
+            gross, deps, leave_hours_by_type=leave_hours, extra_total=extra_total,
+            labor_insured=labor_ins or None, health_insured=health_ins or None,
         )
     s["pay_type"] = pay_type
     s["hourly_rate"] = int(getattr(sal_row, "hourly_rate", 0) or 0) if sal_row else 0
     s["worked_hours"] = round(float(worked_minutes or 0) / 60.0, 2)
+    s["labor_insured"] = labor_ins
+    s["health_insured"] = health_ins
     s["components"] = comp
     s["components_pairs"] = [
         (key, comp[key]) for key, _label, _grp in SALARY_COMPONENT_FIELDS
@@ -406,6 +412,14 @@ def update_salary(request):
             update_fields.append("hourly_rate")
         except (TypeError, ValueError):
             pass
+    # 勞健保投保薪資（與本薪/全薪不連動）
+    for ins_field in ("labor_insured_salary", "health_insured_salary"):
+        if ins_field in request.POST:
+            try:
+                setattr(row, ins_field, max(0, int(request.POST.get(ins_field) or 0)))
+                update_fields.append(ins_field)
+            except (TypeError, ValueError):
+                pass
     # 各薪資組成欄位（標準月薪 → EmployeeSalary）
     for key, _label, _grp in SALARY_COMPONENT_FIELDS:
         if key in request.POST:
@@ -552,7 +566,9 @@ def export_salary(request):
         row.update(
             {
                 f"日薪(÷{PAYROLL_BASE_DAYS})": s["daily"],
+                "勞保投保薪資": s.get("labor_insured", 0),
                 "勞保自付": -s["labor"],
+                "健保投保薪資": s.get("health_insured", 0),
                 "健保眷屬": s["dependents"],
                 "健保自付": -s["health"],
                 "請假明細": detail,

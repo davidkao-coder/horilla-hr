@@ -739,6 +739,13 @@ class EmployeeSalary(models.Model):
     dependents = models.PositiveSmallIntegerField(
         default=0, verbose_name=_("健保眷屬人數")
     )
+    # 勞健保投保薪資（HR 手動維護，與本薪/全薪不連動；0 表示沿用全薪估算）
+    labor_insured_salary = models.PositiveIntegerField(
+        default=0, verbose_name=_("勞保投保薪資")
+    )
+    health_insured_salary = models.PositiveIntegerField(
+        default=0, verbose_name=_("健保投保薪資")
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

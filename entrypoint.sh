@@ -1,6 +1,17 @@
 #!/bin/bash
 
 echo "Waiting for database to be ready..."
+
+# Think4U: 還原 Horilla 掛在 auth.User 的 is_new_employee migration。
+# 此欄位以 User.add_to_class 加在內建 auth app，migration 檔（auth/migrations/0013_user_is_new_employee.py）
+# 原存在 venv site-packages，重建 image 會清掉 → migration graph 缺節點、makemigrations/migrate 全失敗。
+# 從版控 patch 複製回 auth migrations 目錄，確保重建後仍可解析。
+AUTH_MIG_DIR="$(python3 -c 'import os, django.contrib.auth.migrations as m; print(os.path.dirname(m.__file__))' 2>/dev/null)"
+if [ -n "$AUTH_MIG_DIR" ] && [ ! -f "$AUTH_MIG_DIR/0013_user_is_new_employee.py" ]; then
+    cp horilla/auth_migrations_patch/0013_user_is_new_employee.py "$AUTH_MIG_DIR/" 2>/dev/null \
+        && echo "restored auth.0013_user_is_new_employee migration"
+fi
+
 python3 manage.py makemigrations
 python3 manage.py migrate
 python3 manage.py compilemessages -l zh_Hant

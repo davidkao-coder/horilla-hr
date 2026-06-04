@@ -152,7 +152,9 @@ out: {{ c.check_out|default:'—' }}
                     <th rowspan="2" style="background:#fff3e0;">其他<br>合計</th>
                     <th rowspan="2">健保<br>眷屬</th>
                     <th rowspan="2">日薪<br><small>(÷{{ payroll_base_days }})</small></th>
+                    <th rowspan="2" style="background:#eef3ff;">勞保<br>投保薪資</th>
                     <th rowspan="2">勞保<br>自付</th>
+                    <th rowspan="2" style="background:#eef3ff;">健保<br>投保薪資</th>
                     <th rowspan="2">健保<br>自付</th>
                     <th rowspan="2" style="min-width:190px;">請假明細<br><small>(假別 時數→扣薪)</small></th>
                     <th rowspan="2">請假<br>扣薪</th>
@@ -242,7 +244,13 @@ out: {{ c.check_out|default:'—' }}
                     <td class="sal-extra" style="background:#fff3e0; font-weight:600; color:#b26a00;">+{{ row.salary.extra_total }}</td>
                     <td title="{% trans '加保眷屬數在員工工作資訊維護' %}">{{ row.salary.dependents }}</td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
+                    <td style="background:#f6f9ff;">
+                        {% if is_hr %}<input type="number" class="ins-input" data-emp="{{ row.employee.id }}" data-field="labor_insured_salary" value="{{ row.salary.labor_insured }}" min="0" step="100" placeholder="沿用全薪" style="width:90px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.labor_insured|default:"—" }}{% endif %}
+                    </td>
                     <td class="sal-labor" style="color:#c0392b;">-{{ row.salary.labor }}</td>
+                    <td style="background:#f6f9ff;">
+                        {% if is_hr %}<input type="number" class="ins-input" data-emp="{{ row.employee.id }}" data-field="health_insured_salary" value="{{ row.salary.health_insured }}" min="0" step="100" placeholder="沿用全薪" style="width:90px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.health_insured|default:"—" }}{% endif %}
+                    </td>
                     <td class="sal-health" style="color:#c0392b;">-{{ row.salary.health }}</td>
                     <td class="sal-detail" style="text-align:left; font-size:12px;">
                         {% for b in row.salary.leave_breakdown %}
@@ -350,6 +358,7 @@ out: {{ c.check_out|default:'—' }}
             tr.querySelectorAll('.extra-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             const dep = tr.querySelector('.dep-input');
             if (dep) body.append('dependents', dep.value || 0);
+            tr.querySelectorAll('.ins-input').forEach(i => body.append(i.dataset.field, i.value || 0));
             const ptSel = tr.querySelector('.paytype-input');
             if (ptSel) body.append('pay_type', ptSel.value);
             const rate = tr.querySelector('.rate-input');
@@ -407,7 +416,7 @@ out: {{ c.check_out|default:'—' }}
         }
 
         // 打字時即時重算加總；停止輸入 / 離開欄位後自動儲存
-        document.querySelectorAll('.comp-input, .extra-input, .dep-input, .rate-input').forEach(function (inp) {
+        document.querySelectorAll('.comp-input, .extra-input, .dep-input, .rate-input, .ins-input').forEach(function (inp) {
             inp.addEventListener('input', function () {
                 const tr = document.querySelector(`tr[data-emp="${this.dataset.emp}"]`);
                 if (tr) recomputeSums(tr);

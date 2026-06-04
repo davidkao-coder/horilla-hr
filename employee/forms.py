@@ -407,6 +407,21 @@ class _SalaryComponentsMixin:
                 attrs={"class": "oh-input w-100", "step": "10", "min": "0", "id": "id_t4u_hourly_rate"}
             ),
         )
+        # 勞健保投保薪資（與本薪/全薪不連動，HR 手動填）
+        self.fields["labor_insured_salary"] = forms.IntegerField(
+            required=False, min_value=0, label=_("勞保投保薪資"),
+            widget=forms.NumberInput(
+                attrs={"class": "oh-input w-100", "step": "100", "min": "0",
+                       "id": "id_t4u_labor_insured"}
+            ),
+        )
+        self.fields["health_insured_salary"] = forms.IntegerField(
+            required=False, min_value=0, label=_("健保投保薪資"),
+            widget=forms.NumberInput(
+                attrs={"class": "oh-input w-100", "step": "100", "min": "0",
+                       "id": "id_t4u_health_insured"}
+            ),
+        )
         for key, label in self._T4U_SALARY_DEFS:
             self.fields[key] = _salary_field(label)
         emp = getattr(self.instance, "employee_id", None) if self.instance else None
@@ -421,6 +436,8 @@ class _SalaryComponentsMixin:
                 self.fields[f].initial = getattr(sal, f, 0)
             self.fields["pay_type"].initial = sal.pay_type
             self.fields["hourly_rate"].initial = sal.hourly_rate
+            self.fields["labor_insured_salary"].initial = sal.labor_insured_salary
+            self.fields["health_insured_salary"].initial = sal.health_insured_salary
         else:
             self.fields["base_salary"].initial = 50000
 
@@ -445,6 +462,10 @@ class _SalaryComponentsMixin:
         hr = self.cleaned_data.get("hourly_rate")
         if hr is not None:
             sal.hourly_rate = max(0, int(hr))
+        for ins_f in ("labor_insured_salary", "health_insured_salary"):
+            v = self.cleaned_data.get(ins_f)
+            if v is not None:
+                setattr(sal, ins_f, max(0, int(v)))
         sal.save()
 
 

@@ -24,6 +24,26 @@
             </div>
         </div>
 
+        {# 勞健保投保薪資（與本薪/全薪不連動，月薪/時薪皆適用）#}
+        <div class="row" style="align-items:flex-end;">
+            <div class="col-12 col-sm-6 col-md-4 mb-2">
+                <div class="oh-input-group">
+                    <label class="oh-label">{% trans "勞保投保薪資" %}
+                        <small style="color:#888;">{% trans "(0=沿用全薪)" %}</small>
+                    </label>
+                    {{ work_form.labor_insured_salary }}
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-4 mb-2">
+                <div class="oh-input-group">
+                    <label class="oh-label">{% trans "健保投保薪資" %}
+                        <small style="color:#888;">{% trans "(0=沿用全薪)" %}</small>
+                    </label>
+                    {{ work_form.health_insured_salary }}
+                </div>
+            </div>
+        </div>
+
         {# 月薪組成（本薪 + 津貼 + 加給）— 時薪制時隱藏 #}
         <div id="t4uMonthlyComps">
             <div class="row">

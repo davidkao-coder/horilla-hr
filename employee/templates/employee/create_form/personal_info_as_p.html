@@ -3,7 +3,7 @@
 
 <div class="row">
     {% for field in form %}
-        {% if field.name == 'pay_type' or field.name == 'hourly_rate' or field.name == 'base_salary' or field.name == 'meal_allowance' or field.name == 'transport_allowance' or field.name == 'management_allowance' or field.name == 'tech_management_allowance' or field.name == 'salary_addition' %}{# Think4U: 薪資/計薪方式拉到獨立區塊渲染，這裡略過 #}
+        {% if field.name == 'pay_type' or field.name == 'hourly_rate' or field.name == 'base_salary' or field.name == 'meal_allowance' or field.name == 'transport_allowance' or field.name == 'management_allowance' or field.name == 'tech_management_allowance' or field.name == 'salary_addition' or field.name == 'labor_insured_salary' or field.name == 'health_insured_salary' %}{# Think4U: 薪資/計薪方式拉到獨立區塊渲染，這裡略過 #}
         {% elif field.label != "Employee profile" and field.label != 'Country' and field.label != 'State' and field.label != 'Address' and field.label != 'Badge id' %}
             <div class="col-lg-6">
                 <div class="oh-input__group">
