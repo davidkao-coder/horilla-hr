@@ -407,19 +407,24 @@ class _SalaryComponentsMixin:
                 attrs={"class": "oh-input w-100", "step": "10", "min": "0", "id": "id_t4u_hourly_rate"}
             ),
         )
-        # 勞健保投保薪資（與本薪/全薪不連動，HR 手動填）
-        self.fields["labor_insured_salary"] = forms.IntegerField(
-            required=False, min_value=0, label=_("勞保投保薪資"),
-            widget=forms.NumberInput(
-                attrs={"class": "oh-input w-100", "step": "100", "min": "0",
-                       "id": "id_t4u_labor_insured"}
+        # 勞健保投保薪資（級距下拉；與本薪/全薪不連動，HR 手動選）
+        from think4u.payroll_rules import HEALTH_GRADES, LABOR_GRADES
+
+        _fallback = ("0", _("沿用全薪估算"))
+        labor_choices = [_fallback] + [(str(g), f"{g:,}") for g in LABOR_GRADES]
+        health_choices = [_fallback] + [(str(g), f"{g:,}") for g in HEALTH_GRADES]
+        self.fields["labor_insured_salary"] = forms.TypedChoiceField(
+            required=False, choices=labor_choices, coerce=int, empty_value=0,
+            label=_("勞保投保薪資"),
+            widget=forms.Select(
+                attrs={"class": "oh-select oh-select-2 w-100", "id": "id_t4u_labor_insured"}
             ),
         )
-        self.fields["health_insured_salary"] = forms.IntegerField(
-            required=False, min_value=0, label=_("健保投保薪資"),
-            widget=forms.NumberInput(
-                attrs={"class": "oh-input w-100", "step": "100", "min": "0",
-                       "id": "id_t4u_health_insured"}
+        self.fields["health_insured_salary"] = forms.TypedChoiceField(
+            required=False, choices=health_choices, coerce=int, empty_value=0,
+            label=_("健保投保薪資"),
+            widget=forms.Select(
+                attrs={"class": "oh-select oh-select-2 w-100", "id": "id_t4u_health_insured"}
             ),
         )
         for key, label in self._T4U_SALARY_DEFS:

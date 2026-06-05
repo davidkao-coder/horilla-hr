@@ -27,7 +27,7 @@ from think4u.models import (
     MonthlyPayExtra,
     get_hidden_in_reports_employees,
 )
-from think4u.payroll_rules import compute_salary
+from think4u.payroll_rules import HEALTH_GRADES, LABOR_GRADES, compute_salary
 
 
 # 薪資組成預設值（無 EmployeeSalary 紀錄時）
@@ -376,6 +376,8 @@ def monthly_attendance(request):
             "payroll_base_days": payroll_base_days,
             "payroll_base_hours": payroll_base_hours,
             "holiday_dates": holiday_dates,
+            "labor_grades": LABOR_GRADES,
+            "health_grades": HEALTH_GRADES,
         },
     )
 

@@ -245,11 +245,21 @@ out: {{ c.check_out|default:'—' }}
                     <td title="{% trans '加保眷屬數在員工工作資訊維護' %}">{{ row.salary.dependents }}</td>
                     <td class="sal-daily">{{ row.salary.daily }}</td>
                     <td style="background:#f6f9ff;">
-                        {% if is_hr %}<input type="number" class="ins-input" data-emp="{{ row.employee.id }}" data-field="labor_insured_salary" value="{{ row.salary.labor_insured }}" min="0" step="100" placeholder="沿用全薪" style="width:90px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.labor_insured|default:"—" }}{% endif %}
+                        {% if is_hr %}
+                        <select class="ins-input" data-emp="{{ row.employee.id }}" data-field="labor_insured_salary" style="padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="0" {% if not row.salary.labor_insured %}selected{% endif %}>沿用全薪</option>
+                            {% for g in labor_grades %}<option value="{{ g }}" {% if row.salary.labor_insured == g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+                        </select>
+                        {% else %}{{ row.salary.labor_insured|default:"—" }}{% endif %}
                     </td>
                     <td class="sal-labor" style="color:#c0392b;">-{{ row.salary.labor }}</td>
                     <td style="background:#f6f9ff;">
-                        {% if is_hr %}<input type="number" class="ins-input" data-emp="{{ row.employee.id }}" data-field="health_insured_salary" value="{{ row.salary.health_insured }}" min="0" step="100" placeholder="沿用全薪" style="width:90px; padding:2px 4px; border:1px solid #ccc; border-radius:4px;">{% else %}{{ row.salary.health_insured|default:"—" }}{% endif %}
+                        {% if is_hr %}
+                        <select class="ins-input" data-emp="{{ row.employee.id }}" data-field="health_insured_salary" style="padding:2px 4px; border:1px solid #ccc; border-radius:4px;">
+                            <option value="0" {% if not row.salary.health_insured %}selected{% endif %}>沿用全薪</option>
+                            {% for g in health_grades %}<option value="{{ g }}" {% if row.salary.health_insured == g %}selected{% endif %}>{{ g }}</option>{% endfor %}
+                        </select>
+                        {% else %}{{ row.salary.health_insured|default:"—" }}{% endif %}
                     </td>
                     <td class="sal-health" style="color:#c0392b;">-{{ row.salary.health }}</td>
                     <td class="sal-detail" style="text-align:left; font-size:12px;">
