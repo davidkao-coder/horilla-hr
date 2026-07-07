@@ -14,6 +14,7 @@
     .att-matrix .emp-name { text-align: left; min-width: 120px; position: sticky; left: 0; background: white; z-index: 2; }
     .att-matrix thead .emp-name { background: #f5f5f5; z-index: 3; }
     .att-matrix .weekend { background: #fafafa; color: #ccc; }
+    .att-matrix .pre-hire { background: #f0f0f0; color: #bbb; }  /* 未到職 */
     .att-matrix th.holiday-th, .att-matrix td.holiday-td { background: #fde7e9; color: #c62828; }
     .att-matrix td.holiday-td { text-align: center; font-size: 10px; }
     .att-matrix .day-cell { cursor: help; }
@@ -80,6 +81,8 @@
                     {% for c in row.cells %}
                         {% if c.cell_class == 'holiday' %}
                             <td class="holiday-td" title="{{ c.holiday_name }}">假</td>
+                        {% elif c.cell_class == 'pre-hire' %}
+                            <td class="pre-hire" title="未到職">·</td>
                         {% elif not c.is_workday %}
                             <td class="weekend">—</td>
                         {% else %}
@@ -202,6 +205,11 @@ out: {{ c.check_out|default:'—' }}
                         <div class="sal-hours-hint" style="font-size:11px; color:#888; {% if row.salary.pay_type != 'hourly' %}display:none;{% endif %}">
                             工時 <span class="sal-worked-hours">{{ row.salary.worked_hours }}</span>h
                         </div>
+                        {% if row.salary.pay_type != 'hourly' and row.salary.employ_ratio < 1 %}
+                        <div class="sal-prorate-hint" style="font-size:11px; color:#b26a00;">
+                            在職 {{ row.salary.employ_days }}/{{ row.salary.month_days }} 天 → 應發 {{ row.salary.gross_paid }}
+                        </div>
+                        {% endif %}
                     </td>
                     {% comment %}本薪（不可摺疊）{% endcomment %}
                     <td>
@@ -272,7 +280,7 @@ out: {{ c.check_out|default:'—' }}
                         {% if row.salary.leave_ded %}-{{ row.salary.leave_ded }}{% else %}0{% endif %}
                     </td>
                     <td class="sal-formula" style="font-size:12px; color:#555; white-space:nowrap;">
-                        {{ row.salary.gross }} +{{ row.salary.extra_total }} −{{ row.salary.labor }} −{{ row.salary.health }} −{{ row.salary.leave_ded }} = <strong style="color:#2e7d32;">{{ row.salary.net }}</strong>
+                        {% if row.salary.pay_type != 'hourly' and row.salary.employ_ratio < 1 %}{{ row.salary.gross }}×({{ row.salary.employ_days }}/{{ row.salary.month_days }})={{ row.salary.gross_paid }}{% else %}{{ row.salary.gross }}{% endif %} +{{ row.salary.extra_total }} −{{ row.salary.labor }} −{{ row.salary.health }} −{{ row.salary.leave_ded }} = <strong style="color:#2e7d32;">{{ row.salary.net }}</strong>
                     </td>
                     <td class="sal-net" style="font-weight:700; color:#2e7d32;">{{ row.salary.net }}</td>
                 </tr>
@@ -399,12 +407,29 @@ out: {{ c.check_out|default:'—' }}
                             `<div>${b.type} <strong>${b.hours}h</strong>（${b.days}天 ${b.ratio_label}）→ <span style="color:${b.amount ? '#c0392b' : '#999'};">-${b.amount}</span></div>`
                         ).join('');
                     } else { detail.innerHTML = '<span style="color:#999;">—</span>'; }
+                    const prorated = (d.pay_type !== 'hourly' && d.employ_ratio != null && d.employ_ratio < 1);
                     if (d.pay_type === 'hourly') {
                         tr.querySelector('.sal-formula').innerHTML =
                             `工時薪資 ${d.gross}（${d.worked_hours}h×${d.hourly_rate}）+${d.extra_total} −${d.labor} −${d.health} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                    } else if (prorated) {
+                        tr.querySelector('.sal-formula').innerHTML =
+                            `${d.gross}×(${d.employ_days}/${d.month_days})=${d.gross_paid} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
                     } else {
                         tr.querySelector('.sal-formula').innerHTML =
                             `${d.gross} +${d.extra_total} −${d.labor} −${d.health} −${d.leave_ded} = <strong style="color:#2e7d32;">${d.net}</strong>`;
+                    }
+                    // 到職比例提示（在職 X/Y 天 → 應發）
+                    var hint = tr.querySelector('.sal-prorate-hint');
+                    if (prorated) {
+                        if (!hint) {
+                            hint = document.createElement('div');
+                            hint.className = 'sal-prorate-hint';
+                            hint.style.cssText = 'font-size:11px; color:#b26a00;';
+                            tr.querySelector('.sal-gross').appendChild(hint);
+                        }
+                        hint.textContent = `在職 ${d.employ_days}/${d.month_days} 天 → 應發 ${d.gross_paid}`;
+                    } else if (hint) {
+                        hint.remove();
                     }
                     tr.style.background = '';
                 });

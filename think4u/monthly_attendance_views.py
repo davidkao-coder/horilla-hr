@@ -53,9 +53,30 @@ def _extras_of(extra_row):
     }
 
 
-def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0):
+def _employment(emp, year, month):
+    """回傳 (在職比例, 當月在職日數, 當月總日數, 到職日)。
+    到職當月按實際在職日曆天數比例計薪；到職前的月份比例 0；之後 1。"""
+    import calendar as _cal
+    from datetime import date as _date
+
+    wi = getattr(emp, "employee_work_info", None)
+    hire = getattr(wi, "date_joining", None) if wi else None
+    days_in_month = _cal.monthrange(year, month)[1]
+    m_start = _date(year, month, 1)
+    m_end = _date(year, month, days_in_month)
+    if not hire or hire <= m_start:
+        return 1.0, days_in_month, days_in_month, hire
+    if hire > m_end:
+        return 0.0, 0, days_in_month, hire
+    employed = (m_end - hire).days + 1
+    return employed / days_in_month, employed, days_in_month, hire
+
+
+def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0,
+                  employ_ratio=1.0, employ_days=None, month_days=None):
     """組合薪資明細：組成欄位 + 全薪 + 勞健保 + 請假扣薪 + 其他加項 + 實領。
-    時薪制（pay_type='hourly'）改以「實際工時 × 時薪」計算。"""
+    時薪制（pay_type='hourly'）改以「實際工時 × 時薪」計算。
+    月薪制：到職當月按在職日數比例計薪（employ_ratio）。"""
     comp = _components_of(sal_row)
     gross = sum(comp.values())
     deps = int(getattr(sal_row, "dependents", 0) or 0) if sal_row else 0
@@ -96,6 +117,25 @@ def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0):
         + comp["salary_addition"]
     )
     s["dependents"] = deps
+    # 到職比例（僅月薪制套用；時薪制本以實際工時計算，工時本就落在到職後）
+    s["employ_ratio"] = round(employ_ratio, 4)
+    s["employ_days"] = employ_days
+    s["month_days"] = month_days
+    s["gross_full"] = s["gross"]
+    if pay_type != "hourly" and employ_ratio <= 0.0:
+        # 到職前的月份：尚未在職 → 完全不計薪、不計勞健保
+        s["gross_paid"] = 0
+        s["labor"] = 0
+        s["health"] = 0
+        s["leave_ded"] = 0
+        s["net"] = 0
+    elif pay_type != "hourly" and employ_ratio < 1.0:
+        gross_paid = int(round(s["gross"] * employ_ratio))
+        s["gross_paid"] = gross_paid
+        # 實領以「當月應發全薪」重算（勞健保、請假扣薪維持；其他加項照加）
+        s["net"] = gross_paid - s["labor"] - s["health"] - s["leave_ded"] + s["extra_total"]
+    else:
+        s["gross_paid"] = s["gross"]
     return s
 
 
@@ -255,10 +295,17 @@ def monthly_attendance(request):
     # 為每位員工建一列：包含每日 cell + 月度摘要
     rows = []
     for emp in employees:
+        # 到職比例（到職前的日子不算應出勤 / 不計薪）
+        emp_ratio, emp_days, emp_month_days, emp_hire = _employment(emp, year, month)
         cells = []
         sum_work = sum_late = sum_early = 0
         cnt_late = cnt_early = cnt_absent = cnt_normal = cnt_incomplete = 0
+        emp_workdays = 0  # 該員工當月「應出勤」工作日（到職後）
         for d in dates_in_month:
+            # 到職前：非該員工的應出勤日，標「未到職」，不計缺勤 / 不列入摘要
+            if emp_hire and d < emp_hire:
+                cells.append({"date": d, "is_workday": False, "cell_class": "pre-hire"})
+                continue
             if not is_workday(d):
                 cells.append({"date": d, "is_workday": False, "cell_class": "weekend"})
                 continue
@@ -269,6 +316,7 @@ def monthly_attendance(request):
                     "holiday_name": holiday_dates[d],
                 })
                 continue
+            emp_workdays += 1
             data = by_emp_date.get((emp.id, d), {"in": None, "out": None})
             lvs_today = leaves_by_emp_date.get((emp.id, d), [])
             # Think4U: 用預先算好的當日請假分鐘（避免在 loop 內計算）
@@ -323,7 +371,7 @@ def monthly_attendance(request):
                 ),
                 "cells": cells,
                 "summary": {
-                    "workdays": len(workdays_in_month),
+                    "workdays": emp_workdays,
                     "normal": cnt_normal,
                     "late": cnt_late,
                     "early": cnt_early,
@@ -342,6 +390,9 @@ def monthly_attendance(request):
                     dict(leaves_by_emp_type.get(emp.id, {})),
                     extra_map.get(emp.id),
                     worked_minutes=sum_work,
+                    employ_ratio=emp_ratio,
+                    employ_days=emp_days,
+                    month_days=emp_month_days,
                 ),
             }
         )
@@ -478,8 +529,15 @@ def update_salary(request):
             emp_id, _date(year, month, 1), _date(year, month, last_day)
         )
 
+    emp_obj = Employee.objects.filter(id=emp_id).select_related(
+        "employee_work_info"
+    ).first()
+    e_ratio, e_days, e_mdays, _hire = _employment(emp_obj, year, month)
     return JsonResponse(
-        {"ok": True, **_build_salary(row, lh, extra_row, worked_minutes=wm)}
+        {"ok": True, **_build_salary(
+            row, lh, extra_row, worked_minutes=wm,
+            employ_ratio=e_ratio, employ_days=e_days, month_days=e_mdays,
+        )}
     )
 
 
@@ -542,7 +600,11 @@ def export_salary(request):
             if sal_row and getattr(sal_row, "pay_type", "monthly") == "hourly"
             else 0
         )
-        s = _build_salary(sal_row, lh, extra_map.get(emp.id), worked_minutes=wm)
+        e_ratio, e_days, e_mdays, _hire = _employment(emp, year, month)
+        s = _build_salary(
+            sal_row, lh, extra_map.get(emp.id), worked_minutes=wm,
+            employ_ratio=e_ratio, employ_days=e_days, month_days=e_mdays,
+        )
         detail = "；".join(
             f"{b['type']} {b['hours']}h({b['ratio_label']} -{b['amount']})"
             for b in s["leave_breakdown"]
