@@ -54,6 +54,21 @@
                             </button>
                         </div>
                     </div>
+                    {# Think4U: 登入後前往 前台 / 後台 選擇 #}
+                    <div class="oh-input-group mt-3">
+                        <label class="oh-label">{% trans "登入後前往" %}</label>
+                        <div style="display:flex; gap:8px;">
+                            <label id="destPortalBtn" style="flex:1; text-align:center; padding:9px 0; border:1.5px solid #667eea; border-radius:6px; cursor:pointer; color:#fff; background:#667eea; font-weight:600;">
+                                <input type="radio" name="dest" value="portal" checked style="display:none;">
+                                📱 {% trans "前台（員工）" %}
+                            </label>
+                            <label id="destAdminBtn" style="flex:1; text-align:center; padding:9px 0; border:1.5px solid #ccc; border-radius:6px; cursor:pointer; color:#555; background:#fff; font-weight:600;">
+                                <input type="radio" name="dest" value="admin" style="display:none;">
+                                🖥️ {% trans "後台（管理）" %}
+                            </label>
+                        </div>
+                        <small style="color:#999;">{% trans "無後台權限的帳號選擇後台時，仍會導向前台。" %}</small>
+                    </div>
                     <button type="submit"
                         class="oh-btn oh-onboarding-card__button mt-4 oh-btn--secondary oh-btn--shadow w-100 mb-4"
                         role="button">
@@ -121,6 +136,21 @@
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script> {% endcomment %}
     <script type="module"  src="{% static 'images/ionicons/ui_icons/ionicons/ionicons.esm.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+    <script>
+        // Think4U: 前台/後台選擇的按鈕樣式切換
+        (function () {
+            var p = document.getElementById('destPortalBtn');
+            var a = document.getElementById('destAdminBtn');
+            function paint(active, inactive) {
+                active.style.background = '#667eea'; active.style.color = '#fff'; active.style.borderColor = '#667eea';
+                inactive.style.background = '#fff'; inactive.style.color = '#555'; inactive.style.borderColor = '#ccc';
+            }
+            if (p && a) {
+                p.addEventListener('click', function () { paint(p, a); });
+                a.addEventListener('click', function () { paint(a, p); });
+            }
+        })();
+    </script>
     <script>
         $(document).ready(function () {
             if ($(".oh-alert--warning").length > 0) {

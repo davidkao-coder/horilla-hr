@@ -1,6 +1,7 @@
 {% load static %}
 {% load i18n %}
 {% load horillafilters %}
+{% load think4u_filters %}
 <!DOCTYPE html>
 <html>
 {% get_current_language_bidi as LANGUAGE_BIDI %}
@@ -149,6 +150,15 @@
                         {% endif %}
 
                         {# Think4U: 拿掉 topbar 設定鈕 #}
+
+                        {# Think4U: 前往前台按鈕（force_admin_only 角色不顯示）#}
+                        {% if request.user|t4u_can_use_portal %}
+                        <a href="/portal/" class="oh-navbar__clock" title="{% trans '前往前台' %}"
+                           style="text-decoration:none;">
+                            <ion-icon class="oh-navbar__clock-icon me-2" name="phone-portrait-outline"></ion-icon>
+                            <span class="oh-navbar__clock-text">{% trans "前往前台" %}</span>
+                        </a>
+                        {% endif %}
 
                         <!-- Start of notifications button in nav bar -->
                         {% include 'notification/notification.html' %}

@@ -14694,3 +14694,6 @@ msgstr "%(label)s（作為郵件範本內容）"
 
 msgid "Salary / pay configuration updated."
 msgstr "薪資 / 計薪方式已更新"
+
+msgid "Your account has no backend access; redirected to the portal."
+msgstr "您的帳號無後台權限，已導向前台。"

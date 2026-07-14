@@ -619,18 +619,33 @@ def login_user(request):
         ):
             next_url = "/portal/"
 
-        # Think4U: 依角色決定最終導向
+        # Think4U: 依角色 + 登入頁「前往前台/後台」選擇決定最終導向
         from think4u.models import user_can_access_admin, user_is_admin_only
 
+        dest = request.POST.get("dest")  # portal | admin（登入頁選擇）
+        explicit_next = "next" in request.GET
+
         if user_is_admin_only(user):
-            # force_admin_only 角色：一律導後台
+            # force_admin_only 角色：一律導後台（不理會選擇）
             next_url = "/"
-        elif next_url == "/" and not user_can_access_admin(user):
-            # next 指向後台但無權限 → 導前台
+        elif explicit_next:
+            # 有明確 next（例如 session 逾時後回原頁）→ 尊重 next，僅擋無權限
+            if next_url == "/" and not user_can_access_admin(user):
+                next_url = "/portal/"
+        elif dest == "portal":
             next_url = "/portal/"
-        elif next_url == "/portal/" and user_can_access_admin(user):
-            # 預設 /portal/ 但有後台權限 → 導後台
-            next_url = "/"
+        elif dest == "admin":
+            if user_can_access_admin(user):
+                next_url = "/"
+            else:
+                next_url = "/portal/"
+                messages.warning(
+                    request,
+                    _("Your account has no backend access; redirected to the portal."),
+                )
+        else:
+            # 未選擇（相容舊表單）：有後台權限 → 後台，否則前台
+            next_url = "/" if user_can_access_admin(user) else "/portal/"
 
         if params:
             next_url += f"?{params}"
