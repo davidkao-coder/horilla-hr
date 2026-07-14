@@ -6,6 +6,7 @@ think4u/monthly_attendance_views.py — 月度出勤統計頁
 - 員工：只看自己
 """
 import calendar
+import math
 from collections import defaultdict
 from datetime import date, datetime
 
@@ -130,7 +131,7 @@ def _build_salary(sal_row, leave_hours, extra_row=None, worked_minutes=0,
         s["leave_ded"] = 0
         s["net"] = 0
     elif pay_type != "hourly" and employ_ratio < 1.0:
-        gross_paid = int(round(s["gross"] * employ_ratio))
+        gross_paid = math.ceil(s["gross"] * employ_ratio)  # 到職當月應發：無條件進位到元
         s["gross_paid"] = gross_paid
         # 實領以「當月應發全薪」重算（勞健保、請假扣薪維持；其他加項照加）
         s["net"] = gross_paid - s["labor"] - s["health"] - s["leave_ded"] + s["extra_total"]

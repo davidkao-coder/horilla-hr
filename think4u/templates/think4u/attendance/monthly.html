@@ -134,7 +134,7 @@ out: {{ c.check_out|default:'—' }}
     <p style="color:#888; font-size:12px; margin-bottom:8px;">
         計薪基準 <strong>{{ payroll_base_days }} 天</strong>（日薪 = 全薪 ÷ {{ payroll_base_days }}）。
         <strong>全薪 = 本薪 + 津貼（伙食 / 交通）+ 加給（管理 / 技術管理 / 薪資）</strong>。
-        實領 = 全薪 <strong>+ 其他（加班費/禮金/全勤獎等每月變動加項）</strong> − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800）。
+        實領 = 全薪 <strong>+ 其他（加班費/禮金/全勤獎等每月變動加項）</strong> − 勞保自付 − 健保自付 − 請假扣薪（2025 級距；勞保上限 45,800；金額一律<strong>無條件進位到元</strong>）。
         「其他」逐月填入、不計入勞健保投保薪資。
         健保自付依<strong>眷屬人數</strong>計（本人 + 眷屬，眷屬上限 3）。
         請假扣薪：<strong>事假全扣</strong>、<strong>病假 / 生理假半扣</strong>，特休 / 公假 / 婚假 / 喪假 / 產假 / 補休等不扣。

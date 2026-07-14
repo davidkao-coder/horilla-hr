@@ -68,7 +68,7 @@ HEALTH_GRADES = [
 
 def _grade(salary: float, grades) -> int:
     """取第一個 >= salary 的級距；超過上限取最高級距；低於下限取最低級距。"""
-    s = max(0, int(round(salary)))
+    s = max(0, math.ceil(salary))
     for g in grades:
         if s <= g:
             return g
@@ -76,28 +76,29 @@ def _grade(salary: float, grades) -> int:
 
 
 def labor_insurance_employee(salary: float) -> int:
-    """勞保員工自付額（四捨五入到元）"""
+    """勞保員工自付額（無條件進位到元）"""
     insured = _grade(salary, LABOR_GRADES)
-    return round(insured * LABOR_RATE * LABOR_EMPLOYEE_SHARE)
+    return math.ceil(insured * LABOR_RATE * LABOR_EMPLOYEE_SHARE)
 
 
 def health_insurance_employee(salary: float, dependents: int = 0) -> int:
-    """健保員工自付額（本人 + 眷屬，眷屬上限 3；四捨五入到元）"""
+    """健保員工自付額（本人 + 眷屬，眷屬上限 3；無條件進位到元）"""
     insured = _grade(salary, HEALTH_GRADES)
     deps = max(0, min(int(dependents), 3))
     per_person = insured * HEALTH_RATE * HEALTH_EMPLOYEE_SHARE
-    return round(per_person * (1 + deps))
+    return math.ceil(per_person * (1 + deps))
 
 
 def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
     """
     依各假別給薪比例計算「請假扣薪」。
-      扣薪 = Σ (1 - pay_ratio) × 日薪 × (該假別時數 / 8)
+      日薪 = ⌈全薪 / 30⌉（無條件進位到元，後續計算皆用此值）
+      扣薪 = Σ ⌈(1 - pay_ratio) × 日薪 × (該假別時數 / 8)⌉（各假別分別進位後加總）
     leave_hours_by_type: {假別名稱: 該月時數}
     回傳 {"total": 扣薪總額, "breakdown": [{type, hours, ratio, amount}, ...]}
     """
-    daily = salary / PAYROLL_BASE_DAYS
-    total = 0.0
+    daily = math.ceil(salary / PAYROLL_BASE_DAYS)  # 無條件進位到元
+    total = 0
     breakdown = []
     # 含所有假別（即使全薪不扣也列出，扣薪 0），方便表格顯示時數/扣薪明細
     for name, hours in (leave_hours_by_type or {}).items():
@@ -105,7 +106,7 @@ def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
             continue
         ratio = LEAVE_PAY_RATIO.get(name, 1.0)  # 未知假別預設全薪不扣
         days = float(hours) / 8.0
-        amount = (1.0 - ratio) * daily * days
+        amount = math.ceil((1.0 - ratio) * daily * days)  # 各假別無條件進位到元
         total += amount
         # 給薪比例 → 中文標籤
         if ratio >= 1.0:
@@ -121,10 +122,10 @@ def leave_deduction(salary: float, leave_hours_by_type: dict) -> dict:
                 "days": round(days, 2),
                 "ratio": ratio,
                 "ratio_label": ratio_label,
-                "amount": round(amount),
+                "amount": amount,
             }
         )
-    return {"total": round(total), "breakdown": breakdown}
+    return {"total": total, "breakdown": breakdown}
 
 
 def compute_hourly_salary(
@@ -145,14 +146,14 @@ def compute_hourly_salary(
       - 未填 → fallback 以工時薪資估算（向下相容）。
     回傳的 key 與 compute_salary 盡量相容（gross 視為「工時薪資」），方便共用模板。
     """
-    rate = int(round(hourly_rate or 0))
+    rate = math.ceil(hourly_rate or 0)
     worked_hours = round(float(worked_minutes or 0) / 60.0, 2)
-    work_pay = int(round(worked_hours * rate))
+    work_pay = math.ceil(worked_hours * rate)  # 工時薪資無條件進位到元
     labor_base = int(labor_insured) if labor_insured else work_pay
     health_base = int(health_insured) if health_insured else work_pay
     labor = labor_insurance_employee(labor_base) if labor_base > 0 else 0
     health = health_insurance_employee(health_base, dependents) if health_base > 0 else 0
-    extra_total = int(round(extra_total or 0))
+    extra_total = math.ceil(extra_total or 0)
     net = work_pay + extra_total - labor - health
     return {
         "pay_type": "hourly",
@@ -190,16 +191,16 @@ def compute_salary(
       - 未填 → fallback 以 gross（全薪）為投保基準（向下相容）。
     extra_total（加班費 / 禮金 / 全勤獎等不定期項目）不計入投保薪資，僅在最後加回實領。
     """
-    gross = int(round(salary))
+    gross = math.ceil(salary)
     labor_base = int(labor_insured) if labor_insured else gross
     health_base = int(health_insured) if health_insured else gross
     labor = labor_insurance_employee(labor_base)
     health = health_insurance_employee(health_base, dependents)
     ld = leave_deduction(gross, leave_hours_by_type)
     leave_ded = ld["total"]
-    extra_total = int(round(extra_total or 0))
+    extra_total = math.ceil(extra_total or 0)
     net = gross - labor - health - leave_ded + extra_total
-    daily = round(gross / PAYROLL_BASE_DAYS)
+    daily = math.ceil(gross / PAYROLL_BASE_DAYS)  # 日薪無條件進位到元（與扣薪計算一致）
     return {
         "gross": gross,
         "labor": labor,
