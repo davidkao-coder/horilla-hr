@@ -36,7 +36,7 @@ nano .env.prod
 或用 Let's Encrypt：
 ```bash
 # 先用 HTTP 啟動 nginx，跑 certbot
-certbot --nginx -d hrms.your-domain.com
+certbot --nginx -d hrms.think4u-tech.com
 # 完成後將憑證複製到 nginx/ssl/
 ```
 
@@ -102,7 +102,7 @@ docker compose -f docker-compose.prod.yaml exec server python manage.py collects
 
 ### 7. 監控
 
-健康檢查端點：`https://hrms.your-domain.com/health/`
+健康檢查端點：`https://hrms.think4u-tech.com/health/`
 
 回應 `{"status":"ok"}` 表示存活。
 

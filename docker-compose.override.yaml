@@ -5,7 +5,7 @@ services:
       LANGUAGE_CODE: "zh-hant"
       DEBUG: "True"
       # 開發 + ngrok 手機測試：信任 localhost 與 ngrok https 網域（萬用字元，換網址免改）
-      CSRF_TRUSTED_ORIGINS: "http://localhost:8001,http://127.0.0.1:8001,https://*.ngrok-free.dev,https://*.ngrok-free.app,https://*.ngrok.io,https://*.ngrok.app,https://*.ngrok.dev"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:8001,http://127.0.0.1:8001,https://hrms.think4u-tech.com,https://*.ngrok-free.dev,https://*.ngrok-free.app,https://*.ngrok.io,https://*.ngrok.app,https://*.ngrok.dev"
     ports: !override
       - "8001:8000"
     volumes:
