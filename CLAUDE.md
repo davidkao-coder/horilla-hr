@@ -49,6 +49,7 @@
 
 ## Changelog
 <!-- 每完成一個 WP，在此記錄 -->
+- 2026-07-14 Google SSO（輕量 OAuth 2.0 code flow，不用 allauth）：`think4u/google_auth.py`（google_login 產 state 導 Google；google_callback 驗 state/iss/aud/email_verified → 以 email 對應**既有** User → login，不自動建帳號；網域白名單 GOOGLE_OAUTH_ALLOWED_DOMAINS 預設 think4u-tech.com）；URLs `/think4u/google/login|callback/`；settings 讀 .env 的 GOOGLE_OAUTH_CLIENT_ID/SECRET（未設定登入頁不顯示按鈕）；login.html 加「使用 Google 登入」鈕（沿用前台/後台選擇，JS 帶 dest）；redirect_uri 非 localhost 強制 https（ngrok/prod 適用）。Google Console 需登記 redirect URI：`http://localhost:8001/think4u/google/callback/` 與各正式網域版本。
 - 2026-05-12 WP-00 環境建置：clone fork、設 upstream、docker-compose.override.yaml（TZ=Asia/Taipei、LANGUAGE_CODE=zh-hant、db port 改 5433 避開本機 PG）、修正 entrypoint.sh CRLF。
 - 2026-05-12 WP-01 繁體中文介面：Dockerfile 安裝 gettext；settings.py 改 `LANGUAGE_CODE = env("LANGUAGE_CODE", default="zh-hant")`；補完 horilla/locale/zh_Hant/django.po 84+4=88 條未譯（剩 0 條）；entrypoint 加 `compilemessages -l zh_Hant`（只編 zh_Hant，避開既有 fr/de .po 格式 bug）。驗證：login 頁完全中文、Content-Language=zh-hant、gettext('Employee')='員工'。
 - 2026-05-12 修首頁 404：root cause = `helpdesk` / `offboarding` / `project` 三個 app 透過 `horilla/horilla_apps.py` 自動加入 INSTALLED_APPS，但其 URL 註冊只在 `apps.py:ready()` 才 append 到 `urlpatterns`，URL resolver 已快取 `reverse_dict` 導致 NoReverseMatch（`ticket-create`、`faq-category-view`、`project-dashboard-view`、`offboarding-dashboard`）。template render 拋例外被 `wrapped_view` 接住改 render `went_wrong.html`（外觀如 404）。修法：直接在 `horilla/urls.py` include 三個 app 的 urls，避開 ready 時序問題。驗證：登入後 `/` 回 200、size 從 3263→149934、122 條中文標籤可見。

@@ -14697,3 +14697,31 @@ msgstr "薪資 / 計薪方式已更新"
 
 msgid "Your account has no backend access; redirected to the portal."
 msgstr "您的帳號無後台權限，已導向前台。"
+
+# Think4U: Google SSO
+msgid "Google sign-in is not configured."
+msgstr "尚未設定 Google 登入。"
+
+msgid "Google sign-in was cancelled."
+msgstr "已取消 Google 登入。"
+
+msgid "Google sign-in failed: invalid state."
+msgstr "Google 登入失敗：驗證狀態不符，請重試。"
+
+msgid "Google sign-in failed: missing code."
+msgstr "Google 登入失敗：缺少授權碼，請重試。"
+
+msgid "Google sign-in failed: could not reach Google."
+msgstr "Google 登入失敗：無法連線 Google，請稍後再試。"
+
+msgid "Google sign-in failed: no identity token."
+msgstr "Google 登入失敗：未取得身分憑證，請重試。"
+
+msgid "Google sign-in failed: identity could not be verified."
+msgstr "Google 登入失敗：身分驗證未通過。"
+
+msgid "This Google account's domain is not allowed."
+msgstr "此 Google 帳號的網域不允許登入。"
+
+msgid "No account is linked to this Google email. Please contact HR."
+msgstr "此 Google Email 尚未對應任何系統帳號，請聯絡人資。"

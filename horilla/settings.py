@@ -244,6 +244,17 @@ LOCALE_PATHS = [
     join(BASE_DIR, "horilla", "locale"),
 ]
 
+# Think4U: Google SSO（OAuth 2.0）。未設 CLIENT_ID 時登入頁不顯示 Google 按鈕。
+# 設定：專案根目錄 .env 加
+#   GOOGLE_OAUTH_CLIENT_ID=xxx.apps.googleusercontent.com
+#   GOOGLE_OAUTH_CLIENT_SECRET=xxx
+GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+# 允許登入的 Google 帳號網域（空 = 不限制；帳號本身仍須已存在於系統）
+GOOGLE_OAUTH_ALLOWED_DOMAINS = env.list(
+    "GOOGLE_OAUTH_ALLOWED_DOMAINS", default=["think4u-tech.com"]
+)
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.1/topics/i18n/

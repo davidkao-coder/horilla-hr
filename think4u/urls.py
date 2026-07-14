@@ -8,6 +8,7 @@ from think4u import (
     audit_views,
     day_detail_views,
     dependent_views,
+    google_auth,
     leave_grant_views,
     monthly_attendance_views,
     org_views,
@@ -16,6 +17,13 @@ from think4u import (
 )
 
 urlpatterns = [
+    # Google SSO
+    path("google/login/", google_auth.google_login, name="think4u-google-login"),
+    path(
+        "google/callback/",
+        google_auth.google_callback,
+        name="think4u-google-callback",
+    ),
     # 組織結構圖編輯（admin only）
     path("org/edit/", org_views.org_edit, name="think4u-org-edit"),
     path("org/dept/", org_views.dept_manage, name="think4u-dept-manage"),

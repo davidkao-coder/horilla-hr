@@ -652,7 +652,13 @@ def login_user(request):
         return redirect(next_url)
 
     return render(
-        request, "login.html", {"initialize_database": initialize_database_condition()}
+        request,
+        "login.html",
+        {
+            "initialize_database": initialize_database_condition(),
+            # Think4U: 有設定 GOOGLE_OAUTH_CLIENT_ID 才顯示 Google 登入按鈕
+            "google_sso": bool(getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "")),
+        },
     )
 
 
