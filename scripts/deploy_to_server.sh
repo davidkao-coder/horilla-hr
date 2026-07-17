@@ -55,7 +55,7 @@ echo "==> 3/3 伺服器 build + 啟動 + 健康檢查（密碼 4/4；首次 buil
 $SSH "cd $DIR && $COMPOSE up -d --build && \
       echo '   等待服務啟動…' && \
       for i in \$(seq 1 36); do
-        CODE=\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8091/health/ || true)
+        CODE=\$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8091/health/ || true)
         [ \"\$CODE\" = '200' ] && break; sleep 5;
       done; echo \"   健康檢查: HTTP \$CODE\""
 
@@ -76,7 +76,7 @@ if [[ "${1:-}" == "--with-data" ]]; then
     $COMPOSE start server >/dev/null && \
     echo '   資料還原完成，服務重啟中…' && sleep 8 && \
     for i in \$(seq 1 24); do
-      CODE=\$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8091/health/ || true)
+      CODE=\$(curl -s -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Proto: https' http://127.0.0.1:8091/health/ || true)
       [ \"\$CODE\" = '200' ] && break; sleep 5;
     done; echo \"   健康檢查: HTTP \$CODE\""
   rm -f /tmp/t4u_deploy_dump.sql
