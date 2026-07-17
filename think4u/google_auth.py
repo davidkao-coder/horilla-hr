@@ -15,9 +15,9 @@ think4u/google_auth.py — Google SSO（OAuth 2.0 Authorization Code Flow）
 
 設定（.env）：
   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET —— 未設定時登入頁不顯示按鈕。
-Google Cloud Console 需登記的 Redirect URI（每個使用網域各一筆）：
-  http://localhost:8001/think4u/google/callback/
-  https://<你的 ngrok 網域>/think4u/google/callback/
+Google Cloud Console 需登記的 Redirect URI（根路徑、無結尾斜線；每個使用網域各一筆）：
+  https://hrms.think4u-tech.com/google/callback   （已登記）
+  http://localhost:8001/google/callback           （本機測試用，需自行加）
 """
 import base64
 import json
@@ -41,8 +41,9 @@ _DEST_KEY = "t4u_google_dest"
 
 def _redirect_uri(request) -> str:
     """組 callback 絕對網址；非 localhost（ngrok / 正式站）強制 https
-    （DEBUG 下 Django 看不到 X-Forwarded-Proto，會誤判 http）。"""
-    uri = request.build_absolute_uri(reverse("think4u-google-callback"))
+    （DEBUG 下 Django 看不到 X-Forwarded-Proto，會誤判 http）。
+    路徑用根路徑 /google/callback（無結尾斜線）— 與 Google Console 登記值一致。"""
+    uri = request.build_absolute_uri(reverse("think4u-google-callback-root"))
     host = request.get_host().split(":")[0]
     if host not in ("localhost", "127.0.0.1") and uri.startswith("http://"):
         uri = "https://" + uri[len("http://"):]

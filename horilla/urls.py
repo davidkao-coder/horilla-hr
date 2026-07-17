@@ -21,6 +21,8 @@ from django.urls import include, path, re_path
 
 import notifications.urls
 
+from think4u import google_auth as think4u_google_auth
+
 from . import settings
 
 
@@ -37,6 +39,10 @@ urlpatterns = [
     path("", include("horilla_views.urls")),
     path("employee/", include("employee.urls")),
     path("think4u/", include("think4u.urls")),  # Think4U 客製 routes
+    # Think4U: Google SSO callback — 對齊 Google Console 登記的根路徑（無結尾斜線）
+    #   https://hrms.think4u-tech.com/google/callback
+    path("google/callback", think4u_google_auth.google_callback,
+         name="think4u-google-callback-root"),
     # Think4U 前台 portal 直接掛在根路徑
     path("portal/", include("think4u.portal_urls")),
     path("horilla-widget/", include("horilla_widgets.urls")),
