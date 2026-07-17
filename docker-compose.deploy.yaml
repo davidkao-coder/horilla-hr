@@ -1,0 +1,87 @@
+# Think4U HRMS — Ubuntu 伺服器部署（與「系統 nginx」同機的版本）
+#
+# 架構：系統 nginx（host）反代 hrms.think4u-tech.com → 127.0.0.1:8091 → container:8000
+#       靜態檔由 WhiteNoise 服務；media（附件/頭像）bind mount 到 ./media，
+#       由系統 nginx 的 location /media/ alias 直接服務（見 deploy/nginx-hrms.conf）。
+#
+# 用法（伺服器上，專案目錄 /home/think4u/hrms）：
+#   docker compose -f docker-compose.deploy.yaml --env-file .env.prod up -d --build
+#
+# 與 docker-compose.prod.yaml 的差異：拿掉 nginx service（用系統 nginx）、
+# server 只綁 127.0.0.1:8091（不對外）、media 改 bind mount。
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS}
+      DATABASE_URL: "postgres://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}"
+      TIME_ZONE: "Asia/Taipei"
+      LANGUAGE_CODE: "zh-hant"
+      DAILY_VERIFICATION_CODE_SECRET: ${DAILY_VERIFICATION_CODE_SECRET}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      GUNICORN_WORKERS: "3"
+      GUNICORN_THREADS: "4"
+    command: sh ./entrypoint.sh
+    ports:
+      - "127.0.0.1:8091:8000"   # 只綁 localhost，由系統 nginx 反代
+    volumes:
+      - ./media:/app/media       # 附件/頭像 → 系統 nginx /media/ alias 直接服務
+      - static-data:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-bullseye
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: "Asia/Taipei"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 每日 pg_dump 備份（保留 30 天）
+  backup:
+    image: postgres:16-bullseye
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "while true; do
+        sleep $((3600 * 24));
+        DATE=$$(date +%Y%m%d_%H%M%S);
+        pg_dump -h db -U ${DB_USER} -d ${DB_NAME} > /backups/think4u_$$DATE.sql && echo \"backup: $$DATE\" || echo \"backup failed\";
+        find /backups -name '*.sql' -mtime +30 -delete;
+      done"
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  static-data:
