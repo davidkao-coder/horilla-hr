@@ -1,5 +1,15 @@
 .github
+.git
 .gitignore
 *.md
 LICENSE
 docker-compose.yaml
+backups
+media
+import_data
+staticfiles
+node_modules
+__pycache__
+*.xlsx
+.env
+.env.prod
