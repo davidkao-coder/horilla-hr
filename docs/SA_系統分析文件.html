@@ -1,0 +1,1691 @@
+<title>Think4U HRMS — 系統分析文件（SA）</title>
+<style>
+:root{
+  --ink:#16181d; --ink-2:#3b4250; --ink-3:#6b7486;
+  --paper:#fbfcfd; --surface:#ffffff; --surface-2:#f3f6fa;
+  --rule:#dfe3ea; --rule-2:#eef1f6;
+  --accent:#2d4a8a; --accent-soft:#e7edf9; --accent-ink:#1d3260;
+  --pos:#2e7d32; --pos-soft:#e8f5e9;
+  --neg:#c0392b; --neg-soft:#fdecea;
+  --warn:#b26a00; --warn-soft:#fff3e0;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,"Cascadia Mono",Menlo,Consolas,monospace;
+  --sans:"PingFang TC","Microsoft JhengHei","Noto Sans TC","Hiragino Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --sp:clamp(1rem,2.5vw,1.75rem);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --ink:#e6e9ef; --ink-2:#b3bccc; --ink-3:#8590a3;
+    --paper:#14161b; --surface:#1b1e25; --surface-2:#22262f;
+    --rule:#333944; --rule-2:#272c35;
+    --accent:#7ea2e8; --accent-soft:#1e2941; --accent-ink:#a9c2f0;
+    --pos:#6fc276; --pos-soft:#1c2b1e;
+    --neg:#e8796b; --neg-soft:#2e1c1a;
+    --warn:#dda43f; --warn-soft:#2d2213;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e6e9ef; --ink-2:#b3bccc; --ink-3:#8590a3;
+  --paper:#14161b; --surface:#1b1e25; --surface-2:#22262f;
+  --rule:#333944; --rule-2:#272c35;
+  --accent:#7ea2e8; --accent-soft:#1e2941; --accent-ink:#a9c2f0;
+  --pos:#6fc276; --pos-soft:#1c2b1e;
+  --neg:#e8796b; --neg-soft:#2e1c1a;
+  --warn:#dda43f; --warn-soft:#2d2213;
+}
+:root[data-theme="light"]{
+  --ink:#16181d; --ink-2:#3b4250; --ink-3:#6b7486;
+  --paper:#fbfcfd; --surface:#ffffff; --surface-2:#f3f6fa;
+  --rule:#dfe3ea; --rule-2:#eef1f6;
+  --accent:#2d4a8a; --accent-soft:#e7edf9; --accent-ink:#1d3260;
+  --pos:#2e7d32; --pos-soft:#e8f5e9;
+  --neg:#c0392b; --neg-soft:#fdecea;
+  --warn:#b26a00; --warn-soft:#fff3e0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15.5px;line-height:1.7;-webkit-font-smoothing:antialiased}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:100vh}
+
+/* ============ sidebar ============ */
+.side{border-right:1px solid var(--rule);background:var(--surface);
+  position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column}
+.brand{padding:1.25rem var(--sp) 1rem;border-bottom:1px solid var(--rule-2)}
+.brand-mark{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);font-weight:600}
+.brand h1{margin:.35rem 0 .2rem;font-size:1.05rem;line-height:1.3;letter-spacing:-.01em;font-weight:700}
+.brand .meta{font-family:var(--mono);font-size:.7rem;color:var(--ink-3);line-height:1.5}
+.searchbox{padding:.85rem var(--sp);border-bottom:1px solid var(--rule-2)}
+.searchbox input{width:100%;padding:.5rem .65rem;font-family:var(--sans);font-size:.85rem;
+  border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink)}
+.searchbox input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.searchbox .hint{font-family:var(--mono);font-size:.65rem;color:var(--ink-3);margin-top:.35rem}
+nav{padding:.7rem 0 1.5rem;flex:1}
+nav a{display:block;padding:.4rem var(--sp);color:var(--ink-2);text-decoration:none;
+  font-size:.87rem;border-left:2px solid transparent;line-height:1.45}
+nav a:hover{background:var(--surface-2);color:var(--ink)}
+nav a.on{border-left-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+nav a .n{font-family:var(--mono);font-size:.7rem;color:var(--ink-3);margin-right:.5rem}
+nav a.on .n{color:var(--accent)}
+nav .grp{padding:.9rem var(--sp) .3rem;font-family:var(--mono);font-size:.65rem;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.side-foot{padding:.8rem var(--sp);border-top:1px solid var(--rule-2);display:flex;gap:.5rem;align-items:center}
+.tbtn{font-family:var(--mono);font-size:.7rem;padding:.3rem .55rem;border:1px solid var(--rule);
+  background:var(--paper);color:var(--ink-2);border-radius:4px;cursor:pointer}
+.tbtn:hover{border-color:var(--accent);color:var(--accent)}
+.tbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+/* ============ content ============ */
+main{padding:2.25rem var(--sp) 5rem;max-width:none;min-width:0}
+.wrap{max-width:74ch}
+section{scroll-margin-top:1rem}
+section+section{margin-top:3.25rem;padding-top:2.25rem;border-top:1px solid var(--rule)}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin-bottom:.4rem}
+h2{font-size:1.65rem;line-height:1.25;margin:0 0 .5rem;letter-spacing:-.02em;
+  font-weight:700;text-wrap:balance}
+h3{font-size:1.12rem;margin:2rem 0 .6rem;letter-spacing:-.01em;font-weight:700;text-wrap:balance}
+h4{font-size:.94rem;margin:1.5rem 0 .45rem;font-weight:700;color:var(--ink-2)}
+p{margin:.7rem 0}
+.lede{color:var(--ink-2);font-size:1.02rem}
+ul,ol{padding-left:1.35rem;margin:.7rem 0}
+li{margin:.28rem 0}
+code{font-family:var(--mono);font-size:.855em;background:var(--surface-2);
+  padding:.1em .35em;border-radius:3px;border:1px solid var(--rule-2)}
+a{color:var(--accent)}
+strong{font-weight:700}
+
+/* tables */
+.tw{overflow-x:auto;margin:1rem 0;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:.5rem .7rem;text-align:left;border-bottom:1px solid var(--rule-2);vertical-align:top}
+th{background:var(--surface-2);font-weight:700;font-size:.78rem;letter-spacing:.02em;
+  white-space:nowrap;color:var(--ink-2)}
+tr:last-child td{border-bottom:none}
+td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+td code{background:transparent;border:none;padding:0}
+
+/* callouts */
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:.7rem .9rem;margin:1rem 0;border-radius:0 5px 5px 0;font-size:.89rem}
+.warn{border-left:3px solid var(--warn);background:var(--warn-soft);
+  padding:.7rem .9rem;margin:1rem 0;border-radius:0 5px 5px 0;font-size:.89rem}
+.danger{border-left:3px solid var(--neg);background:var(--neg-soft);
+  padding:.7rem .9rem;margin:1rem 0;border-radius:0 5px 5px 0;font-size:.89rem}
+.note strong,.warn strong,.danger strong{display:block;margin-bottom:.2rem;font-size:.82rem;
+  letter-spacing:.02em}
+
+/* pills */
+.pill{display:inline-block;font-family:var(--mono);font-size:.7rem;padding:.12rem .45rem;
+  border-radius:3px;border:1px solid;white-space:nowrap;font-weight:600}
+.p-ok{color:var(--pos);border-color:var(--pos);background:var(--pos-soft)}
+.p-no{color:var(--neg);border-color:var(--neg);background:var(--neg-soft)}
+.p-wip{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+.p-na{color:var(--ink-3);border-color:var(--rule);background:var(--surface-2)}
+
+/* code block + copy */
+pre{background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+  padding:.85rem 1rem;overflow-x:auto;font-family:var(--mono);font-size:.8rem;
+  line-height:1.6;margin:1rem 0;position:relative}
+pre code{background:none;border:none;padding:0;font-size:1em}
+.cmd{position:relative}
+.cmd .cp{position:absolute;top:.4rem;right:.4rem;font-family:var(--mono);font-size:.65rem;
+  padding:.2rem .45rem;border:1px solid var(--rule);background:var(--paper);
+  color:var(--ink-3);border-radius:3px;cursor:pointer;opacity:0;transition:opacity .15s}
+.cmd:hover .cp,.cmd .cp:focus-visible{opacity:1}
+.cmd .cp:hover{color:var(--accent);border-color:var(--accent)}
+
+/* ASCII diagram */
+.dia{background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+  padding:1rem;overflow-x:auto;font-family:var(--mono);font-size:.72rem;line-height:1.45;
+  white-space:pre;margin:1rem 0;color:var(--ink-2)}
+
+/* stat row */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.7rem;margin:1.25rem 0}
+.stat{border:1px solid var(--rule);border-radius:6px;padding:.7rem .85rem;background:var(--surface)}
+.stat .k{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3)}
+.stat .v{font-family:var(--mono);font-size:1.35rem;font-variant-numeric:tabular-nums;
+  font-weight:600;line-height:1.3;margin-top:.15rem}
+.stat .s{font-size:.75rem;color:var(--ink-3)}
+
+/* interactive tool */
+.tool{border:1px solid var(--accent);border-radius:7px;background:var(--surface);margin:1.5rem 0;overflow:hidden}
+.tool-h{background:var(--accent-soft);padding:.6rem .9rem;border-bottom:1px solid var(--rule);
+  display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap}
+.tool-h .t{font-weight:700;font-size:.92rem;color:var(--accent-ink)}
+.tool-h .d{font-size:.76rem;color:var(--ink-3);font-family:var(--mono)}
+.tool-b{padding:.9rem}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:.7rem;margin-bottom:.9rem}
+.f label{display:block;font-size:.75rem;color:var(--ink-2);margin-bottom:.2rem;font-weight:600}
+.f input,.f select{width:100%;padding:.4rem .5rem;font-family:var(--mono);font-size:.85rem;
+  border:1px solid var(--rule);border-radius:4px;background:var(--paper);color:var(--ink);
+  font-variant-numeric:tabular-nums}
+.f input:focus,.f select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.out{background:var(--surface-2);border-radius:5px;padding:.75rem .9rem;font-family:var(--mono);
+  font-size:.8rem;line-height:1.75;overflow-x:auto}
+.out .row{display:flex;justify-content:space-between;gap:1rem;white-space:nowrap}
+.out .row.tot{border-top:1px solid var(--rule);margin-top:.4rem;padding-top:.4rem;font-weight:700}
+.out .lb{color:var(--ink-2)}
+.out .vl{font-variant-numeric:tabular-nums}
+.out .vl.neg{color:var(--neg)}
+.out .vl.pos{color:var(--pos)}
+.out .note-l{color:var(--ink-3);font-size:.72rem;margin-top:.5rem;white-space:normal}
+.verdict{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-family:var(--mono);font-size:.85rem}
+.verdict .big{font-size:1.05rem;font-weight:700}
+
+/* glossary */
+.gl-ctl{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}
+.chip{font-family:var(--mono);font-size:.72rem;padding:.25rem .6rem;border:1px solid var(--rule);
+  background:var(--surface);color:var(--ink-2);border-radius:20px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gl-list{border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--surface)}
+.gl-item{display:grid;grid-template-columns:minmax(150px,240px) 1fr;gap:1rem;
+  padding:.55rem .85rem;border-bottom:1px solid var(--rule-2);font-size:.86rem}
+.gl-item:last-child{border-bottom:none}
+.gl-item .term{font-weight:700;font-family:var(--mono);font-size:.82rem;color:var(--accent-ink)}
+.gl-item .cat{font-family:var(--mono);font-size:.62rem;color:var(--ink-3);display:block;
+  font-weight:400;letter-spacing:.06em;margin-top:.1rem}
+.gl-item .def{color:var(--ink-2)}
+.gl-count{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);margin:.5rem 0}
+
+/* details */
+details{border:1px solid var(--rule);border-radius:6px;margin:.8rem 0;background:var(--surface)}
+details summary{padding:.55rem .85rem;cursor:pointer;font-weight:600;font-size:.88rem;
+  list-style:none;display:flex;align-items:center;gap:.5rem}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸";font-family:var(--mono);color:var(--accent);font-size:.8rem}
+details[open] summary::before{content:"▾"}
+details summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+details .dc{padding:0 .85rem .85rem;border-top:1px solid var(--rule-2)}
+details .dc>:first-child{margin-top:.7rem}
+
+/* search hidden state */
+.hidden{display:none !important}
+mark{background:var(--warn-soft);color:var(--ink);padding:0 .1em;border-radius:2px}
+
+/* responsive */
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule)}
+  nav{max-height:220px;overflow-y:auto}
+  .gl-item{grid-template-columns:1fr;gap:.15rem}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important}}
+</style>
+
+<div class="layout">
+<aside class="side">
+  <div class="brand">
+    <div class="brand-mark">System Analysis</div>
+    <h1>Think4U HRMS</h1>
+    <div class="meta">SA 文件 · 全 8 章<br>基準日 2026-07-28<br>讀者：接手工程師</div>
+  </div>
+  <div class="searchbox">
+    <input type="search" id="q" placeholder="搜尋全文…（如 TOTP、遲到、投保）" aria-label="搜尋文件全文">
+    <div class="hint" id="qres">輸入關鍵字即時過濾</div>
+  </div>
+  <nav id="nav">
+    <div class="grp">概觀</div>
+    <a href="#s0" class="on"><span class="n">00</span>系統分析總覽</a>
+    <a href="#s1"><span class="n">01</span>架構分析</a>
+    <div class="grp">設計細節</div>
+    <a href="#s2"><span class="n">02</span>資料模型</a>
+    <a href="#s3"><span class="n">03</span>功能規格</a>
+    <a href="#s4"><span class="n">04</span>業務規則與演算法</a>
+    <a href="#s5"><span class="n">05</span>介面與整合</a>
+    <div class="grp">實作</div>
+    <a href="#s6"><span class="n">06</span>擴充指南</a>
+    <a href="#s7"><span class="n">07</span>名詞解釋</a>
+    <div class="grp">互動工具</div>
+    <a href="#calc"><span class="n">▸</span>薪資試算器</a>
+    <a href="#att"><span class="n">▸</span>出勤判定器</a>
+  </nav>
+  <div class="side-foot">
+    <button class="tbtn" id="theme" type="button">◐ 主題</button>
+    <button class="tbtn" id="expand" type="button">展開全部</button>
+  </div>
+</aside>
+
+<main>
+<div class="wrap">
+
+<!-- ══════════ 00 ══════════ -->
+<section id="s0">
+  <div class="eyebrow">SA-00</div>
+  <h2>系統分析總覽</h2>
+  <p class="lede">Think4U HRMS 是 Think4U Tech 內部人事管理系統，以開源 Horilla HRMS 為基底 fork 後大幅客製。本文件系列的目標：讓接手工程師讀完能理解全貌、找到任何功能的程式位置，並據此往下開發。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="k">自製資料表</div><div class="v">13</div><div class="s">think4u_ 前綴</div></div>
+    <div class="stat"><div class="k">功能模組</div><div class="v">14</div><div class="s">+3 支援模組</div></div>
+    <div class="stat"><div class="k">在職員工</div><div class="v">15</div><div class="s">真實資料</div></div>
+    <div class="stat"><div class="k">出勤紀錄</div><div class="v">3,787</div><div class="s">2023–2026</div></div>
+  </div>
+
+  <h3>系統定位</h3>
+  <p>不追求通用 HR SaaS 的完整度，而是<strong>精準對齊 Think4U 的實際規則</strong>（彈性工時 09:30–10:00、計薪 30 天制、特休週年制+曆年使用）。因此大量邏輯是「寫死的公司規則」——這是有意的設計決策。</p>
+  <div class="tw"><table>
+    <tr><th>原本的問題</th><th>系統解法</th></tr>
+    <tr><td>員工出勤靠 Excel 人工彙整、易錯</td><td>GPS 手機打卡 + 自動出勤判定 + 月度矩陣統計</td></tr>
+    <tr><td>薪資試算靠人工查勞健保級距表</td><td>內建 2025 台灣級距表 + 自動計薪（含請假扣薪、到職比例）</td></tr>
+    <tr><td>請假／加班簽核走紙本或口頭</td><td>多角色線上簽核流程 + 稽核軌跡</td></tr>
+  </table></div>
+
+  <h3>系統邊界</h3>
+  <div class="dia">                    ┌──────────────────────────────────┐
+   員工（手機）─────▶│  前台 Portal  /portal/            │
+                    │  打卡・請假・加班・出勤・設定      │
+                    └───────────────┬──────────────────┘
+                                    │
+   主管 ───────────▶┌───────────────▼──────────────────┐
+   HR   ───────────▶│  後台 Admin  /                   │◀──── Google SSO
+   系統管理員 ──────▶│  員工・出勤・薪資・簽核・稽核・配置 │      （OAuth 2.0）
+                    └───────────────┬──────────────────┘
+                                    │
+                    ┌───────────────▼──────────────────┐
+                    │  PostgreSQL 16                   │
+                    └──────────────────────────────────┘
+                                    │
+   Excel 出勤檔 ────▶ import_attendance ┘  └─▶ Excel 薪資試算匯出
+                                          └─▶ Email 通知（SMTP 未設定）</div>
+
+  <h4>外部依賴（4 個，都可降級運作）</h4>
+  <div class="tw"><table>
+    <tr><th>依賴</th><th>用途</th><th>未設定／失效時</th></tr>
+    <tr><td>Google OAuth</td><td>SSO 登入</td><td>登入頁自動隱藏按鈕，改用帳密</td></tr>
+    <tr><td>SMTP</td><td>通知信</td><td><code>_safe_send()</code> 靜默略過，功能照常</td></tr>
+    <tr><td>Geolocation API</td><td>GPS 打卡</td><td>需 HTTPS；拒絕授權則無法打卡</td></tr>
+    <tr><td>系統 nginx</td><td>反向代理 + TLS</td><td>開發環境直接連 :8001</td></tr>
+  </table></div>
+
+  <h3>使用者角色與權限模型</h3>
+  <div class="warn"><strong>接手時最容易搞混的地方</strong>系統有<strong>兩套疊加</strong>的權限機制：Django Group（角色）與 AdminAccessGroup（前後台分離）。判斷「這個人能看什麼」時<strong>必須同時看兩者</strong>。</div>
+
+  <h4>① Django Group（角色）</h4>
+  <div class="tw"><table>
+    <tr><th>角色</th><th>典型使用者</th><th>主要能力</th></tr>
+    <tr><td>系統管理員</td><td>Steven、Tiffany</td><td>全系統（<code>acts_as_superuser</code>）</td></tr>
+    <tr><td>人資 HR</td><td>HR 人員</td><td>全公司員工資料、薪資、二層簽核</td></tr>
+    <tr><td>部門主管</td><td>各部門主管</td><td>自部門（含子部門）、一層簽核、指派加班</td></tr>
+    <tr><td>一般員工</td><td>全體</td><td>僅自己的資料</td></tr>
+  </table></div>
+
+  <h4>② AdminAccessGroup（Think4U 自製，4 個旗標）</h4>
+  <div class="tw"><table>
+    <tr><th>旗標</th><th>意義</th></tr>
+    <tr><td><code>can_access_admin</code></td><td>能否進後台（否則一律導向 <code>/portal/</code>）</td></tr>
+    <tr><td><code>force_admin_only</code></td><td><strong>強制只能用後台</strong>（高管不需打卡前台）</td></tr>
+    <tr><td><code>show_in_personal_reports</code></td><td>是否出現在個人出勤／請假報表（高管隱藏）</td></tr>
+    <tr><td><code>acts_as_superuser</code></td><td>該角色成員視為 superuser</td></tr>
+  </table></div>
+
+  <h4>③ 主管判定的特殊設計</h4>
+  <p>「主管」= Horilla 原生<strong>直屬主管</strong>（<code>reporting_manager_id</code>）<strong> ∪ </strong>Think4U <strong>部門主管</strong>（<code>Department.manager</code>，含子部門遞迴）。兩者聯集是因為公司實際上兩種關係都在用。</p>
+  <div class="danger"><strong>務必遵守</strong>新增任何「主管才能看」的頁面，一律用 <code>manager_utils.is_manager()</code> 與 <code>managed_employees()</code>，<strong>不要用 Horilla 的 <code>is_reportingmanager</code></strong>——曾因此造成部門主管看不到簽核頁的 bug。</div>
+
+  <h3>模組地圖</h3>
+  <div class="tw"><table>
+    <tr><th>#</th><th>模組</th><th>核心程式</th><th>主要資料表</th></tr>
+    <tr><td class="num">1</td><td>GPS 打卡</td><td><code>portal_views.py</code>、<code>base/think4u_clock.py</code></td><td>AttendanceActivity</td></tr>
+    <tr><td class="num">2</td><td>出勤判定</td><td><code>attendance_rules.py</code> <span class="pill p-na">pure</span></td><td>—（計算層）</td></tr>
+    <tr><td class="num">3</td><td>出勤彙總</td><td><code>attendance_compute.py</code></td><td>—</td></tr>
+    <tr><td class="num">4</td><td>月度統計+薪資試算</td><td><code>monthly_attendance_views.py</code> ★最複雜</td><td>EmployeeSalary, MonthlyPayExtra</td></tr>
+    <tr><td class="num">5</td><td>計薪引擎</td><td><code>payroll_rules.py</code> <span class="pill p-na">pure</span></td><td>—</td></tr>
+    <tr><td class="num">6</td><td>特休制度</td><td><code>services/annual_leave_calculator.py</code></td><td>LeaveAllocation</td></tr>
+    <tr><td class="num">7</td><td>請假</td><td>Horilla <code>leave/</code> + <code>portal_views.py</code></td><td>LeaveRequest, AvailableLeave</td></tr>
+    <tr><td class="num">8</td><td>給假申請</td><td><code>leave_grant_views.py</code></td><td>LeaveGrantRequest</td></tr>
+    <tr><td class="num">9</td><td>加班（指派）</td><td><code>overtime_views.py</code></td><td>OvertimeAssignment</td></tr>
+    <tr><td class="num">10</td><td>加班（員工申請）</td><td><code>portal_views.py</code></td><td>OvertimeApplication</td></tr>
+    <tr><td class="num">11</td><td>補打卡</td><td><code>punch_correction_views.py</code></td><td>PunchCorrectionRequest</td></tr>
+    <tr><td class="num">12</td><td>簽核關卡（設定）</td><td><code>approval_workflow_views.py</code> <span class="pill p-wip">未串接</span></td><td>ApprovalWorkflow, ApprovalStep</td></tr>
+    <tr><td class="num">13</td><td>稽核紀錄</td><td><code>audit_log.py</code>（signals）</td><td>AuditLog</td></tr>
+    <tr><td class="num">14</td><td>權限／前後台</td><td><code>admin_gate_middleware.py</code>、<code>sidebar.py</code></td><td>AdminAccessGroup</td></tr>
+    <tr><td class="num">+</td><td>Google SSO</td><td><code>google_auth.py</code></td><td>—（用既有 User）</td></tr>
+    <tr><td class="num">+</td><td>組織管理</td><td><code>org_views.py</code></td><td>Department, JobPosition</td></tr>
+    <tr><td class="num">+</td><td>健保眷屬</td><td><code>dependent_views.py</code></td><td>HealthInsuranceDependent</td></tr>
+  </table></div>
+
+  <h3>系統現況與風險</h3>
+  <div class="tw"><table>
+    <tr><th>面向</th><th>狀態</th></tr>
+    <tr><td>功能完成度</td><td><span class="pill p-ok">可運作</span> 核心流程皆有真實資料（15 員工、四年出勤）</td></tr>
+    <tr><td>正式部署</td><td><span class="pill p-wip">進行中</span> app 已跑在 192.168.2.135:8091，nginx／憑證與資料還原待收尾</td></tr>
+    <tr><td>測試覆蓋</td><td><span class="pill p-no">不足</span> 僅 2 個測試檔；<strong>計薪與出勤判定無自動化測試</strong></td></tr>
+    <tr><td>最大技術債</td><td>簽核關卡設定頁完成但<strong>未串進請假／加班流程</strong>（Phase 4）</td></tr>
+    <tr><td>最大營運風險</td><td>全員密碼為同一組測試密碼、SMTP 未設定</td></tr>
+  </table></div>
+</section>
+
+<!-- ══════════ 01 ══════════ -->
+<section id="s1">
+  <div class="eyebrow">SA-01</div>
+  <h2>架構分析</h2>
+  <p class="lede">分層結構、技術選型理由、請求生命週期、效能設計、部署拓撲，以及架構弱點與改善建議。</p>
+
+  <h3>分層結構</h3>
+  <div class="dia">┌─────────────────────────────────────────────────────────────┐
+│ 表現層 Presentation                                          │
+│  後台：Django Template ／ 前台：單頁 App 風格                 │
+│  互動：HTMX（局部換 HTML）+ jQuery/select2 + 內嵌 vanilla JS   │
+│  ⚠ 無前端框架、無 npm build — 改 template 存檔即生效           │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ HTTP / HTMX partial
+┌──────────────────────────▼──────────────────────────────────┐
+│ 視圖層 Views（函式型為主，少量 Horilla CBV）                   │
+│  權限判定 → 組 queryset → 呼叫規則層 → render/JsonResponse    │
+└──────────────────────────┬──────────────────────────────────┘
+┌──────────────────────────▼──────────────────────────────────┐
+│ 規則層 Business Rules  ★本系統核心設計                        │
+│  attendance_rules.py   出勤判定（pure，無 DB 依賴）           │
+│  payroll_rules.py      計薪公式（pure，無 DB 依賴）           │
+│  attendance_compute.py 出勤彙總（有 DB，組合上述）            │
+│  services/annual_leave_calculator.py  特休演算法（pure）      │
+│  manager_utils.py      主管／部屬範圍判定                     │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ Django ORM
+┌──────────────────────────▼──────────────────────────────────┐
+│ 資料層 Models  13 張自製表 + Horilla 原生表                   │
+│  橫切：audit_log.py（signals 攔截全庫 CUD → AuditLog）        │
+└──────────────────────────┬──────────────────────────────────┘
+                    PostgreSQL 16</div>
+
+  <h3>為什麼「規則層」要獨立成 pure functions</h3>
+  <p><code>attendance_rules.py</code> 和 <code>payroll_rules.py</code> <strong>完全不碰 DB、不 import Django model</strong>，輸入輸出都是原生型別。這是本系統最重要的架構決策：</p>
+  <div class="tw"><table>
+    <tr><th>好處</th><th>實際效益</th></tr>
+    <tr><td>可單獨測試</td><td>不用建資料就能驗算（特休 15 案例測試靠這個）</td></tr>
+    <tr><td>可重複使用</td><td>同一份計薪邏輯被「月度頁／即時 AJAX 儲存／Excel 匯出」三處共用，<strong>保證三處數字一致</strong></td></tr>
+    <tr><td>規則變更好定位</td><td>勞健保級距調整只改常數，不動 view</td></tr>
+  </table></div>
+  <div class="note"><strong>接手守則</strong>任何「算錢、算時數、算天數」的邏輯都寫進規則層，view 只負責取資料和呈現。若在 view 裡寫計算，就會出現「頁面顯示與匯出 Excel 不一致」的經典 bug。</div>
+
+  <h3>技術選型與理由</h3>
+  <div class="tw"><table>
+    <tr><th>決策</th><th>選擇</th><th>理由</th><th>代價</th></tr>
+    <tr><td>基底</td><td>fork Horilla</td><td>員工／部門／請假基礎 model 現成，省數月開發</td><td>綁死其架構、升級困難</td></tr>
+    <tr><td>前端</td><td>HTMX + Template</td><td>1 人開發無需前後端分離；SSR 首屏快</td><td>複雜互動難做</td></tr>
+    <tr><td>部署</td><td>Docker Compose</td><td>環境一致、DB 版本可控</td><td>正式機需 rebuild 才生效</td></tr>
+    <tr><td>客製隔離</td><td>獨立 <code>think4u/</code> app</td><td>與上游程式分離，易識別</td><td>少數原生檔仍需修改</td></tr>
+    <tr><td>計薪</td><td>自製而非 Horilla payroll</td><td>台灣勞健保規則差異太大</td><td>自行維護級距表</td></tr>
+    <tr><td>認證</td><td>Django session + 自寫 OAuth</td><td>不引入 allauth，減少依賴</td><td>自行維護 OAuth 流程</td></tr>
+  </table></div>
+
+  <details><summary>為什麼不用 Horilla 原生的 Attendance</summary><div class="dc">
+    <p>Horilla 的 <code>Attendance</code> / <code>AttendanceLateComeEarlyOut</code> 設計與台灣彈性工時規則不符，且需搭配其 shift/work_type 體系。決策：<strong>只寫 <code>AttendanceActivity</code>（打卡明細）</strong>，出勤狀態一律<strong>即時計算</strong>，不落地儲存判定結果。</p>
+    <div class="tw"><table>
+      <tr><th>優點</th><td>規則調整後，歷史資料的判定自動跟著更新（不需回溯批次）</td></tr>
+      <tr><th>缺點</th><td>每次看報表都要重算 → 月度頁需一次撈全月資料在記憶體算</td></tr>
+    </table></div>
+  </div></details>
+
+  <h3>請求生命週期</h3>
+  <div class="dia">Request
+  │
+  ├─ ServerTimingMiddleware（自製）    → 量測並回寫 X-Server-Time
+  ├─ SecurityMiddleware / WhiteNoise   → 安全標頭、靜態檔
+  ├─ SessionMiddleware / CommonMiddleware
+  ├─ LocaleMiddleware                  → zh-Hant
+  ├─ CsrfViewMiddleware
+  ├─ AuthenticationMiddleware          → request.user
+  ├─ MessageMiddleware / XFrameOptions
+  └─ AdminAccessGateMiddleware（自製） → ★前後台守門
+        ├─ force_admin_only 角色 + 訪問前台 → redirect /
+        └─ 無後台權限 + 訪問後台        → redirect /portal/
+  ▼
+View（權限二次判定）→ 規則層計算 → Template / JsonResponse
+  ▼
+Signals：audit_log post_save/post_delete → 寫 AuditLog</div>
+  <div class="warn"><strong>新增公開頁面（登入前可見）</strong>必須加進 <code>ALLOWED_PREFIXES</code>，且前綴<strong>不要帶結尾斜線</strong>（<code>/logout</code> 不是 <code>/logout/</code>），否則會被守門 middleware 導走。</div>
+
+  <h3>效能設計（已完成三輪優化）</h3>
+  <p>現況：一般頁面 warm <strong>&lt; 100ms</strong>、47–72 queries。</p>
+  <div class="tw"><table>
+    <tr><th>問題</th><th>根因</th><th>解法</th><th>效果</th></tr>
+    <tr><td>每頁 60+ 多餘 SQL</td><td><code>HorillaCompanyManager</code> 每次跑兩條 COUNT 偵測重複</td><td>結果 cache 在 process-wide dict</td><td>query 降 40–65%</td></tr>
+    <tr><td>部門／職位頁 N+1</td><td>逐筆再查員工數</td><td><code>annotate(Count(distinct=True))</code></td><td>124→50 queries</td></tr>
+    <tr><td>換頁載入慢</td><td>每頁載 ~29 個外部 JS，含 4.9MB 未使用的 pivottable</td><td>刪除無用 JS</td><td>每頁少 4.9MB</td></tr>
+    <tr><td>「第一下卡、第二下秒回」</td><td>gunicorn 預設 1 個 sync worker</td><td>改 gthread，2×4（正式 3×4）</td><td>併發不再序列化</td></tr>
+    <tr><td>新增員工頁 cold 9.6s</td><td>view 內建未使用的 form/filter</td><td>移除無用物件</td><td>0.79s</td></tr>
+  </table></div>
+
+  <details><summary>月度統計頁的效能策略（最重的一頁）</summary><div class="dc">
+    <p>需算「N 員工 × 31 天」的矩陣，策略：</p>
+    <ol>
+      <li><strong>一次撈完</strong>該月所有 <code>AttendanceActivity</code>、<code>LeaveRequest</code>、<code>Holidays</code>（3 次 query，非 N×31 次）</li>
+      <li>在記憶體整理成 <code>by_emp_date</code> / <code>leave_minutes_by_emp_date</code> 字典</li>
+      <li>迴圈內只做純計算（呼叫 <code>evaluate()</code>），<strong>不再碰 DB</strong></li>
+    </ol>
+    <div class="danger"><strong>維護注意</strong>改這頁時務必維持此模式。曾因在迴圈內計算請假分鐘導致 <code>AttributeError</code> 與效能退化。</div>
+  </div></details>
+
+  <h3>部署架構</h3>
+  <h4>正式環境（Ubuntu 192.168.2.135）</h4>
+  <div class="dia">Internet
+   │ hrms.think4u-tech.com（DNS→106.104.136.29，路由器轉 80/443）
+   ▼
+系統 nginx（host，非容器；全公司共用 ★紅線資源）
+   │  ├─ /media/ → alias /home/think4u/hrms/media/（直接服務）
+   │  └─ /      → proxy_pass 127.0.0.1:8091
+   ▼
+docker compose -f docker-compose.deploy.yaml
+   ├─ server  127.0.0.1:8091→8000（只綁 localhost）gunicorn 3×4
+   ├─ db      PostgreSQL 16（volume 持久化）
+   └─ backup  每日 pg_dump → ./backups（保留 30 天）</div>
+  <div class="tw"><table>
+    <tr><th>項目</th><th>開發</th><th>正式</th></tr>
+    <tr><td>程式來源</td><td>bind mount（即時）</td><td><strong>烤進 image</strong>（改程式要 <code>up -d --build</code>）</td></tr>
+    <tr><td>media</td><td>容器內</td><td>bind mount，由 nginx 直接服務</td></tr>
+    <tr><td>DEBUG</td><td>True</td><td>False → <strong>SECURE_SSL_REDIRECT 生效</strong>（純 HTTP 會 301）</td></tr>
+    <tr><td>nginx</td><td>無</td><td>系統 nginx（同機共用，改設定影響其他站）</td></tr>
+  </table></div>
+  <div class="danger"><strong>紅線</strong>正式機的 nginx 是<strong>全公司共用</strong>的反向代理（TMS 也在同一台），動它前要確認不影響其他服務。</div>
+
+  <h3>安全設計</h3>
+  <div class="tw"><table>
+    <tr><th>層面</th><th>措施</th></tr>
+    <tr><td>認證</td><td>Django session（PBKDF2）+ Google OAuth（僅公司網域、僅既有帳號、不自動開帳號）</td></tr>
+    <tr><td>授權</td><td>兩層：middleware 守門（路徑層）+ view 內 helper（資料層）</td></tr>
+    <tr><td>前後台隔離</td><td>無後台權限者<strong>任何</strong>後台路徑都被導走（白名單制，預設拒絕）</td></tr>
+    <tr><td>傳輸</td><td>正式站 HTTPS（Let's Encrypt）+ SECURE_SSL_REDIRECT + HSTS 1 年</td></tr>
+    <tr><td>稽核</td><td>全庫 CUD 自動記錄（誰／何時／改了什麼欄位／舊→新值／IP）</td></tr>
+    <tr><td>打卡防偽</td><td>每日 TOTP + GPS 半徑判定 + 記錄 client IP</td></tr>
+    <tr><td>密鑰管理</td><td>全部走 env，不進版控；repo 內只有 <code>.example</code> 範本</td></tr>
+    <tr><td>檔案上傳</td><td>病假附件限副檔名 + 10MB；nginx <code>client_max_body_size 20m</code></td></tr>
+  </table></div>
+  <div class="danger"><strong>已知安全缺口（接手須處理）</strong>
+    ① 全員密碼為同一組測試密碼<br>
+    ② TOTP secret 在 <code>base/think4u_clock.py</code> 有 hardcode fallback，<strong>正式環境必須用 env 覆蓋</strong><br>
+    ③ Google client secret 曾曝光，建議 rotate<br>
+    ④ 稽核紀錄無唯讀保護——具 DB 權限者可篡改
+  </div>
+
+  <h3>可擴充性評估</h3>
+  <div class="tw"><table>
+    <tr><th>情境</th><th>難度</th><th>說明</th></tr>
+    <tr><td>加新的簽核類型（如加薪申請）</td><td><span class="pill p-ok">低</span></td><td>照 PunchCorrectionRequest 模式，2–3 天</td></tr>
+    <tr><td>加薪資項目</td><td><span class="pill p-ok">低</span></td><td><code>SALARY_COMPONENT_FIELDS</code> 加欄位，UI 自動帶出</td></tr>
+    <tr><td>勞健保級距年度更新</td><td><span class="pill p-ok">低</span></td><td>改 <code>payroll_rules.py</code> 常數</td></tr>
+    <tr><td>簽核關卡串進流程（Phase 4）</td><td><span class="pill p-wip">中</span></td><td>參考 punch_correction 實作，5–8 天</td></tr>
+    <tr><td>多公司 multi-tenant</td><td><span class="pill p-no">高</span></td><td>系統已鎖單一公司，各處假設「只有一家」</td></tr>
+    <tr><td>手機原生 App</td><td><span class="pill p-no">高</span></td><td>前台無 REST API（horilla_api 存在但未用於 portal）</td></tr>
+  </table></div>
+
+  <h3>架構弱點與改善建議</h3>
+  <div class="tw"><table>
+    <tr><th>弱點</th><th>影響</th><th>建議</th></tr>
+    <tr><td><strong>計薪與出勤判定無自動化測試</strong></td><td>改規則可能靜默算錯薪水</td><td>優先補 pure function 的單元測試（好寫）</td></tr>
+    <tr><td>簽核邏輯有兩套（寫死 vs Workflow）</td><td>認知負擔、行為不一致</td><td>完成 Phase 4，統一走 ApprovalWorkflow</td></tr>
+    <tr><td>月度頁 view 過長（~200 行）</td><td>難維護</td><td>抽出「矩陣組裝」與「薪資組裝」</td></tr>
+    <tr><td>GPS 座標寫死在 py</td><td>換辦公室要改程式</td><td>移到 DB 設定或 env</td></tr>
+    <tr><td>無 CI/CD</td><td>部署靠手動腳本</td><td>可加 GitLab CI（repo 已在 GitLab）</td></tr>
+  </table></div>
+</section>
+
+<!-- ══════════ 02 ══════════ -->
+<section id="s2">
+  <div class="eyebrow">SA-02</div>
+  <h2>資料模型</h2>
+  <p class="lede">13 張 Think4U 自製表（前綴 <code>think4u_</code>）與 Horilla 原生表的關係。</p>
+
+  <h3>ERD</h3>
+  <div class="dia">        ┌──────────────────┐         ┌──────────────┐
+        │ auth_user (User) │───1:1───│  Employee    │（Horilla）
+        └────────┬─────────┘         └──────┬───────┘
+                 │                          │
+      ┌──────────┴─────────┐                │
+      │  Group（角色）      │                │
+      └──────────┬─────────┘                │
+                 │ 1:1                      │
+      ┌──────────▼──────────────┐           │
+      │ AdminAccessGroup        │           │
+      │ 前後台／superuser 旗標    │           │
+      └─────────────────────────┘           │
+                                            │
+ ┌──────────────────────────────────────────┼───────────────────┐
+ │        以 Employee 為中心的自製表          │                   │
+ │                                          │                   │
+ │  薪資                                     │                   │
+ │  ├ EmployeeSalary (1:1) ─────────────────┤                   │
+ │  ├ MonthlyPayExtra (1:N by year,month) ──┤                   │
+ │  └ HealthInsuranceDependent (1:N) ───────┤                   │
+ │                                          │                   │
+ │  假勤                                     │                   │
+ │  ├ LeaveAllocation (1:N) ────────────────┤──▶ LeaveType      │
+ │  ├ AnnualLeaveRecord (1:N)（舊制）────────┤                   │
+ │  └ LeaveGrantRequest (1:N) ──────────────┤──▶ LeaveType      │
+ │                                          │                   │
+ │  簽核                                     │                   │
+ │  ├ OvertimeAssignment (1:N) ─────────────┤  assigned_by→User │
+ │  ├ OvertimeApplication (1:N) ────────────┤──┐                │
+ │  └ PunchCorrectionRequest (1:N) ─────────┘  ├─▶ ApprovalWorkflow
+ └─────────────────────────────────────────────┘        │ 1:N
+                                                        ▼
+ ApprovalWorkflow ──▶ JobPosition（有 default_role）  ApprovalStep
+ ApprovalStep ──▶ Group（approver_role）／Employee（approver_employee）
+
+ 橫切：AuditLog（獨立表，不掛 FK；用 model_label + object_id 定位）</div>
+
+  <h3>核心表：EmployeeSalary（1:1 Employee）</h3>
+  <p>計薪的<strong>單一真實來源</strong>。所有薪資計算都從這裡取值。</p>
+  <div class="tw"><table>
+    <tr><th>欄位</th><th>型別</th><th>說明</th></tr>
+    <tr><td><code>pay_type</code></td><td>CharField</td><td><code>monthly</code>（預設）／<code>hourly</code></td></tr>
+    <tr><td><code>hourly_rate</code></td><td>PosInt</td><td>時薪（時薪制用）</td></tr>
+    <tr><td><code>base_salary</code></td><td>PosInt</td><td>本薪（預設 50000）</td></tr>
+    <tr><td><code>meal_allowance</code> / <code>transport_allowance</code></td><td>PosInt</td><td>伙食／交通津貼</td></tr>
+    <tr><td><code>management_allowance</code> / <code>tech_management_allowance</code> / <code>salary_addition</code></td><td>PosInt</td><td>管理／技術管理／薪資加給</td></tr>
+    <tr><td><code>dependents</code></td><td>PosSmallInt</td><td>健保眷屬<strong>人數</strong>（衍生值，由明細表同步）</td></tr>
+    <tr><td><code>labor_insured_salary</code></td><td>PosInt</td><td>勞保投保薪資（0=沿用全薪估算）</td></tr>
+    <tr><td><code>health_insured_salary</code></td><td>PosInt</td><td>健保投保薪資（0=沿用全薪估算）</td></tr>
+    <tr><td><code>monthly_salary</code></td><td>PosInt</td><td><span class="pill p-na">舊欄位</span> 已被組成欄位取代，保留相容</td></tr>
+  </table></div>
+  <p>property <code>gross</code> = base + 兩津貼 + 三加給（= 全薪）。常數 <code>SALARY_COMPONENT_FIELDS</code> 定義 UI 顯示的 6 個組成欄位。</p>
+
+  <details><summary>其餘 12 張表的 Schema</summary><div class="dc">
+    <h4>MonthlyPayExtra — unique(employee, year, month)</h4>
+    <p>8 個變動加項：<code>overtime_pay</code>（加班費）、<code>unused_annual_leave</code>（特休未休）、<code>birthday_gift</code>／<code>dragonboat_gift</code>／<code>midautumn_gift</code>（三節禮金）、<code>expense_reimbursement</code>（代墊費用）、<code>perfect_attendance_bonus</code>（全勤獎）、<code>admin_assistant_fee</code>（行政助理費）。property <code>total</code> = 8 項加總；常數 <code>EXTRA_PAY_FIELDS</code>。</p>
+    <div class="warn"><strong>注意</strong>這些<strong>不計入勞健保投保薪資</strong>，只在最後加回實領。</div>
+
+    <h4>HealthInsuranceDependent</h4>
+    <p><code>name</code> / <code>relationship</code> / <code>national_id</code> / <code>birth_date</code> / <code>enroll_date</code> / <code>is_enrolled</code>。helper <code>sync_dependent_count(employee)</code> 重算並寫回 <code>EmployeeSalary.dependents</code>。健保計費眷屬<strong>上限 3 人</strong>（在 payroll_rules 限制）。</p>
+
+    <h4>LeaveAllocation（特休配額，Model B 核心）</h4>
+    <p>每個週年日產生<strong>兩筆</strong>：當年剩餘段 + 隔年完整段。欄位：<code>service_years</code>（年資）、<code>anniversary_date</code>（獲假日）、<code>tier_days</code>（級距天數）、<code>grant_type</code>（<code>anniversary</code>／<code>carryforward</code>）、<code>days_granted</code>、<code>days_used</code>、<code>start_date</code>～<code>end_date</code>（可請休區間）。</p>
+
+    <h4>AnnualLeaveRecord（舊制）</h4>
+    <p><code>year</code> / <code>allocated_days</code> / <code>used_days</code> / <code>carried_over</code> / <code>carry_over_expire</code> / <code>source</code>。<strong>新功能不要用這張表</strong>（已被 LeaveAllocation 取代）。</p>
+
+    <h4>LeaveGrantRequest（給假申請）</h4>
+    <p><code>leave_type</code> / <code>requested_days</code> / <code>reason</code> / <code>proof_document</code>（FileField）/ <code>status</code>（pending·approved·rejected）/ <code>granted_days</code>（HR 實際核發，可與申請不同）/ <code>hr_note</code> / <code>decided_by</code> / <code>decided_at</code>。核准時自動建立或加值 <code>AvailableLeave</code>。</p>
+
+    <h4>OvertimeAssignment（主管指派，7 狀態機）</h4>
+    <p>狀態：<code>pending_employee</code>（初始）→ <code>employee_confirmed</code> / <code>employee_rejected</code> → <code>pending_hr</code> → <code>hr_approved</code>（終）/ <code>hr_rejected</code>（終）；<code>cancelled</code>（僅初始狀態可取消）。另有 <code>employee_note</code> / <code>hr_note</code> / <code>employee_confirmed_at</code> / <code>hr_approved_at</code>。</p>
+
+    <h4>OvertimeApplication（員工申請）</h4>
+    <p>與上表並存但走 ApprovalWorkflow 多關卡：<code>workflow</code> / <code>current_step_order</code> / <code>decisions</code>(JSON)。</p>
+
+    <h4>PunchCorrectionRequest（補打卡）★多關卡範本</h4>
+    <p><code>target_date</code> / <code>requested_check_in</code> / <code>requested_check_out</code> / <code>reason</code> / <code>status</code> / <code>workflow</code> / <code>current_step_order</code> / <code>decisions</code>(JSON)。</p>
+    <div class="note"><strong>唯一真正在跑 ApprovalWorkflow 的模組</strong>可作為 Phase 4 的實作範本。<code>decisions</code> JSON 結構：每關的 <code>{order, approver_id, decision, note, at}</code>。最後一關核准 → 自動寫入 <code>AttendanceActivity</code>，status 轉 <code>applied</code>。</div>
+
+    <h4>ApprovalWorkflow / ApprovalStep</h4>
+    <p>Workflow：<code>job_position</code>（每職位一組）+ <code>request_type</code>（<code>leave</code>／<code>overtime</code>／<code>punch_correction</code>）+ <code>is_active</code>。<br>
+    Step：<code>order</code>（關卡順序）+ <code>approver_type</code>（<code>direct_manager</code>／<code>department_head</code>／<code>role</code>／<code>employee</code>／<code>hr</code>）+ <code>approver_role</code>（FK Group）／<code>approver_employee</code>（FK Employee）。</p>
+
+    <h4>AdminAccessGroup（1:1 Group）</h4>
+    <p><code>can_access_admin</code> / <code>force_admin_only</code> / <code>show_in_personal_reports</code> / <code>acts_as_superuser</code>。</p>
+
+    <h4>AuditLog（稽核）</h4>
+    <p><code>timestamp</code>（索引）/ <code>user</code> + <code>user_repr</code>（保留字串，User 被刪仍可讀）/ <code>action</code>（CREATE·UPDATE·DELETE）/ <code>model_label</code> + <code>object_id</code>（複合索引，<strong>不用 FK</strong> 以便記錄已刪物件）/ <code>object_repr</code> / <code>changes</code>(JSON) / <code>request_path</code> / <code>request_method</code> / <code>ip_address</code>。</p>
+    <p><code>changes</code> 格式：<code>{欄位: [舊值, 新值]}</code>；DELETE 時為 <code>{"__deleted__": {全欄位快照}}</code>。</p>
+  </div></details>
+
+  <h3>與 Horilla 原生表的關係</h3>
+  <h4>大量使用（不可動）</h4>
+  <div class="tw"><table>
+    <tr><th>原生表</th><th>Think4U 的擴充</th></tr>
+    <tr><td><code>Employee</code></td><td>所有自製表都 FK 到它</td></tr>
+    <tr><td><code>EmployeeWorkInformation</code></td><td>表單大改；<code>date_joining</code> 是計薪／特休關鍵</td></tr>
+    <tr><td><code>Department</code></td><td><strong>加了 <code>parent_department_id</code>（部門樹）+ <code>manager</code></strong></td></tr>
+    <tr><td><code>JobPosition</code></td><td><strong>加了 <code>default_role</code>（FK→Group）</strong></td></tr>
+    <tr><td><code>LeaveType</code> / <code>AvailableLeave</code> / <code>LeaveRequest</code></td><td>LeaveType 加 <code>half_paid</code>；AvailableLeave 由特休演算法寫入</td></tr>
+    <tr><td><code>AttendanceActivity</code></td><td><strong>加了 4 欄</strong>：<code>attendance_type</code>／<code>field_reason</code>／<code>client_ip</code>／<code>verification_code_used</code></td></tr>
+    <tr><td><code>auth_user</code> / <code>Group</code></td><td>Horilla 用 <code>add_to_class</code> 加了 <code>is_new_employee</code> ⚠️</td></tr>
+  </table></div>
+  <div class="danger"><strong>已棄用（表存在但不寫入）</strong><code>Attendance</code>、<code>AttendanceLateComeEarlyOut</code>（改即時計算）、<code>payroll_*</code>（計薪自製）。<br>看到原生頁面顯示「出勤資料為空」是正常的——它們讀的是棄用表。</div>
+
+  <h3>資料完整性注意事項</h3>
+  <div class="tw"><table>
+    <tr><th>注意點</th><th>說明</th></tr>
+    <tr><td><code>EmployeeSalary.dependents</code> 是<strong>衍生值</strong></td><td>改眷屬明細後要呼叫 <code>sync_dependent_count()</code></td></tr>
+    <tr><td><code>AvailableLeave.available_days</code> 是<strong>衍生值</strong></td><td>由 <code>precompute_annual_leave</code> 從 LeaveAllocation 算出</td></tr>
+    <tr><td>Excel 匯入是<strong>破壞性的</strong></td><td>會先刪該年度全公司出勤／請假／加班再重建</td></tr>
+    <tr><td>新人必跑兩個指令</td><td><code>precompute_annual_leave</code> + <code>seed_default_leaves</code>，否則無假可請</td></tr>
+    <tr><td>migrations 預設被 gitignore</td><td>新增 migration 要 <code>git add -f</code></td></tr>
+  </table></div>
+</section>
+
+<!-- ══════════ 03 ══════════ -->
+<section id="s3">
+  <div class="eyebrow">SA-03</div>
+  <h2>功能規格</h2>
+  <p class="lede">每個模組：流程 → 狀態機 → 畫面／URL → 權限。演算法細節見 SA-04。</p>
+
+  <h3>前台 Portal（員工自助）</h3>
+  <p><code>/portal/</code>｜<code>portal_views.py</code>｜手機 App 風格單頁，底部 5 個 tab</p>
+  <div class="tw"><table>
+    <tr><th>Tab</th><th>功能</th></tr>
+    <tr><td>打卡</td><td>即時時鐘、上／下班打卡、公司／外勤切換、每日驗證碼；底部摺疊「補打卡申請」</td></tr>
+    <tr><td>請假</td><td>假別下拉（只列有配額者）、起訖日+時間、附件、即時算工作時數與可下班時間；摺疊「申請給假」</td></tr>
+    <tr><td>加班</td><td>日期／起訖／事由；顯示「我送出的」+「主管指派的」</td></tr>
+    <tr><td>出勤</td><td>1–12 月切換；月摘要 + 每日明細 + <strong>異常日快捷申請</strong>（補打卡／請假／加班，自動帶入日期）</td></tr>
+    <tr><td>設定</td><td>個人資料（頭像／姓名／Email／電話／生日／性別／緊急聯絡）+ 銀行資訊</td></tr>
+  </table></div>
+
+  <h3>加班指派（主管發起）</h3>
+  <div class="dia">        主管建立
+           │
+           ▼
+   pending_employee ──員工拒絕(需理由)──▶ employee_rejected（終）
+     │         │
+     │         └──主管取消──▶ cancelled（終）
+     │ 員工確認
+     ▼
+   pending_hr ──HR駁回(需理由)──▶ hr_rejected（終）
+     │ HR核准
+     ▼
+   hr_approved（終）</div>
+  <div class="tw"><table>
+    <tr><th>畫面</th><th>URL name</th><th>權限</th></tr>
+    <tr><td>主管－指派加班</td><td><code>think4u-overtime-manager</code> / <code>-create</code></td><td><code>is_manager()</code> 或 HR</td></tr>
+    <tr><td>員工－我的加班</td><td><code>-employee</code> / <code>-emp-decision</code></td><td>本人</td></tr>
+    <tr><td>HR－加班核准</td><td><code>-hr</code> / <code>-hr-decision</code></td><td>HR</td></tr>
+  </table></div>
+
+  <h3>簽核關卡設定 <span class="pill p-wip">未完全串接</span></h3>
+  <p><code>/think4u/approval-workflow/</code>（superuser only）｜3 欄卡片網格，<strong>一職位一卡</strong>，卡內含「請假／加班」兩區塊；頂部 sticky「全部儲存」。</p>
+  <div class="tw"><table>
+    <tr><th>類型</th><th>是否吃這個設定</th></tr>
+    <tr><td>補打卡</td><td><span class="pill p-ok">有</span> 可作為實作範本</td></tr>
+    <tr><td>加班申請（OvertimeApplication）</td><td><span class="pill p-ok">有</span></td></tr>
+    <tr><td><strong>請假</strong></td><td><span class="pill p-no">沒有</span> 仍走寫死「主管→HR」</td></tr>
+    <tr><td><strong>加班指派</strong></td><td><span class="pill p-no">沒有</span> 走自己的 7 狀態機</td></tr>
+  </table></div>
+
+  <h3>補打卡（多關卡簽核範本）</h3>
+  <div class="dia">員工前台提交（target_date, check_in, check_out, reason）
+   │ → 依員工職位找 ApprovalWorkflow(request_type='punch_correction')
+   │ → current_step_order = 1
+   ▼
+pending ──每關核准──▶ current_step_order += 1
+   │                      │
+   │                      └─ 已是最後一關 ──▶ ★自動寫入 AttendanceActivity
+   │                                          status = 'applied'（終）
+   └──任一關駁回──▶ rejected（終）</div>
+
+  <h3>月度出勤統計 + 薪資試算（系統最複雜頁）</h3>
+  <p><code>/think4u/attendance/monthly/</code>｜<code>monthly_attendance_views.py</code></p>
+  <h4>上半部：出勤矩陣</h4>
+  <ul>
+    <li>員工 × 當月日期，每格：<code>P</code>（出勤）／<code>P/L</code>（出勤+請假）／<code>L</code>（請假）／<code>—</code>（無）／<code>假</code>（國定假）／<code>·</code>（未到職）</li>
+    <li>hover 顯示狀態、上下班時間、工時、遲到／早退分鐘、請假明細；點擊進當日明細頁</li>
+    <li>右側摘要：應出勤天數（<strong>依該員工到職日計算</strong>）、正常／遲到／早退／缺勤數、總工時</li>
+  </ul>
+  <h4>下半部：薪資試算表（HR 可編輯，自動儲存）</h4>
+  <p>欄位群：計薪方式／時薪 → 全薪(工時薪資) → 本薪 → 津貼(2，可摺疊) → 加給(3，可摺疊) → 其他(8，可摺疊) → 健保眷屬 → 日薪 → <strong>勞保投保薪資</strong>／勞保自付 → <strong>健保投保薪資</strong>／健保自付 → 請假明細／扣薪 → 計算式 → 實領</p>
+  <div class="note"><strong>互動機制</strong>任何欄位改動 → debounce 600ms → POST <code>think4u-salary-update</code> → 後端重算 → 回傳 JSON 更新該列所有計算欄位。匯出 Excel 與畫面<strong>共用同一套計算</strong>。</div>
+  <h4>資料範圍（Scope）</h4>
+  <div class="tw"><table>
+    <tr><th>角色</th><th>看得到</th></tr>
+    <tr><td>HR／系統管理員</td><td>全公司（排除 <code>show_in_personal_reports=False</code> 者）</td></tr>
+    <tr><td>部門主管</td><td>自部門 + 子部門（遞迴）</td></tr>
+    <tr><td>一般員工</td><td>只有自己（<strong>即使自己被標記隱藏也看得到自己</strong>）</td></tr>
+  </table></div>
+
+  <details><summary>其餘模組規格（給假申請／稽核／異常紀錄／眷屬／員工頁／儀表板／排程）</summary><div class="dc">
+    <h4>給假申請</h4>
+    <p>員工前台「申請給假」（選非預設假別 + 天數 + 證明文件 + 事由）→ HR 核准（可調整核發天數）→ 自動建立／加值 AvailableLeave；駁回填 <code>hr_note</code>。適用 9 種假別：婚假、產假、喪假(3級)、公傷病假、公假、產檢假、陪產假。</p>
+
+    <h4>稽核紀錄</h4>
+    <p>攔截機制：<code>pre_save</code> 撈原值 → <code>post_save</code> 比對差異 → <code>post_delete</code> 寫整筆快照。排除清單：AuditLog 自己（防遞迴）、Session、ContentType、Notification、Permission、Historical*、admin.LogEntry。</p>
+    <p>畫面（superuser only）：過濾（使用者／動作／Model／Object ID／日期／關鍵字）、50 筆/頁、詳細頁含 changes 對比表 + 同物件歷史 30 筆。保留期限指令 <code>purge_audit_log --years 3</code>。</p>
+
+    <h4>出勤異常紀錄</h4>
+    <p><code>attendance/views/views.py::late_come_early_out_view</code>：列出所有非正常日（含缺勤、工時不足），區間上限=今天。</p>
+
+    <h4>健保眷屬明細</h4>
+    <p><code>dependent_views.py</code>（純 HTMX 端點）：<code>-section</code>（載入整區塊）／<code>-add</code>／<code>-delete</code>／<code>-toggle</code>。每次操作後 <code>sync_dependent_count()</code>。</p>
+
+    <h4>員工工作資訊頁（三區塊獨立儲存）</h4>
+    <p>① 工作資訊（<code>form=work</code>）② 薪資／計薪方式（<code>form=salary</code>，只寫 EmployeeSalary）③ 健保眷屬（HTMX 即時）。薪資區塊由共用 partial <code>pay_type_section.html</code> 渲染，這些欄位在泛用欄位迴圈中<strong>被明確略過</strong>以免重複。</p>
+
+    <h4>儀表板</h4>
+    <p>全角色：我的出勤／請假申請／加班申請 widget + 工作資訊完成度（只計 5 個實際使用欄位）；superuser 另顯示圖表與報表 tile。</p>
+
+    <h4>每日提醒（排程）</h4>
+    <p><code>notify_unpunched [--dry-run]</code>：找出當日未打卡的 active 員工 → 寄 Email + 站內通知；週末自動跳過。建議排程 週一–五 10:30。</p>
+  </div></details>
+</section>
+
+<!-- ══════════ 04 ══════════ -->
+<section id="s4">
+  <div class="eyebrow">SA-04</div>
+  <h2>業務規則與演算法</h2>
+  <p class="lede">改動任何「算錢／算時數／算天數」邏輯前<strong>必讀</strong>。下方兩個互動工具實作了與程式相同的公式，可用來驗算。</p>
+
+  <h3>出勤判定演算法</h3>
+  <p><code>think4u/attendance_rules.py</code>（pure functions，無 DB 依賴）</p>
+  <div class="tw"><table>
+    <tr><th>常數</th><th>值</th><th>意義</th></tr>
+    <tr><td><code>CHECK_IN_FLEX_START</code> / <code>_END</code></td><td class="num">09:30 / 10:00</td><td>&gt; 10:00 = 遲到</td></tr>
+    <tr><td><code>CHECK_OUT_FLEX_START</code> / <code>_END</code></td><td class="num">18:30 / 19:00</td><td>&lt; 18:30 = 早退</td></tr>
+    <tr><td><code>LUNCH_START</code> / <code>_END</code></td><td class="num">12:30 / 13:30</td><td>不計工時</td></tr>
+    <tr><td><code>REQUIRED_WORK_MINUTES</code></td><td class="num">480</td><td>每日 8 小時</td></tr>
+  </table></div>
+
+  <h4>判定順序</h4>
+  <div class="dia">1. 全天請假（leave_minutes >= 480）        → on_leave
+2. 無上班也無下班打卡                      → absent（缺勤）
+3. 只有單邊打卡                            → incomplete（未打卡完整）
+4. 兩邊都有 → work = (out − in) − 午休重疊
+              late  = max(0, in − 10:00)
+              early = max(0, 18:30 − out)
+   4a. work + leave >= 480  → on_time（正常）
+       ★ 遲到／早退分鐘一律歸 0（有請假補足即視為正常）
+   4b. 否則 late>0 且 early>0 → late_and_early
+              late>0          → late
+              early>0         → early_leave
+              皆 0 但工時不足   → incomplete（含 short_minutes）</div>
+
+  <!-- ═══ 互動工具：出勤判定器 ═══ -->
+  <div class="tool" id="att">
+    <div class="tool-h">
+      <span class="t">出勤判定器</span>
+      <span class="d">實作 attendance_rules.evaluate()</span>
+    </div>
+    <div class="tool-b">
+      <div class="fields">
+        <div class="f"><label for="a-in">上班打卡</label><input type="time" id="a-in" value="09:45"></div>
+        <div class="f"><label for="a-out">下班打卡</label><input type="time" id="a-out" value="18:50"></div>
+        <div class="f"><label for="a-lv">請假時數</label><input type="number" id="a-lv" value="0" min="0" max="8" step="0.5"></div>
+      </div>
+      <div class="out" id="a-out-box"></div>
+    </div>
+  </div>
+
+  <h4>請假工時的特殊算法（與出勤工時不同！）</h4>
+  <div class="danger"><strong>兩套午休扣除規則，不可混用</strong>
+    <code>_lunch_deduction()</code>（<strong>出勤</strong>工時）：「跨越 13:00 且工時 &gt; 5h」才扣 60 分<br>
+    <code>leave_work_minutes()</code>（<strong>請假</strong>時數）：直接算與 12:30–13:30 的<strong>重疊分鐘</strong>
+  </div>
+  <div class="tw"><table>
+    <tr><th>請假時段</th><th>計算</th><th class="num">結果</th></tr>
+    <tr><td>09:30–18:30</td><td>9h − 1h</td><td class="num">8h</td></tr>
+    <tr><td>09:30–12:30</td><td>3h − 0</td><td class="num">3h</td></tr>
+    <tr><td>13:30–18:30</td><td>5h − 0</td><td class="num">5h</td></tr>
+    <tr><td>09:30–14:00</td><td>4.5h − 1h</td><td class="num">3.5h</td></tr>
+    <tr><td>12:00–14:00</td><td>2h − 1h</td><td class="num">1h</td></tr>
+  </table></div>
+  <div class="note"><strong>曾發生的 bug</strong>誤用 <code>_lunch_deduction</code> 算請假時數，導致 09:30–14:00 算成 5h（正確 3.5h）。另有 <code>allowed_off_time(start)</code> = start + 9h（顯示「可下班時間」）。</div>
+
+  <h3>GPS 打卡規則</h3>
+  <div class="tw"><table>
+    <tr><th>項目</th><th>值</th></tr>
+    <tr><td>公司座標</td><td class="num">25.007396, 121.463511</td></tr>
+    <tr><td>判定半徑</td><td class="num">200 m</td></tr>
+    <tr><td>距離算法</td><td>Haversine 公式</td></tr>
+    <tr><td>範圍外</td><td>記為「外勤」，<strong>需填事由</strong></td></tr>
+    <tr><td>每日驗證碼</td><td>TOTP（pyotp），24h 有效</td></tr>
+  </table></div>
+  <div class="warn"><strong>HTTPS 限制</strong>瀏覽器 Geolocation API 只在 HTTPS 下運作（localhost 例外），故手機測試需 ngrok 或正式站。</div>
+
+  <h3>計薪演算法 ★核心</h3>
+  <div class="tw"><table>
+    <tr><th>全域規則</th><th>值</th></tr>
+    <tr><td>計薪基準</td><td><strong>30 天</strong>（<code>PAYROLL_BASE_DAYS</code>），日薪 = 全薪 ÷ 30</td></tr>
+    <tr><td>金額取整</td><td><strong>一律無條件進位到元（<code>math.ceil</code>）</strong>，且「先進位再做後續計算」</td></tr>
+    <tr><td>全薪（gross）</td><td>本薪 + 伙食 + 交通 + 管理加給 + 技術管理加給 + 薪資加給</td></tr>
+  </table></div>
+
+  <h4>勞保／健保自付額</h4>
+  <div class="dia">投保級距 = 第一個 >= 投保薪資的級距值
+勞保自付 = ⌈級距 × 12.5% × 20%⌉          （12.5% = 普通事故 11.5% + 就保 1%）
+                                          （上限級距 45,800）
+健保自付 = ⌈級距 × 5.17% × 30% × (1 + min(眷屬,3))⌉</div>
+  <div class="note"><strong>投保薪資的來源（優先序）</strong><code>labor_insured_salary</code> &gt; 0 → 用它；= 0 → fallback 用全薪。<br>設計理由：實務上投保薪資由 HR 依級距表指定，<strong>不應與薪資欄位連動</strong>（可能刻意低報或有上限）。</div>
+
+  <h4>請假扣薪</h4>
+  <div class="dia">日薪       = ⌈全薪 ÷ 30⌉                                  ← 先進位
+各假別扣薪 = ⌈(1 − 給薪比例) × 日薪 × (該假別時數 ÷ 8)⌉   ← 各自進位
+總扣薪     = Σ 各假別扣薪                                ← 進位後才加總
+                                                          （保證明細 = 總額）</div>
+  <div class="tw"><table>
+    <tr><th>假別</th><th class="num">比例</th><th>扣薪</th><th>法源</th></tr>
+    <tr><td>事假</td><td class="num">0.0</td><td><span class="pill p-no">全扣</span></td><td>勞工請假規則 §7</td></tr>
+    <tr><td>病假（普通傷病）</td><td class="num">0.5</td><td><span class="pill p-wip">半扣</span></td><td>勞工請假規則 §4</td></tr>
+    <tr><td>生理假</td><td class="num">0.5</td><td><span class="pill p-wip">半扣</span></td><td>性平法 §14</td></tr>
+    <tr><td>特休／公假／婚假／喪假／產假／產檢假／陪產假／公傷病假／補休</td><td class="num">1.0</td><td><span class="pill p-ok">不扣</span></td><td>—</td></tr>
+    <tr><td>未列出的假別</td><td class="num">1.0</td><td><span class="pill p-ok">不扣</span>（安全預設）</td><td>—</td></tr>
+  </table></div>
+
+  <!-- ═══ 互動工具：薪資試算器 ═══ -->
+  <div class="tool" id="calc">
+    <div class="tool-h">
+      <span class="t">薪資試算器</span>
+      <span class="d">實作 payroll_rules.compute_salary()／2025 級距</span>
+    </div>
+    <div class="tool-b">
+      <div class="fields">
+        <div class="f"><label for="c-type">計薪方式</label><select id="c-type">
+          <option value="monthly">月薪制</option><option value="hourly">時薪制</option></select></div>
+        <div class="f" id="c-gross-w"><label for="c-gross">全薪</label><input type="number" id="c-gross" value="50000" min="0" step="1000"></div>
+        <div class="f hidden" id="c-rate-w"><label for="c-rate">時薪</label><input type="number" id="c-rate" value="250" min="0" step="10"></div>
+        <div class="f hidden" id="c-hrs-w"><label for="c-hrs">當月工時</label><input type="number" id="c-hrs" value="176" min="0" step="0.5"></div>
+        <div class="f"><label for="c-dep">健保眷屬</label><input type="number" id="c-dep" value="0" min="0" max="9"></div>
+        <div class="f"><label for="c-li">勞保投保</label><select id="c-li"></select></div>
+        <div class="f"><label for="c-hi">健保投保</label><select id="c-hi"></select></div>
+        <div class="f"><label for="c-shi">事假時數</label><input type="number" id="c-shi" value="0" min="0" step="1"></div>
+        <div class="f"><label for="c-sick">病假時數</label><input type="number" id="c-sick" value="0" min="0" step="1"></div>
+        <div class="f"><label for="c-ex">其他加項</label><input type="number" id="c-ex" value="0" step="100"></div>
+        <div class="f"><label for="c-ratio">到職比例</label><select id="c-ratio">
+          <option value="30/30">整月在職</option><option value="23/30">到職當月 23/30 天</option>
+          <option value="15/30">到職當月 15/30 天</option><option value="0/30">尚未到職</option></select></div>
+      </div>
+      <div class="out" id="c-out"></div>
+    </div>
+  </div>
+
+  <h4>到職當月比例計薪</h4>
+  <div class="dia">到職日 <= 當月 1 日   → 比例 1.0（整月）
+到職日 >  當月最後一日 → 比例 0.0（尚未到職，完全不計薪、不計勞健保）
+到職當月              → 比例 = (當月最後一日 − 到職日 + 1) ÷ 當月天數
+                                 ↑ 在職日曆天數（非工作日數）
+應發全薪 = ⌈全薪 × 比例⌉</div>
+  <p><strong>同時影響出勤</strong>：到職前的日子標記 <code>pre-hire</code>，<strong>不算應出勤、不算缺勤</strong>；月度摘要的「應出勤天數」改為該員工當月實際在職的工作日數。</p>
+  <div class="tw"><table>
+    <tr><th>Frank（2026-06-08 到職，全薪 50,000）</th><th class="num">在職天數</th><th class="num">比例</th><th class="num">應發</th><th class="num">實領</th></tr>
+    <tr><td>2026/05</td><td class="num">0/31</td><td class="num">0.0</td><td class="num">0</td><td class="num">0</td></tr>
+    <tr><td>2026/06</td><td class="num">23/30</td><td class="num">0.7667</td><td class="num">38,334</td><td class="num">36,404</td></tr>
+    <tr><td>2026/07</td><td class="num">31/31</td><td class="num">1.0</td><td class="num">50,000</td><td class="num">48,070</td></tr>
+  </table></div>
+  <div class="warn"><strong>已知簡化</strong>勞健保在到職當月仍<strong>整月投保</strong>（保守做法，多繳不少繳）；離職當月比例尚未實作。</div>
+
+  <h4>時薪制（2026-07 三項決策）</h4>
+  <div class="dia">工時薪資 = ⌈當月實際工作時數 × 時薪⌉      ← 請假時數一律不給薪
+投保薪資 = 未指定時以工時薪資估算對級距
+實領    = 工時薪資 + 其他加項 − 勞保 − 健保</div>
+  <p>① 投保薪資用「時薪×工時」估算　② 加班費手填「其他」欄　③ <strong>給薪假一律不給薪</strong></p>
+
+  <h4>級距表維護（每年必做）</h4>
+  <div class="note">每年勞健保調整時<strong>只改 <code>payroll_rules.py</code> 的常數</strong>（<code>LABOR_RATE</code>／<code>HEALTH_RATE</code>／<code>LABOR_GRADES</code>／<code>HEALTH_GRADES</code>），計算、UI 下拉、Excel 匯出全部自動跟著變。</div>
+
+  <h3>特休演算法（Model B：週年制獲假 + 曆年使用）</h3>
+  <div class="tw"><table>
+    <tr><th>年資</th><th class="num">天數</th><th>年資</th><th class="num">天數</th></tr>
+    <tr><td>滿 6 個月</td><td class="num">3</td><td>滿 3–4 年</td><td class="num">14</td></tr>
+    <tr><td>滿 1 年</td><td class="num">7</td><td>滿 5–9 年</td><td class="num">15</td></tr>
+    <tr><td>滿 2 年</td><td class="num">10</td><td>滿 10 年起</td><td class="num">16，每年 +1 至 30</td></tr>
+  </table></div>
+  <h4>兩段式拆分</h4>
+  <div class="dia">週年日獲假 tier_days 天
+  ├─ 第 1 段（當年剩餘）：floor_to_half(tier × 當年剩餘月數 ÷ 12)
+  │                       可用區間 = 週年日 ~ 當年 12/31
+  └─ 第 2 段（隔年完整）：tier − 第1段
+                          可用區間 = 隔年 1/1 ~ 隔年 12/31
+（floor_to_half：0.5 天精度向下取，如 4.7 → 4.5）</div>
+  <div class="tw"><table>
+    <tr><th>到職 2026-06-08</th><th>週年日</th><th class="num">tier</th><th class="num">第1段</th><th class="num">第2段</th></tr>
+    <tr><td>滿半年</td><td>2026-12-08</td><td class="num">3</td><td class="num">0</td><td class="num">3</td></tr>
+    <tr><td>滿1年</td><td>2027-06-08</td><td class="num">7</td><td class="num">3.5</td><td class="num">3.5</td></tr>
+    <tr><td>滿2年</td><td>2028-06-08</td><td class="num">10</td><td class="num">5.5</td><td class="num">4.5</td></tr>
+    <tr><td>滿3年</td><td>2029-06-08</td><td class="num">14</td><td class="num">7.5</td><td class="num">6.5</td></tr>
+  </table></div>
+  <p><strong>遞延</strong>：僅前一年未休完可遞延一年（勞基法 §38-4），<code>grant_type='carryforward'</code>。</p>
+  <div class="cmd"><pre><code>python manage.py precompute_annual_leave --emp &lt;id&gt; --reset</code></pre><button class="cp" type="button">複製</button></div>
+
+  <h3>已知與法規的偏差（有意識的決策）</h3>
+  <div class="tw"><table>
+    <tr><th>項目</th><th>法規要求</th><th>系統現況</th><th>決策</th></tr>
+    <tr><td>產假給薪</td><td>勞基法 §50：年資 &lt;6 月<strong>半薪</strong></td><td>一律全薪</td><td>暫緩（對員工有利、無違法風險）</td></tr>
+    <tr><td>勞保到職當月</td><td>可按日計保</td><td>整月投保</td><td>簡化（多繳）</td></tr>
+    <tr><td>離職當月比例</td><td>應按日計</td><td>未實作</td><td>無案例，遇到再做</td></tr>
+    <tr><td>補休轉換</td><td>加班可換補休</td><td>未自動轉換，需人工</td><td>待辦 C3</td></tr>
+  </table></div>
+</section>
+
+<!-- ══════════ 05 ══════════ -->
+<section id="s5">
+  <div class="eyebrow">SA-05</div>
+  <h2>介面與整合</h2>
+  <p class="lede">URL 全覽、HTMX 端點設計、Google SSO 流程、Excel 匯入匯出格式、環境變數。</p>
+
+  <h3>URL 全覽</h3>
+  <h4>前台 Portal（掛在 <code>/portal/</code>）</h4>
+  <div class="tw"><table>
+    <tr><th>URL</th><th>Method</th><th>說明</th></tr>
+    <tr><td><code>/portal/</code></td><td>GET</td><td>單頁主體（<code>?tab=</code> 切換、<code>?prefill_date=</code> 帶入日期）</td></tr>
+    <tr><td><code>clock/submit/</code></td><td>POST</td><td>打卡（含 GPS 座標、驗證碼、外勤事由）</td></tr>
+    <tr><td><code>correction/submit/</code></td><td>POST</td><td>補打卡申請</td></tr>
+    <tr><td><code>leave/submit/</code> · <code>leave-grant/submit/</code> · <code>leave/attach/</code></td><td>POST</td><td>請假／給假／附件</td></tr>
+    <tr><td><code>overtime/submit/</code></td><td>POST</td><td>加班申請</td></tr>
+    <tr><td><code>personal/submit/</code> · <code>bank/submit/</code></td><td>POST</td><td>個人／銀行資訊</td></tr>
+    <tr><td><code>cancel/&lt;kind&gt;/&lt;pk&gt;/</code></td><td>POST</td><td>取消申請（kind=leave/overtime/correction）</td></tr>
+  </table></div>
+
+  <details><summary>後台 Think4U 客製 URL 全表（37 條）</summary><div class="dc">
+    <div class="tw"><table>
+      <tr><th>URL（<code>/think4u/</code> 起）</th><th>name</th><th>權限</th></tr>
+      <tr><td><code>org/edit/</code> · <code>org/dept/</code> · <code>org/position/</code></td><td><code>-org-edit</code> · <code>-dept-manage</code> · <code>-position-manage</code></td><td>superuser</td></tr>
+      <tr><td><code>api/position-default-role/</code></td><td><code>-position-default-role</code></td><td>登入（AJAX）</td></tr>
+      <tr><td><code>approval-workflow/</code> · <code>/save/</code> · <code>/save-all/</code></td><td><code>-approval-workflow</code>(-save/-save-all)</td><td>superuser</td></tr>
+      <tr><td><code>approval/manager|hr|employee/</code></td><td><code>-approval-*</code></td><td>主管／HR／登入</td></tr>
+      <tr><td><code>attendance/monthly/</code></td><td><code>-attendance-monthly</code></td><td>登入（scope 依角色）</td></tr>
+      <tr><td><code>attendance/day/&lt;emp&gt;/&lt;date&gt;/</code></td><td><code>-attendance-day-detail</code></td><td>登入</td></tr>
+      <tr><td><code>attendance/export/</code> · <code>/excel/</code></td><td><code>-attendance-export</code>(-excel)</td><td>登入</td></tr>
+      <tr><td><code>salary/update/</code></td><td><code>-salary-update</code></td><td><strong>HR only</strong>（POST，JSON）</td></tr>
+      <tr><td><code>salary/export/</code></td><td><code>-salary-export</code></td><td>登入（scope 依角色）</td></tr>
+      <tr><td><code>overtime/manager|create|&lt;pk&gt;/cancel/</code></td><td><code>-overtime-*</code></td><td>主管或 HR</td></tr>
+      <tr><td><code>overtime/employee|&lt;pk&gt;/decision/</code></td><td><code>-overtime-employee</code>(-emp-decision)</td><td>本人</td></tr>
+      <tr><td><code>overtime/hr|&lt;pk&gt;/hr-decision/</code></td><td><code>-overtime-hr</code>(-hr-decision)</td><td>HR</td></tr>
+      <tr><td><code>punch-correction/my|pending|&lt;id&gt;/decide/</code></td><td><code>-punch-correction-*</code></td><td>本人／簽核者</td></tr>
+      <tr><td><code>leave-grant/pending|&lt;pk&gt;/decide/</code></td><td><code>-leave-grant-*</code></td><td>HR</td></tr>
+      <tr><td><code>dependent/&lt;emp&gt;/</code> +add/delete/toggle</td><td><code>-dependent-*</code></td><td>HR（HTMX）</td></tr>
+      <tr><td><code>audit-log/</code> · <code>/&lt;id&gt;/</code></td><td><code>-audit-log</code>(-detail)</td><td>superuser</td></tr>
+      <tr><td><code>google/login/</code> · <code>google/callback/</code></td><td><code>-google-login</code>(-callback)</td><td>公開</td></tr>
+    </table></div>
+    <h4>其他重要路徑</h4>
+    <div class="tw"><table>
+      <tr><td><code>/</code></td><td>後台首頁（儀表板）</td></tr>
+      <tr><td><code>/landing/</code></td><td>雙入口選擇頁（未登入者的 LOGIN_URL）</td></tr>
+      <tr><td><code>/login/</code> · <code>/logout</code></td><td>登入（含前台／後台選擇 <code>dest</code>）／登出</td></tr>
+      <tr><td><code>/health/</code></td><td>健康檢查（⚠️ DEBUG=False 時純 HTTP 回 301）</td></tr>
+      <tr><td><code>/google/callback</code></td><td><strong>★實際使用的 SSO 回跳</strong>（根路徑、無斜線）</td></tr>
+      <tr><td><code>/leave/employee-leave-overview/</code></td><td>員工請假總覽（自製報表）</td></tr>
+    </table></div>
+  </div></details>
+
+  <h3>HTMX 端點設計</h3>
+  <p>系統大量使用 HTMX「回傳 HTML 片段」而非 JSON API：</p>
+  <div class="tw"><table>
+    <tr><th>情境</th><th>回傳</th><th>例子</th></tr>
+    <tr><td>局部區塊更新</td><td><strong>HTML 片段</strong></td><td>健保眷屬區塊（回整個 div）</td></tr>
+    <tr><td>表單提交後重繪</td><td>HTML + <code>hx-swap="outerHTML"</code></td><td>眷屬新增／刪除／切換</td></tr>
+    <tr><td>純資料計算</td><td><strong>JSON</strong></td><td><code>salary/update</code>、<code>api/position-default-role</code></td></tr>
+  </table></div>
+  <div class="cmd"><pre><code>&lt;div hx-get="{% url 'think4u-dependent-section' employee.id %}" hx-trigger="load"&gt;&lt;/div&gt;
+&lt;button hx-post="{% url 'think4u-dependent-toggle' d.id %}"
+        hx-target="#dependentsSection" hx-swap="outerHTML"&gt;加保中&lt;/button&gt;</code></pre><button class="cp" type="button">複製</button></div>
+
+  <h3>Google SSO 整合</h3>
+  <p>OAuth 2.0 Authorization Code Flow（<code>google_auth.py</code>，自寫不用 allauth）</p>
+  <div class="dia">[1] GET /think4u/google/login/?dest=portal|admin
+      → 產生隨機 state 存 session（防 CSRF）；dest 存 session
+      → 302 到 accounts.google.com/o/oauth2/v2/auth
+         scope="openid email profile", prompt=select_account,
+         hd=think4u-tech.com（提示預選公司網域）
+[2] 使用者選帳號 → Google 302 回 /google/callback?code=&state=
+[3] 後端驗證：
+      state 相符？（pop session，防重放）
+      → POST oauth2.googleapis.com/token 換 id_token
+      → 解 JWT payload，驗 iss / aud == CLIENT_ID / email_verified
+      → 驗 email 網域 ∈ GOOGLE_OAUTH_ALLOWED_DOMAINS
+      → 以 email 找既有 User（★找不到則拒絕，不自動開帳號）
+      → 檢查 user.is_active、employee 存在且 active
+      → login() → 依 dest + 角色導向</div>
+  <div class="danger"><strong>redirect_uri 必須完全一致</strong>Google Console 登記值為 <code>https://hrms.think4u-tech.com/google/callback</code>（根路徑、<strong>無結尾斜線</strong>）。<code>_redirect_uri()</code> 對非 localhost 主機<strong>強制改寫為 https</strong>（DEBUG 下 Django 看不到 <code>X-Forwarded-Proto</code> 會誤判 http，造成 <code>redirect_uri_mismatch</code>）。</div>
+
+  <h3>Excel 匯入格式（出勤）</h3>
+  <div class="cmd"><pre><code>python manage.py import_attendance --folder /app/import_data --year 2026 --dry-run</code></pre><button class="cp" type="button">複製</button></div>
+  <p><strong>檔名規則</strong>：<code>(宏思)出勤_請假_加班_員工：&lt;EnglishName&gt;(&lt;中文名&gt;).xlsx</code> — 用 regex <code>員工：([A-Za-z]+)</code> 抓取，須與 <code>Employee.employee_first_name</code> 相符。</p>
+  <p><strong>必須有 sheet</strong> <code>01_出勤明細表</code>，關鍵欄位（index）：</p>
+  <div class="tw"><table>
+    <tr><th class="num">Idx</th><th>欄位</th><th>常數</th></tr>
+    <tr><td class="num">2</td><td>出勤日期</td><td><code>COL_DATE</code></td></tr>
+    <tr><td class="num">4 / 5</td><td>上班／下班時間</td><td><code>COL_IN</code> / <code>COL_OUT</code>（支援 time 或 "HH:MM"）</td></tr>
+    <tr><td class="num">7</td><td>出勤異常</td><td><code>COL_ABNORMAL</code></td></tr>
+    <tr><td class="num">9</td><td>核准假別</td><td><code>COL_LEAVE_TYPE_APPROVED</code>（fallback）</td></tr>
+    <tr><td class="num">11</td><td>核准加班時數</td><td><code>COL_OT_HOURS</code></td></tr>
+    <tr><td class="num">13</td><td>請假申請（假別）</td><td><code>COL_LEAVE_APPLICATION</code>（優先；"請選擇" 視為空）</td></tr>
+    <tr><td class="num">14 / 15</td><td>起迄時間／請假時數</td><td>支援 "17:00~19:00"；0 或空 → 預設 8h</td></tr>
+  </table></div>
+  <div class="danger"><strong>破壞性行為</strong><code>--year 2026</code> 執行時會<strong>先刪除該年度【全公司】</strong>的 AttendanceActivity／LeaveRequest／OvertimeApplication 再依 Excel 重建。系統內未回寫進 Excel 的手動修改會消失。<br>用 <code>--no-purge</code> 可跳過清除（但可能重複）；建議先 <code>--dry-run</code>。</div>
+
+  <h3>Excel 匯出格式（薪資試算）</h3>
+  <p><code>think4u-salary-export?year=YYYY&month=M</code>，與畫面共用 <code>_build_salary()</code>，<strong>數字保證一致</strong>。欄位順序：</p>
+  <div class="cmd"><pre><code>員工 / 部門 / 計薪方式 / 時薪 / 工時(h) /
+本薪 / 伙食津貼 / 交通津貼 / 管理加給 / 技術管理加給 / 薪資加給 / 全薪(工時薪資) /
+加班費 / 特休未休 / 生日禮金 / 端午禮金 / 中秋禮金 / 給付代墊公司費用 /
+全勤獎勵金 / 行政助理費 / 其他合計 /
+日薪(÷30) / 勞保投保薪資 / 勞保自付 / 健保投保薪資 / 健保眷屬 / 健保自付 /
+請假明細 / 請假扣薪 / 計算式 / 實領</code></pre><button class="cp" type="button">複製</button></div>
+
+  <h3>Email 通知</h3>
+  <p><code>_safe_send(subject, body, recipients)</code> 包 Django <code>send_mail</code>，<strong>SMTP 未設定時靜默略過</strong>（不拋錯）。</p>
+  <div class="tw"><table>
+    <tr><th>觸發</th><th>收件者</th></tr>
+    <tr><td>加班指派建立</td><td>員工</td></tr>
+    <tr><td>員工確認加班</td><td>HR 群組</td></tr>
+    <tr><td>員工拒絕加班</td><td>指派主管</td></tr>
+    <tr><td>HR 核准／駁回加班</td><td>主管 + 員工</td></tr>
+    <tr><td>每日未打卡提醒</td><td>未打卡員工</td></tr>
+  </table></div>
+
+  <h3>環境變數</h3>
+  <div class="tw"><table>
+    <tr><th>變數</th><th>用途</th><th>未設定時</th></tr>
+    <tr><td><code>SECRET_KEY</code></td><td>Django 加密</td><td>不安全預設值（正式必設）</td></tr>
+    <tr><td><code>DEBUG</code></td><td>除錯模式</td><td>True</td></tr>
+    <tr><td><code>ALLOWED_HOSTS</code></td><td>允許的 Host</td><td><code>["*"]</code></td></tr>
+    <tr><td><code>CSRF_TRUSTED_ORIGINS</code></td><td>CSRF 白名單</td><td>localhost:8000 → <strong>跨網域登入會 403</strong></td></tr>
+    <tr><td><code>DAILY_VERIFICATION_CODE_SECRET</code></td><td>打卡 TOTP</td><td>⚠️ 有 hardcode fallback，正式<strong>必須覆蓋</strong></td></tr>
+    <tr><td><code>GOOGLE_OAUTH_CLIENT_ID</code> / <code>_SECRET</code></td><td>SSO</td><td>隱藏 Google 按鈕</td></tr>
+    <tr><td><code>GOOGLE_OAUTH_ALLOWED_DOMAINS</code></td><td>SSO 網域白名單</td><td><code>["think4u-tech.com"]</code></td></tr>
+    <tr><td><code>EMAIL_HOST</code> 等 4 項</td><td>SMTP</td><td>不寄信</td></tr>
+    <tr><td><code>GUNICORN_WORKERS</code> / <code>_THREADS</code></td><td>效能</td><td>2 / 4（deploy 設 3/4）</td></tr>
+  </table></div>
+</section>
+
+<!-- ══════════ 06 ══════════ -->
+<section id="s6">
+  <div class="eyebrow">SA-06</div>
+  <h2>擴充指南</h2>
+  <p class="lede">「我要加一個新功能，該怎麼做？」——標準步驟 + 5 個實戰範例。</p>
+
+  <h3>標準開發流程</h3>
+  <div class="dia">□ 1. 讀 docs/02 地雷清單，確認要動的區域有沒有雷
+□ 2. Model 變更？→ think4u/models.py → makemigrations think4u && migrate
+     → git add -f think4u/migrations/00XX_*.py   ★別忘 -f
+□ 3. 業務邏輯 → 寫成 pure function 放規則層
+     ★ 不要寫在 view 裡（會造成頁面與匯出不一致）
+□ 4. View → think4u/&lt;模組&gt;_views.py
+     權限用 manager_utils / models 的 helper；資料範圍依角色
+     排除隱藏員工：get_hidden_in_reports_employees()
+□ 5. URL → think4u/urls.py 或 portal_urls.py
+     公開頁面要加進 admin_gate_middleware.ALLOWED_PREFIXES
+□ 6. Template → think4u/templates/think4u/&lt;模組&gt;/
+□ 7. Python 內使用者可見字串 → gettext（英文 msgid）+ 補 po
+     → compilemessages -l zh_Hant（只編 zh_Hant！）
+□ 8. Sidebar 入口 → think4u/sidebar.py（含 accessibility 函式）
+□ 9. 測試 → think4u/tests/；規則層一定要有單元測試
+□ 10. docker compose restart server（改 .py 才需要）
+□ 11. 更新 CLAUDE.md Changelog + 相關 docs
+□ 12. commit & push（origin=GitHub, gitlab=GitLab 兩邊都推）</div>
+
+  <h3>範例 A：新增「簽核類型」（如加薪申請）</h3>
+  <p>最推薦作法：<strong>照抄 <code>PunchCorrectionRequest</code></strong>（唯一完整走 ApprovalWorkflow 的模組）。</p>
+  <div class="cmd"><pre><code># 1) think4u/models.py
+class SalaryRaiseRequest(models.Model):
+    STATUS_CHOICES = [("pending", _("待審核")), ("approved", _("已核准")),
+                      ("rejected", _("已駁回"))]
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE,
+                                 related_name="salary_raise_requests")
+    current_salary = models.PositiveIntegerField(verbose_name=_("現行薪資"))
+    requested_salary = models.PositiveIntegerField(verbose_name=_("建議薪資"))
+    reason = models.TextField(verbose_name=_("理由"))
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    # ★ 多關卡三本柱
+    workflow = models.ForeignKey("think4u.ApprovalWorkflow", null=True, blank=True,
+                                 on_delete=models.SET_NULL,
+                                 related_name="salary_raise_requests")
+    current_step_order = models.PositiveSmallIntegerField(default=1)
+    decisions = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+# 2) ApprovalWorkflow.REQUEST_TYPE_CHOICES 加 ("salary_raise", _("加薪"))
+# 3) 複製 punch_correction_views.py 的 submit / pending / decide 三個 view
+# 4) urls.py 加 3 條 path；5) sidebar.py 加入口
+# 6) 簽核關卡管理頁會自動出現這個新類型（讀 REQUEST_TYPE_CHOICES）</code></pre><button class="cp" type="button">複製</button></div>
+  <p><strong>工期</strong>：2–3 天（含畫面）</p>
+
+  <h3>範例 B：新增薪資項目（如值班津貼）</h3>
+  <div class="cmd"><pre><code># think4u/models.py — EmployeeSalary 加欄位
+duty_allowance = models.PositiveIntegerField(default=0, verbose_name=_("值班津貼"))
+
+# 同檔 SALARY_COMPONENT_FIELDS 加一行（key, 標籤, 群組）
+("duty_allowance", "值班津貼", "津貼"),
+
+# EmployeeSalary.gross property 加上它
+# employee/forms.py — _SalaryComponentsMixin._T4U_SALARY_DEFS 加
+("duty_allowance", _("值班津貼")),</code></pre><button class="cp" type="button">複製</button></div>
+  <p><strong>自動生效</strong>（不用改）：月度薪資表欄位、Excel 匯出、<code>_build_salary()</code> 加總、群組摺疊。<br>
+  <strong>需手動檢查</strong>：<code>pay_type_section.html</code> 的月薪組成區塊、<code>personal_info_as_p.html</code> 的略過清單。<br>
+  <strong>工期</strong>：2 小時</p>
+
+  <h3>範例 C：新增「每月變動加項」</h3>
+  <div class="cmd"><pre><code>class MonthlyPayExtra(...):
+    transport_subsidy = models.IntegerField(default=0, verbose_name=_("交通補助"))
+
+EXTRA_PAY_FIELDS = [..., ("transport_subsidy", "交通補助")]</code></pre><button class="cp" type="button">複製</button></div>
+  <p>migration 後<strong>完全自動生效</strong>（月度頁「其他」群組、total、Excel 匯出都吃 <code>EXTRA_PAY_FIELDS</code>）。<strong>工期</strong>：30 分鐘</p>
+
+  <h3>範例 D：調整出勤規則</h3>
+  <div class="cmd"><pre><code># think4u/attendance_rules.py — 只改常數
+CHECK_IN_FLEX_START = time(9, 0)
+CHECK_IN_FLEX_END   = time(9, 30)
+CHECK_OUT_FLEX_START = time(18, 0)
+CHECK_OUT_FLEX_END   = time(18, 30)</code></pre><button class="cp" type="button">複製</button></div>
+  <p><strong>影響範圍</strong>（全自動跟著變）：月度統計、當日明細、出勤異常紀錄、前台出勤頁、Excel 匯出、每日提醒。</p>
+  <div class="warn"><strong>注意</strong>出勤狀態是<strong>即時計算不落地</strong>，所以<strong>歷史資料的判定也會跟著改變</strong>。若要「新規則只從某日生效」，需在 <code>evaluate()</code> 加日期參數分流（目前沒有這機制）。</div>
+
+  <h3>範例 E：完成 Phase 4（讓請假吃 ApprovalWorkflow）★最大技術債</h3>
+  <div class="dia">1. LeaveRequest 是 Horilla 原生 model，不能加欄位
+   → 解法：新建 think4u.LeaveApprovalState（1:1 對 LeaveRequest）
+     欄位：leave_request(OneToOne) / workflow / current_step_order / decisions
+
+2. 攔截請假建立：portal_leave_submit() 存 LeaveRequest 後，
+   依員工職位找 ApprovalWorkflow(request_type='leave') 建立 LeaveApprovalState
+
+3. 改寫簽核頁：approval_views.manager_dashboard() 目前用 status='requested' 過濾
+   → 改為列出「current_step 的簽核者 == 我」的請假
+
+4. 核准動作：每關核准 → current_step_order += 1
+   最後一關 → LeaveRequest.status='approved' + 扣 AvailableLeave
+
+5. 相容處理：沒有 workflow 設定的職位 → fallback 走原本「主管→HR」
+
+6. 參考實作：punch_correction_views.py 的 decide() 是完整範本</div>
+  <p><strong>工期</strong>：5–8 天（含測試與資料遷移）｜<strong>風險</strong>：請假是最常用功能，建議先寫測試、分階段上線。</p>
+
+  <h3>常見陷阱與慣例</h3>
+  <div class="tw"><table>
+    <tr><th>陷阱</th><th>正確做法</th></tr>
+    <tr><td>想改 <code>attendance/views.py</code></td><td>改 <code>attendance/views/views.py</code>（同名 module 被 package 蓋掉）</td></tr>
+    <tr><td>想讀出勤狀態</td><td>用 <code>attendance_compute.daily_evaluations()</code>，別讀原生 <code>Attendance</code> 表（空的）</td></tr>
+    <tr><td>用 <code>is_reportingmanager</code> 判主管</td><td>用 <code>manager_utils.is_manager()</code>（含部門主管）</td></tr>
+    <tr><td>在 view 裡算薪水</td><td>呼叫 <code>payroll_rules</code> 的 pure function</td></tr>
+    <tr><td>新增 migration 後直接 commit</td><td>要 <code>git add -f</code></td></tr>
+    <tr><td>Python 裡寫中文字串</td><td>用 <code>gettext</code> + po 檔</td></tr>
+    <tr><td><code>compilemessages</code> 全語系</td><td>只編 <code>-l zh_Hant</code></td></tr>
+    <tr><td>新公開頁面 500／被導走</td><td>加進 <code>ALLOWED_PREFIXES</code>（不帶結尾斜線）</td></tr>
+    <tr><td>批次建 Horilla model 拋 TypeError</td><td>先 <code>Model.save = dj_models.Model.save</code></td></tr>
+    <tr><td>git-bash 執行 exec 帶路徑</td><td><code>export MSYS_NO_PATHCONV=1</code></td></tr>
+    <tr><td>正式機改程式沒生效</td><td>要 <code>up -d --build</code>（image 內含程式）</td></tr>
+  </table></div>
+
+  <h3>建議的優先開發順序</h3>
+  <div class="tw"><table>
+    <tr><th>優先</th><th>任務</th><th>理由</th></tr>
+    <tr><td><span class="pill p-no">1</span></td><td>補 <code>payroll_rules</code> / <code>attendance_rules</code> 單元測試</td><td>目前無測試保護，改規則等於盲改</td></tr>
+    <tr><td><span class="pill p-no">2</span></td><td>完成正式部署收尾（nginx／憑證／資料還原）</td><td>系統還沒真正上線</td></tr>
+    <tr><td><span class="pill p-no">3</span></td><td>安全項：改全員密碼、設 SMTP、rotate Google secret</td><td>見 docs/06 A</td></tr>
+    <tr><td><span class="pill p-wip">4</span></td><td>Phase 4（請假吃 ApprovalWorkflow）</td><td>最大功能落差</td></tr>
+    <tr><td><span class="pill p-wip">5</span></td><td>排程建立（提醒／稽核清理／異地備份）</td><td>維運基礎</td></tr>
+    <tr><td><span class="pill p-na">6</span></td><td>產假半薪、補休自動轉換、離職當月比例</td><td>法規／功能完備性</td></tr>
+    <tr><td><span class="pill p-na">7</span></td><td>月度頁 view 重構、GPS 座標移到設定</td><td>可維護性</td></tr>
+  </table></div>
+
+  <h3>開發環境速查</h3>
+  <div class="cmd"><pre><code># 起環境
+docker compose up -d && docker compose logs -f server
+
+# 改 .py 後
+docker compose restart server
+
+# 改 po 後
+export MSYS_NO_PATHCONV=1
+docker compose exec -T server python manage.py compilemessages -l zh_Hant
+
+# Model 變更
+docker compose exec -T server python manage.py makemigrations think4u
+docker compose exec -T server python manage.py migrate
+git add -f think4u/migrations/00XX_*.py
+
+# 測試
+docker compose exec -T server python manage.py test think4u.tests
+
+# 部署（日常）
+bash scripts/deploy_to_server.sh</code></pre><button class="cp" type="button">複製</button></div>
+</section>
+
+<!-- ══════════ 07 ══════════ -->
+<section id="s7">
+  <div class="eyebrow">SA-07</div>
+  <h2>名詞解釋</h2>
+  <p class="lede">全詞彙表：技術、認證權限、業務、台灣勞法、專案內部代號、部署維運、檔案路徑。點分類篩選，或用左側搜尋。</p>
+
+  <div class="gl-ctl" id="glctl"></div>
+  <div class="gl-count" id="glcount"></div>
+  <div class="gl-list" id="gllist"></div>
+</section>
+
+</div><!-- /wrap -->
+</main>
+</div><!-- /layout -->
+
+<script>
+(function(){
+'use strict';
+
+/* ═══════════ 主題切換 ═══════════ */
+var root=document.documentElement;
+document.getElementById('theme').addEventListener('click',function(){
+  var cur=root.getAttribute('data-theme');
+  if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+  root.setAttribute('data-theme',cur==='dark'?'light':'dark');
+});
+
+/* ═══════════ 展開/收合全部 details ═══════════ */
+var expBtn=document.getElementById('expand');
+expBtn.addEventListener('click',function(){
+  var ds=document.querySelectorAll('details');
+  var anyClosed=Array.prototype.some.call(ds,function(d){return !d.open;});
+  Array.prototype.forEach.call(ds,function(d){d.open=anyClosed;});
+  expBtn.textContent=anyClosed?'收合全部':'展開全部';
+});
+
+/* ═══════════ 複製按鈕 ═══════════ */
+Array.prototype.forEach.call(document.querySelectorAll('.cmd .cp'),function(btn){
+  btn.addEventListener('click',function(){
+    var pre=btn.parentNode.querySelector('code');
+    var txt=pre.textContent;
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(function(){
+        btn.textContent='已複製';setTimeout(function(){btn.textContent='複製';},1400);
+      });
+    }else{
+      var ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);
+      ta.select();try{document.execCommand('copy');btn.textContent='已複製';
+      setTimeout(function(){btn.textContent='複製';},1400);}catch(e){}
+      document.body.removeChild(ta);
+    }
+  });
+});
+
+/* ═══════════ 側欄導覽 highlight ═══════════ */
+var navLinks=document.querySelectorAll('#nav a');
+var secs=document.querySelectorAll('main section');
+if('IntersectionObserver' in window){
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){
+        var id=en.target.id;
+        Array.prototype.forEach.call(navLinks,function(a){
+          a.classList.toggle('on',a.getAttribute('href')==='#'+id);
+        });
+      }
+    });
+  },{rootMargin:'-10% 0px -80% 0px'});
+  Array.prototype.forEach.call(secs,function(s){io.observe(s);});
+}
+
+/* ═══════════ 全文搜尋 ═══════════ */
+var q=document.getElementById('q'),qres=document.getElementById('qres');
+q.addEventListener('input',function(){
+  var term=q.value.trim().toLowerCase();
+  if(!term){
+    Array.prototype.forEach.call(secs,function(s){s.classList.remove('hidden');});
+    Array.prototype.forEach.call(document.querySelectorAll('main h3,main h4,main .tw,main .dia,main .tool,main p,main ul,main ol,main details,main .note,main .warn,main .danger,main .stats,main .cmd,main .gl-ctl,main .gl-list,main .gl-count'),
+      function(el){el.classList.remove('hidden');});
+    qres.textContent='輸入關鍵字即時過濾';
+    filterGlossary();
+    return;
+  }
+  var hits=0;
+  Array.prototype.forEach.call(secs,function(s){
+    var blocks=s.querySelectorAll(':scope > h3, :scope > h4, :scope > p, :scope > ul, :scope > ol, :scope > .tw, :scope > .dia, :scope > .tool, :scope > details, :scope > .note, :scope > .warn, :scope > .danger, :scope > .stats, :scope > .cmd, :scope > .gl-ctl, :scope > .gl-list, :scope > .gl-count');
+    var secHit=false;
+    var h2=s.querySelector('h2');
+    var titleHit=h2&&h2.textContent.toLowerCase().indexOf(term)>=0;
+    Array.prototype.forEach.call(blocks,function(b){
+      var hit=b.textContent.toLowerCase().indexOf(term)>=0;
+      b.classList.toggle('hidden',!(hit||titleHit));
+      if(hit){secHit=true;hits++;}
+    });
+    s.classList.toggle('hidden',!(secHit||titleHit));
+  });
+  /* 名詞表同步依關鍵字過濾（搜尋 TOTP 時也要能直接看到該名詞解釋）*/
+  filterGlossary();
+  var glHits=document.querySelectorAll('#gllist .gl-item .term').length;
+  qres.textContent=(hits||glHits)?('找到 '+hits+' 個段落'+(glHits?'、'+glHits+' 個名詞':'')):'查無結果';
+});
+
+/* ═══════════ 級距表（與 payroll_rules.py 一致，2025）═══════════ */
+var LABOR_GRADES=[28590,30300,31800,33300,34800,36300,38200,40100,42000,43900,45800];
+var HEALTH_GRADES=[28590,30300,31800,33300,34800,36300,38200,40100,42000,43900,45800,
+ 48200,50600,53000,55400,57800,60800,63800,66800,69800,72800,76500,80200,83900,87600,
+ 92100,96600,101100,105600,110100,115500,120900,126300,131700,137100,142500,147900,
+ 150000,156400,162800,169200,175600,182000,189500,197000,204500,212000,219500];
+var LABOR_RATE=0.125, LABOR_SHARE=0.20, HEALTH_RATE=0.0517, HEALTH_SHARE=0.30, BASE_DAYS=30;
+
+function grade(sal,grades){
+  var s=Math.max(0,Math.ceil(sal));
+  for(var i=0;i<grades.length;i++){if(s<=grades[i])return grades[i];}
+  return grades[grades.length-1];
+}
+function laborFee(sal){return Math.ceil(grade(sal,LABOR_GRADES)*LABOR_RATE*LABOR_SHARE);}
+function healthFee(sal,dep){
+  var d=Math.max(0,Math.min(dep,3));
+  return Math.ceil(grade(sal,HEALTH_GRADES)*HEALTH_RATE*HEALTH_SHARE*(1+d));
+}
+function fmt(n){return n.toLocaleString('en-US');}
+
+/* 填入級距下拉 */
+(function(){
+  var li=document.getElementById('c-li'),hi=document.getElementById('c-hi');
+  var o=document.createElement('option');o.value='0';o.textContent='沿用全薪';
+  li.appendChild(o);hi.appendChild(o.cloneNode(true));
+  LABOR_GRADES.forEach(function(g){var e=document.createElement('option');
+    e.value=String(g);e.textContent=fmt(g);li.appendChild(e);});
+  HEALTH_GRADES.forEach(function(g){var e=document.createElement('option');
+    e.value=String(g);e.textContent=fmt(g);hi.appendChild(e);});
+})();
+
+/* ═══════════ 薪資試算器 ═══════════ */
+var C={};['type','gross','rate','hrs','dep','li','hi','shi','sick','ex','ratio']
+  .forEach(function(k){C[k]=document.getElementById('c-'+k);});
+var cOut=document.getElementById('c-out');
+
+function calcSalary(){
+  var isHourly=C.type.value==='hourly';
+  document.getElementById('c-gross-w').classList.toggle('hidden',isHourly);
+  document.getElementById('c-rate-w').classList.toggle('hidden',!isHourly);
+  document.getElementById('c-hrs-w').classList.toggle('hidden',!isHourly);
+
+  var dep=parseInt(C.dep.value,10)||0;
+  var liSet=parseInt(C.li.value,10)||0;
+  var hiSet=parseInt(C.hi.value,10)||0;
+  var extra=Math.ceil(parseFloat(C.ex.value)||0);
+  var rows=[],gross,daily=0,leaveDed=0,leaveRows=[];
+
+  if(isHourly){
+    var rate=Math.ceil(parseFloat(C.rate.value)||0);
+    var hrs=parseFloat(C.hrs.value)||0;
+    gross=Math.ceil(hrs*rate);
+    rows.push(['工時薪資 ⌈'+hrs+'h × '+fmt(rate)+'⌉',gross,'']);
+  }else{
+    gross=Math.ceil(parseFloat(C.gross.value)||0);
+    daily=Math.ceil(gross/BASE_DAYS);
+    var shi=parseFloat(C.shi.value)||0, sick=parseFloat(C.sick.value)||0;
+    if(shi>0){var d1=Math.ceil(1.0*daily*(shi/8));leaveDed+=d1;
+      leaveRows.push(['事假 '+shi+'h（全扣）⌈1.0 × '+fmt(daily)+' × '+(shi/8).toFixed(3)+'⌉',d1]);}
+    if(sick>0){var d2=Math.ceil(0.5*daily*(sick/8));leaveDed+=d2;
+      leaveRows.push(['病假 '+sick+'h（半扣）⌈0.5 × '+fmt(daily)+' × '+(sick/8).toFixed(3)+'⌉',d2]);}
+    rows.push(['全薪',gross,'']);
+    rows.push(['日薪 ⌈'+fmt(gross)+' ÷ 30⌉',daily,'sub']);
+  }
+
+  /* 到職比例用「精確分數」計算（與系統一致）；若用四捨五入後的小數會差 1 元 */
+  var rf=C.ratio.value.split('/'), rNum=parseFloat(rf[0]), rDen=parseFloat(rf[1]);
+  var ratio=rNum/rDen;
+  var grossPaid=gross, ratioNote='';
+  if(!isHourly&&ratio<1){
+    grossPaid=Math.ceil(gross*rNum/rDen);
+    ratioNote='到職比例 '+rNum+'/'+rDen+'（≈'+ratio.toFixed(4)+'）';
+    rows.push(['應發全薪 ⌈'+fmt(gross)+' × '+rNum+'/'+rDen+'⌉',grossPaid,'']);
+  }
+
+  var labor,health;
+  if(!isHourly&&ratio<=0){
+    labor=0;health=0;leaveDed=0;leaveRows=[];grossPaid=0;
+  }else{
+    labor=laborFee(liSet>0?liSet:gross);
+    health=healthFee(hiSet>0?hiSet:gross,dep);
+  }
+  var net=grossPaid-labor-health-leaveDed+extra;
+
+  var h='';
+  rows.forEach(function(r){
+    h+='<div class="row"><span class="lb">'+r[0]+'</span><span class="vl">'+fmt(r[1])+'</span></div>';
+  });
+  var notHired=(!isHourly&&ratio<=0);
+  h+='<div class="row"><span class="lb">勞保自付'
+    +(notHired?'（未在職，不計）':'（級距 '+fmt(grade(liSet>0?liSet:gross,LABOR_GRADES))+'）')+'</span>'
+    +'<span class="vl'+(labor?' neg':'')+'">'+(labor?'−'+fmt(labor):'0')+'</span></div>';
+  h+='<div class="row"><span class="lb">健保自付'
+    +(notHired?'（未在職，不計）':'（級距 '+fmt(grade(hiSet>0?hiSet:gross,HEALTH_GRADES))
+      +'，眷屬 '+Math.min(dep,3)+'）')+'</span>'
+    +'<span class="vl'+(health?' neg':'')+'">'+(health?'−'+fmt(health):'0')+'</span></div>';
+  leaveRows.forEach(function(r){
+    h+='<div class="row"><span class="lb">'+r[0]+'</span><span class="vl neg">−'+fmt(r[1])+'</span></div>';
+  });
+  if(leaveRows.length>1){
+    h+='<div class="row"><span class="lb">請假扣薪合計</span><span class="vl neg">−'+fmt(leaveDed)+'</span></div>';
+  }
+  if(extra!==0){
+    h+='<div class="row"><span class="lb">其他加項</span><span class="vl pos">+'+fmt(extra)+'</span></div>';
+  }
+  h+='<div class="row tot"><span class="lb">實領</span><span class="vl pos">'+fmt(net)+'</span></div>';
+  h+='<div class="note-l">所有金額皆無條件進位到元（⌈⌉），且先進位再做後續計算；'
+    +'請假扣薪各假別分別進位後加總，故明細必等於總額。'
+    +(ratio<=0&&!isHourly?' 尚未到職 → 不計薪、不計勞健保。':'')
+    +(ratioNote?' '+ratioNote+'。':'')+'</div>';
+  cOut.innerHTML=h;
+}
+['change','input'].forEach(function(ev){
+  Object.keys(C).forEach(function(k){C[k].addEventListener(ev,calcSalary);});
+});
+calcSalary();
+
+/* ═══════════ 出勤判定器 ═══════════ */
+var aIn=document.getElementById('a-in'),aOut=document.getElementById('a-out'),
+    aLv=document.getElementById('a-lv'),aBox=document.getElementById('a-out-box');
+function toMin(t){if(!t)return null;var p=t.split(':');return parseInt(p[0],10)*60+parseInt(p[1],10);}
+var IN_END=600/*10:00*/,OUT_START=1110/*18:30*/,L_S=750/*12:30*/,L_E=810/*13:30*/,REQ=480;
+
+function evaluateAtt(){
+  var i=toMin(aIn.value),o=toMin(aOut.value);
+  var lvMin=Math.round((parseFloat(aLv.value)||0)*60);
+  var st,label,work=0,late=0,early=0,short=0,detail=[];
+
+  if(lvMin>=REQ){
+    st='on_leave';label='請假';detail.push('請假時數 ≥ 8h → 全天請假');
+  }else if(i===null&&o===null){
+    st='absent';label='缺勤';detail.push('無上班也無下班打卡');
+  }else if(i===null||o===null){
+    st='incomplete';label='未打卡完整';detail.push('只有單邊打卡（缺'+(i===null?'上班':'下班')+'）');
+  }else{
+    var span=Math.max(0,o-i);
+    /* _lunch_deduction：跨越 13:00 且工時 > 5h 才扣 60 分 */
+    var crosses13=(i<780&&o>780);
+    var ded=(crosses13&&span>300)?60:0;
+    work=Math.max(0,span-ded);
+    detail.push('工時 = ('+aOut.value+' − '+aIn.value+') − 午休 '+ded+'分 = '+(work/60).toFixed(2)+'h');
+    late=Math.max(0,i-IN_END);
+    early=Math.max(0,OUT_START-o);
+    if(work+lvMin>=REQ){
+      st='on_time';label='正常';
+      detail.push('工時 '+(work/60).toFixed(2)+'h + 請假 '+(lvMin/60).toFixed(1)+'h ≥ 8h → 正常（遲到/早退歸 0）');
+      late=0;early=0;
+    }else{
+      short=REQ-work-lvMin;
+      if(late>0&&early>0){st='late_and_early';label='遲到且早退';}
+      else if(late>0){st='late';label='遲到 '+late+' 分';}
+      else if(early>0){st='early_leave';label='早退 '+early+' 分';}
+      else{st='incomplete';label='工時不足 '+short+' 分';}
+      detail.push('工時 + 請假 = '+((work+lvMin)/60).toFixed(2)+'h < 8h → 不足 '+short+' 分');
+    }
+  }
+  var cls=(st==='on_time'||st==='on_leave')?'p-ok':(st==='absent'?'p-no':'p-wip');
+  var h='<div class="verdict"><span class="pill '+cls+'">'+st+'</span>'
+    +'<span class="big">'+label+'</span></div>';
+  h+='<div class="note-l" style="margin-top:.6rem">'+detail.join('<br>')+'</div>';
+  if(st!=='absent'&&st!=='on_leave'){
+    h+='<div class="row" style="margin-top:.5rem"><span class="lb">工時</span>'
+      +'<span class="vl">'+(work/60).toFixed(2)+' h（'+work+' 分）</span></div>';
+    h+='<div class="row"><span class="lb">遲到 / 早退</span><span class="vl">'
+      +late+' 分 / '+early+' 分</span></div>';
+    if(short>0){h+='<div class="row"><span class="lb">工時不足</span><span class="vl neg">'
+      +short+' 分</span></div>';}
+  }
+  aBox.innerHTML=h;
+}
+[aIn,aOut,aLv].forEach(function(el){el.addEventListener('input',evaluateAtt);
+  el.addEventListener('change',evaluateAtt);});
+evaluateAtt();
+
+/* ═══════════ 名詞解釋 ═══════════ */
+var GLOSSARY=[
+/* A 專案 */
+['Think4U HRMS','專案','本系統。Think4U Tech 內部人事管理系統'],
+['Horilla','專案','開源 HRMS（LGPL），本系統的 fork 基底'],
+['honsi-hrms','專案','專案資料夾／repo 名稱。honsi=宏思（公司舊稱），已 rebrand 但資料夾名保留'],
+['think4u/ (app)','專案','所有 Think4U 客製功能所在的 Django app。新功能一律放這裡'],
+['前台 / Portal','專案','/portal/，員工自助頁（手機 App 風格單頁）'],
+['後台 / Admin','專案','/，管理頁（HR／主管／系統管理員用）。⚠️ 不是 Django 內建的 /admin/'],
+['TMS','專案','公司另一系統（Plane 客製的任務管理），與 HRMS 共用同一台伺服器與 nginx'],
+/* B 技術 */
+['Django','技術','Python Web 框架（本專案 4.2 LTS）'],
+['ORM','技術','Object-Relational Mapping，用 Python 物件操作資料庫不寫 SQL'],
+['Model','技術','Django 的資料表定義（一個 class = 一張表）'],
+['View','技術','處理請求、回傳回應的函式／類別'],
+['Template','技術','HTML 樣板（含 {% %} 標籤）'],
+['Migration','技術','資料庫結構變更的版本紀錄檔。⚠️ 本專案需 git add -f'],
+['QuerySet','技術','ORM 的查詢物件（延遲執行）'],
+['N+1 問題','技術','迴圈內逐筆查 DB，1 次主查詢 + N 次子查詢。本專案已用 annotate／預撈字典解決'],
+['CBV / FBV','技術','Class-Based View／Function-Based View。Horilla 用 CBV，Think4U 主要用 FBV'],
+['Signal','技術','Django 事件機制。稽核紀錄靠 pre_save／post_save／post_delete'],
+['Middleware','技術','包在所有請求外層的處理鏈。本專案自製 2 個：計時、前後台守門'],
+['HTMX','技術','前端函式庫，用 HTML 屬性（hx-get／hx-post）做局部更新，回傳 HTML 片段而非 JSON'],
+['select2','技術','可搜尋下拉選單元件（class oh-select-2）'],
+['Alpine.js','技術','輕量前端框架，本專案少量使用（topbar 通知匣）'],
+['oh-*','技術','Horilla 自有 CSS class 前綴（oh-btn、oh-card、oh-input），寫新頁面沿用這套'],
+['SSR','技術','Server-Side Rendering，伺服器端產生 HTML。本系統架構（無 SPA）'],
+['gunicorn','技術','Python WSGI 應用伺服器，跑 Django'],
+['gthread','技術','gunicorn 的 thread worker 模式，解決「第一下卡」問題'],
+['WhiteNoise','技術','Django 靜態檔服務中介層，免另設 nginx static'],
+['bind mount','技術','把主機目錄掛進容器，開發環境即時改檔'],
+['volume','技術','Docker 管理的持久化儲存（DB 資料、staticfiles）'],
+['reverse proxy','技術','反向代理，對外接收請求再轉給內部服務。本專案 nginx → 127.0.0.1:8091'],
+['gettext / .po / .mo','技術','多語系機制／翻譯原始檔／編譯檔'],
+['msgid / msgstr','技術','原文／譯文。⚠️ msgid 不可重複，否則 compile fatal'],
+['pyotp','技術','Python TOTP 函式庫，用於打卡每日驗證碼'],
+['openpyxl / pandas','技術','Excel 讀寫／資料處理，用於匯入出勤、匯出薪資'],
+['pure function','技術','無副作用、不碰 DB、輸入決定輸出的函式（易測試、可重用）。本系統規則層的設計原則'],
+/* C 認證權限 */
+['User (auth_user)','權限','Django 內建帳號表。本系統 username = 公司 Email'],
+['Employee','權限','Horilla 的員工主檔，1:1 對應 User'],
+['Group','權限','Django 內建群組 = 本系統的「角色」（4 種）'],
+['Permission','權限','Django 內建細粒度權限（app.action_model）'],
+['superuser','權限','Django 最高權限旗標'],
+['AdminAccessGroup','權限','Think4U 自製表，給每個 Group 設 4 個旗標'],
+['can_access_admin','權限','旗標：該角色能否進後台'],
+['force_admin_only','權限','旗標：該角色強制只能用後台（高管不需前台打卡）'],
+['show_in_personal_reports','權限','旗標：是否出現在個人出勤／請假報表（高管隱藏）'],
+['acts_as_superuser','權限','旗標：該角色成員視為 superuser'],
+['直屬主管','權限','Horilla 原生欄位 EmployeeWorkInformation.reporting_manager_id'],
+['部門主管','權限','Think4U 加的 Department.manager；get_effective_manager() 會往上層部門回溯'],
+['is_manager()','權限','Think4U helper：直屬主管 ∪ 部門主管。★判主管一律用這個'],
+['managed_employees()','權限','該主管可管範圍：直屬下屬 ∪ 所管部門(含子部門) ∪ 自己'],
+['RolePageVisibility','權限','角色 × 側邊欄項目的可見性設定'],
+['OAuth 2.0','權限','第三方授權標準'],
+['Authorization Code Flow','權限','OAuth 流程之一：先拿 code、後端再換 token（本系統採用）'],
+['SSO','權限','Single Sign-On 單一登入。本系統的 Google 登入'],
+['id_token','權限','OAuth 回傳的身分憑證（JWT 格式），內含 email 等 claims'],
+['JWT','權限','JSON Web Token，三段式（header.payload.signature）'],
+['iss / aud','權限','issuer 發行者／audience 接收者（須等於 client_id）'],
+['state','權限','OAuth 防 CSRF 的隨機字串（存 session，callback 時比對）'],
+['redirect_uri','權限','OAuth 回跳網址，必須與 Google Console 登記值完全一致'],
+['CSRF','權限','跨站請求偽造。Django 用 token 防禦'],
+['CSRF_TRUSTED_ORIGINS','權限','信任的來源網域清單（跨網域登入必設，否則 403）'],
+['TOTP','權限','基於時間的一次性密碼。本系統打卡驗證碼，24h 有效'],
+/* D 業務 */
+['AttendanceActivity','業務','Horilla 的打卡明細表。★本系統唯一寫入的出勤表'],
+['Attendance（原生）','業務','Horilla 原生出勤表，本系統棄用（空表）'],
+['彈性工時','業務','上班 09:30–10:00、下班 18:30–19:00 區間內視為準時'],
+['午休','業務','12:30–13:30，不計工時'],
+['工時 work_minutes','業務','(下班 − 上班) − 午休重疊'],
+['evaluate()','業務','出勤判定核心函式，回傳 AttendanceEvaluation'],
+['on_time','業務','出勤狀態：正常'],
+['late / early_leave','業務','出勤狀態：遲到／早退'],
+['late_and_early','業務','出勤狀態：遲到且早退'],
+['absent','業務','出勤狀態：缺勤（該出勤未出勤）'],
+['incomplete','業務','出勤狀態：未打卡完整或工時不足'],
+['on_leave','業務','出勤狀態：全天請假'],
+['short_minutes','業務','工時不足的分鐘數（< 8h 才有值）'],
+['出勤異常紀錄','業務','列出所有非正常日的報表（原名「遲到早退紀錄」）'],
+['補打卡','業務','忘記打卡後的事後補登申請（需簽核）'],
+['外勤','業務','GPS 超出公司 200m 範圍的打卡，需填事由'],
+['Haversine 公式','業務','球面上兩點距離公式（GPS 判定用）'],
+['全薪 gross','業務','本薪 + 津貼(伙食/交通) + 加給(管理/技術管理/薪資)'],
+['日薪','業務','⌈全薪 ÷ 30⌉（計薪基準 30 天）'],
+['計薪基準 30 天','業務','台灣慣例：月薪 ÷ 30 = 日薪（不論當月實際天數）'],
+['實領 net','業務','應發全薪 − 勞保 − 健保 − 請假扣薪 + 其他加項'],
+['月薪制 / 時薪制','業務','pay_type = monthly / hourly'],
+['每月變動加項','業務','MonthlyPayExtra 的 8 項，逐月手填，不計入投保薪資'],
+['無條件進位','業務','math.ceil。本系統所有金額的取整方式（2026-07 決策），且先進位再後續計算'],
+['到職比例','業務','到職當月：在職日曆天數 ÷ 當月天數，用來按比例計薪'],
+['pre-hire','業務','月度矩陣中「未到職」的日子標記（不算缺勤）'],
+/* E 勞法 */
+['勞基法','勞法','勞動基準法。特休 §38、產假 §50 為主要依據'],
+['勞工請假規則','勞法','勞動部規則。病假半薪 §4、事假不給薪 §7'],
+['性平法','勞法','性別工作平等法。生理假 §14（半薪）'],
+['勞保','勞法','勞工保險。費率 12.5%（普通事故 11.5% + 就保 1%），受僱者自付 20%'],
+['就業保險','勞法','失業給付等，與勞保合併計收，含在 12.5% 內'],
+['健保','勞法','全民健康保險。費率 5.17%，受僱者自付 30%，眷屬計費上限 3 人'],
+['勞退','勞法','勞工退休金，雇主 6% 提繳。★雇主全額負擔，不從薪資扣除（本系統不計算）'],
+['投保薪資','勞法','計算保費的基準金額，依政府分級表取級距，非實際薪資'],
+['分級表 / 級距','勞法','政府公布的投保金額級距表（勞保 11 級上限 45,800；健保 48 級）'],
+['投保上限','勞法','勞保月投保薪資上限 45,800（高薪者以此計）'],
+['特休','勞法','特別休假，依年資給予的有薪假。勞基法 §38：滿半年 3 天…滿 10 年起每年 +1 至 30 天'],
+['週年制','勞法','以「到職週年日」為給假基準。本系統獲假採此制'],
+['曆年制','勞法','以 1/1–12/31 為使用週期。本系統使用期採此制'],
+['Model B','勞法','本專案代號：週年制獲假 + 曆年使用的混合制（每次獲假拆兩段）'],
+['遞延','勞法','未休完的特休延到隔年。勞基法 §38-4；本系統僅可遞延一年'],
+['事假','勞法','個人事務請假，不給薪（比例 0.0）'],
+['病假','勞法','普通傷病假，全年 30 天內半薪（比例 0.5）；需附證明'],
+['公傷病假','勞法','職業災害導致，全薪（比例 1.0）'],
+['生理假','勞法','每月 1 天，半薪，前 3 天不計入病假 30 天（比例 0.5）'],
+['公假','勞法','依法令應放假（如兵役、選舉），全薪'],
+['給薪比例 pay_ratio','勞法','本系統概念：1.0 不扣／0.5 半扣／0.0 全扣（LEAVE_PAY_RATIO）'],
+/* F 內部代號 */
+['WP-XX','代號','Work Package，早期開發階段代號（WP-00 環境建置…WP-09 正式部署）'],
+['Phase 1–4','代號','職位預設角色與簽核關卡的四階段規劃。★Phase 4（請假吃 Workflow）未完成'],
+['T4U / t4u','代號','Think4U 縮寫（程式內前綴，如 _T4U_DISTINCT_CACHE）'],
+['規則層','代號','attendance_rules.py／payroll_rules.py 等 pure function 模組'],
+['地雷 M1–M13','代號','docs/02 的踩雷清單編號'],
+['紅線資源','代號','動了會影響其他系統的共用資源（如正式機的系統 nginx）'],
+['dc','代號','docs/04 定義的 alias = docker compose -f docker-compose.deploy.yaml --env-file .env.prod'],
+['scope','代號','資料可見範圍（HR 全公司／主管部門／員工自己）'],
+['decisions','代號','多關卡簽核的 JSON 欄位，累積每關的決定紀錄'],
+['hidden_ids','代號','被 show_in_personal_reports=False 排除的員工 id 清單'],
+/* G 部署維運 */
+['.env / .env.prod','維運','環境變數檔（機密），不進版控；.example／.dist 為範本'],
+['entrypoint.sh','維運','容器啟動腳本：還原 auth migration patch → makemigrations → migrate → compilemessages → collectstatic → 建 admin → 啟 gunicorn'],
+['collectstatic','維運','Django 收集靜態檔到 staticfiles/'],
+['health check','維運','/health/ 端點。⚠️ DEBUG=False 時純 HTTP 回 301（正常），檢查要帶 X-Forwarded-Proto: https'],
+['301 / 500 / 000','維運','部署常見狀況：301=HTTPS 轉向（正常）、500=多為 DB 空／migration 失敗、000=連不上（容器啟動中）'],
+['SECURE_SSL_REDIRECT','維運','Django 設定：強制 HTTP→HTTPS（DEBUG=False 時啟用）'],
+['X-Forwarded-Proto','維運','反向代理告知原始協定的標頭'],
+['HSTS','維運','強制瀏覽器只用 HTTPS 的標頭（本系統設 1 年）'],
+['certbot / Let’s Encrypt','維運','免費 TLS 憑證工具／憑證頒發機構（自動續期）'],
+['pg_dump / psql','維運','PostgreSQL 備份／命令列客戶端'],
+['ngrok','維運','把本機服務暴露到公網的隧道工具（手機測試用）'],
+['management command','維運','Django 自訂指令（python manage.py xxx）'],
+['MSYS_NO_PATHCONV','維運','git-bash 環境變數，設 1 可避免 /app/... 被轉成 Windows 路徑'],
+['unrelated histories','維運','Git 兩分支無共同祖先，merge 需 --allow-unrelated-histories'],
+/* H 檔案 */
+['think4u/models.py','檔案','13 張自製表 + 權限 helper'],
+['think4u/payroll_rules.py','檔案','★計薪引擎（級距、費率、扣薪、進位）'],
+['think4u/attendance_rules.py','檔案','★出勤判定（常數 + evaluate()）'],
+['think4u/attendance_compute.py','檔案','出勤彙總（daily_evaluations／worked_minutes_for）'],
+['think4u/monthly_attendance_views.py','檔案','★月度統計 + 薪資試算（最複雜）'],
+['think4u/portal_views.py','檔案','前台（GPS 常數在檔頭）'],
+['think4u/manager_utils.py','檔案','主管判定'],
+['think4u/google_auth.py','檔案','Google SSO'],
+['think4u/audit_log.py','檔案','稽核 signals'],
+['services/annual_leave_calculator.py','檔案','特休演算法'],
+['horilla/settings.py','檔案','全域設定（env 注入）'],
+['horilla/auth_migrations_patch/','檔案','⚠️ auth.0013 修補檔（entrypoint 會複製回 site-packages）'],
+['docker-compose.deploy.yaml','檔案','正式部署（系統 nginx 版）'],
+['deploy/nginx-hrms.conf','檔案','系統 nginx site 設定'],
+['scripts/deploy_to_server.sh','檔案','一鍵部署'],
+['CLAUDE.md','檔案','開發守則 + 完整 Changelog（★必讀）']
+];
+
+var CATS=['全部','專案','技術','權限','業務','勞法','代號','維運','檔案'];
+var curCat='全部';
+var glctl=document.getElementById('glctl'),
+    gllist=document.getElementById('gllist'),
+    glcount=document.getElementById('glcount');
+
+CATS.forEach(function(c){
+  var b=document.createElement('button');
+  b.type='button';b.className='chip'+(c==='全部'?' on':'');b.textContent=c;
+  b.addEventListener('click',function(){
+    curCat=c;
+    Array.prototype.forEach.call(glctl.children,function(x){x.classList.toggle('on',x===b);});
+    filterGlossary();
+  });
+  glctl.appendChild(b);
+});
+
+function filterGlossary(){
+  var term=(q.value||'').trim().toLowerCase();
+  var html='',n=0;
+  GLOSSARY.forEach(function(g){
+    if(curCat!=='全部'&&g[1]!==curCat)return;
+    if(term&&(g[0]+' '+g[2]).toLowerCase().indexOf(term)<0)return;
+    n++;
+    html+='<div class="gl-item"><div><span class="term">'+g[0]+'</span>'
+      +'<span class="cat">'+g[1]+'</span></div><div class="def">'+g[2]+'</div></div>';
+  });
+  gllist.innerHTML=html||'<div class="gl-item"><div class="def">查無符合的名詞</div></div>';
+  glcount.textContent='共 '+n+' 個名詞'+(curCat!=='全部'?'（分類：'+curCat+'）':'')
+    +'（總計 '+GLOSSARY.length+'）';
+}
+filterGlossary();
+
+})();
+</script>
