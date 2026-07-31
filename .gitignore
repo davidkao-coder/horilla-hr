@@ -132,9 +132,14 @@ dmypy.json
 *.pyc
 
 # migration files
-**/migrations/**
-!**/migrations
-!**/migrations/__init__.py
+# Think4U 2026-08-03：原本上游 Horilla 把 **/migrations/** 整批排除，只靠下方 force-add
+# 客製 migration。後果是「全新 clone 缺少原生 0001_initial 等，migration graph 直接斷掉，
+# 無法 migrate」——新成員接手時必須自行從 fork 點重新產生 26 個原生 migration 才能啟動。
+# migration 是部署與 schema 的一部分，必須進版控，故解除此排除。
+# （__pycache__/ 與 *.pyc 已由上方規則排除，不會混入）
+#**/migrations/**
+#!**/migrations
+#!**/migrations/__init__.py
 
 # Think4U: 不要把客戶原始資料進版控
 import_data/

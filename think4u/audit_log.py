@@ -10,6 +10,7 @@ import logging
 from datetime import date, datetime
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
@@ -27,6 +28,13 @@ EXCLUDED_LABELS = {
     "notifications.Notification",           # 通知量太大
     "auditlog.LogEntry",                    # 套件自帶
     "simple_history.HistoricalRecords",
+    # ★ MigrationRecorder 用 ORM 寫 django_migrations，每套用一個 migration 就觸發一次
+    #   post_save。全新 DB 執行 migrate 時 think4u_auditlog 還不存在（該表由第 83 個
+    #   migration think4u.0007 才建立），handler 去 INSERT 會失敗；即使被 except 接住，
+    #   PostgreSQL 的 transaction 已被污染 → 接在後面的 DDL 一併 rollback，
+    #   症狀是 auth.0001_initial 報「django_content_type does not exist」。
+    #   必須排除，否則全新環境無法初始化。
+    "migrations.Migration",
     # Horilla 自家 history rows（會 auto-create 一堆）
     # — 動態判斷 model.__name__ startswith 'Historical'
 }
@@ -141,18 +149,23 @@ def _log_save(sender, instance, created, **kwargs):
             if not changes:
                 return  # 沒實際變動
 
-        AuditLog.objects.create(
-            user=user,
-            user_repr=user_repr,
-            action="CREATE" if created else "UPDATE",
-            model_label=label,
-            object_id=str(instance.pk) if instance.pk else "",
-            object_repr=str(instance)[:200],
-            changes=changes,
-            request_path=path,
-            request_method=method,
-            ip_address=ip,
-        )
+        # ★ 必須包 atomic：稽核寫入失敗時只回滾到 savepoint，不污染外層 transaction。
+        #   否則（PostgreSQL）失敗的 INSERT 會讓整個 transaction 進入 aborted 狀態，
+        #   即使這裡 except 接住，呼叫端「原本要做的那件事」也會一起失敗。
+        #   稽核是附帶功能，絕不該讓它拖垮業務操作。
+        with transaction.atomic():
+            AuditLog.objects.create(
+                user=user,
+                user_repr=user_repr,
+                action="CREATE" if created else "UPDATE",
+                model_label=label,
+                object_id=str(instance.pk) if instance.pk else "",
+                object_repr=str(instance)[:200],
+                changes=changes,
+                request_path=path,
+                request_method=method,
+                ip_address=ip,
+            )
     except Exception as e:
         logger.warning(f"audit log 寫入失敗 {label}: {e}")
 
@@ -174,17 +187,19 @@ def _log_delete(sender, instance, **kwargs):
             except Exception:
                 pass
 
-        AuditLog.objects.create(
-            user=user,
-            user_repr=user_repr,
-            action="DELETE",
-            model_label=label,
-            object_id=str(instance.pk) if instance.pk else "",
-            object_repr=str(instance)[:200],
-            changes={"__deleted__": snapshot},
-            request_path=path,
-            request_method=method,
-            ip_address=ip,
-        )
+        # ★ 同 _log_save：包 atomic 以 savepoint 隔離，稽核失敗不得拖垮外層 transaction
+        with transaction.atomic():
+            AuditLog.objects.create(
+                user=user,
+                user_repr=user_repr,
+                action="DELETE",
+                model_label=label,
+                object_id=str(instance.pk) if instance.pk else "",
+                object_repr=str(instance)[:200],
+                changes={"__deleted__": snapshot},
+                request_path=path,
+                request_method=method,
+                ip_address=ip,
+            )
     except Exception as e:
         logger.warning(f"audit log 刪除紀錄寫入失敗 {label}: {e}")

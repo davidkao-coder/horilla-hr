@@ -1,0 +1,45 @@
+# Think4U HRMS — 換行符正規化
+#
+# 目的：不論開發者本機的 core.autocrlf 設定為何，進入容器執行的檔案一律使用 LF。
+# 背景：CLAUDE.md 要求本 repo 用 core.autocrlf=false，但那是「每台機器都要自己設」；
+#       新成員 clone 時若本機為 true，shell script 會被轉成 CRLF → Linux 容器無法執行
+#       （症狀：entrypoint.sh 啟動失敗、bad interpreter）。
+#       .gitattributes 由 repo 提供且優先於 core.autocrlf，故可一勞永逸。
+
+# 預設：文字檔由 git 自動判斷，工作區統一 LF
+* text=auto eol=lf
+
+# 在容器 / Linux 內執行的檔案：強制 LF（最關鍵）
+*.sh            text eol=lf
+entrypoint.sh   text eol=lf
+*.py            text eol=lf
+*.yaml          text eol=lf
+*.yml           text eol=lf
+*.conf          text eol=lf
+*.po            text eol=lf
+Dockerfile      text eol=lf
+
+# Windows 專用批次檔：保留 CRLF（cmd.exe 需要）
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
+
+# 二進位檔：不做任何換行轉換（避免損毀）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.svg  text eol=lf
+*.pdf  binary
+*.xlsx binary
+*.docx binary
+*.pptx binary
+*.mo   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.zip   binary
+*.tar   binary
+*.gz    binary
+*.sql   text eol=lf

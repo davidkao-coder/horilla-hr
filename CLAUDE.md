@@ -49,6 +49,11 @@
 
 ## Changelog
 <!-- 每完成一個 WP，在此記錄 -->
+- 2026-08-03 修新成員 clone 後無法啟動的三個障礙（接手同事實測回報，皆為 repo 層根治非本機 workaround）：
+  - **稽核 signal 讓全新 DB 的 migrate 必炸（真 bug，亦影響生產）**：`MigrationRecorder` 用 ORM 寫 `django_migrations` 觸發 post_save，稽核 handler 去 INSERT 尚未建立的 `think4u_auditlog`（該表由第 83 個 migration `think4u.0007` 才建）；handler 雖 except 接住，但 PostgreSQL transaction 已 aborted，同 transaction 後續 DDL 全數 rollback → `auth.0001_initial` 誤報 `django_content_type does not exist`。修法兩層：(1) `audit_log.py` EXCLUDED_LABELS 加 `migrations.Migration`；(2) 兩處 `AuditLog.objects.create()` 包 `transaction.atomic()` 以 savepoint 隔離——後者同時消除生產風險（稽核寫入失敗不再拖垮使用者的業務操作）。
+  - **migrations 全面進版控**：原 `.gitignore` 的 `**/migrations/**` 使全新 clone 缺原生 `0001_initial`，migration graph 斷裂無法啟動（同事需自行到 fork 點重產 26 個檔）。已解除排除並 force-add 25 個原生 migration（檔名經 `django_migrations` 核對與生產完全吻合，含原本漏掉的客製 `leave/0002_leavetype_half_paid`）。新增 migration 起不再需要 `git add -f`。
+  - **`.gitattributes` 強制 LF**：`*.sh`/`entrypoint.sh`/`*.py`/`*.yaml` 等一律 `eol=lf`（`.bat`/`.cmd` 保留 CRLF），優先於本機 `core.autocrlf`，不再需要每台機器手動設 false。
+  - 驗證：對全新空 DB 從零 `migrate` 完整成功（93 筆，差異僅 4 個已卸載 app 的舊紀錄），關鍵表 4/4 建立；docs/01 上手指南與 docs/02 地雷清單（M12/M14/M15）同步更新。
 - 2026-07-30 SA 系統分析文件：新增 `docs/SA_00`~`SA_07`（總覽／架構分析／資料模型／功能規格／業務規則與演算法／介面與整合／擴充指南／名詞解釋 147 詞）+ `docs/SA_系統分析文件.html`（單檔可互動版：全文搜尋、薪資試算器、出勤判定器、名詞分類篩選、亮暗主題；已用實際系統驗算數字一致）。交接資料夾另存一份 HTML。
 - 2026-07-27 交接文件：新增 `docs/` 系列（01 開發者上手指南、02 與上游差異與地雷清單、03 業務規則決策紀錄、04 維運 Runbook、06 未完成與待辦清單、07 HR 操作 SOP）；帳號密鑰盤點另存於交接資料夾（不進版控）。
 - 2026-07-14 Google SSO（輕量 OAuth 2.0 code flow，不用 allauth）：`think4u/google_auth.py`（google_login 產 state 導 Google；google_callback 驗 state/iss/aud/email_verified → 以 email 對應**既有** User → login，不自動建帳號；網域白名單 GOOGLE_OAUTH_ALLOWED_DOMAINS 預設 think4u-tech.com）；URLs `/think4u/google/login|callback/`；settings 讀 .env 的 GOOGLE_OAUTH_CLIENT_ID/SECRET（未設定登入頁不顯示按鈕）；login.html 加「使用 Google 登入」鈕（沿用前台/後台選擇，JS 帶 dest）；redirect_uri 非 localhost 強制 https（ngrok/prod 適用）。Google Console 需登記 redirect URI：`http://localhost:8001/think4u/google/callback/` 與各正式網域版本。
